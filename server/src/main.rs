@@ -13,6 +13,7 @@ struct VersionInfo {
 #[derive(Serialize)]
 struct Conversation {
     title: String,
+    avatar: String,
     last_msg: String,
     time: String,
 }
@@ -44,8 +45,10 @@ async fn conversation() -> axum::Json<Vec<Conversation>> {
 
     axum::Json(
         data.into_iter()
-            .map(|(title, last_msg, time)| Conversation {
+            .enumerate()
+            .map(|(i, (title, last_msg, time))| Conversation {
                 title: title.to_string(),
+                avatar: format!("https://picsum.photos/seed/{}/100/100", i + 1),
                 last_msg: last_msg.to_string(),
                 time: time.to_string(),
             })
@@ -70,10 +73,7 @@ async fn main() {
     let port = 9600;
     let addr = format!("0.0.0.0:{port}");
 
-    let local_ip = UdpSocket::bind("0.0.0.0:0")
-        .and_then(|s| { s.connect("8.8.8.8:80")?; s.local_addr() })
-        .map(|a| a.ip().to_string())
-        .unwrap_or_else(|_| "127.0.0.1".to_string());
+    let local_ip = get_local_ip();
 
     println!("🚀 Flash IM server listening on:");
     println!("   Local:   http://127.0.0.1:{port}");
@@ -81,4 +81,33 @@ async fn main() {
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();
+}
+
+/// 获取本机局域网 IP，跳过代理虚拟网卡（如 Clash 的 198.18.x.x）
+fn get_local_ip() -> String {
+    // 尝试多个目标地址，优先局域网常见网关
+    let targets = ["192.168.1.1:80", "10.0.0.1:80", "172.16.0.1:80", "8.8.8.8:80"];
+    for target in targets {
+        if let Ok(ip) = try_get_ip(target) {
+            if is_real_lan_ip(&ip) {
+                return ip;
+            }
+        }
+    }
+    "127.0.0.1".to_string()
+}
+
+fn try_get_ip(target: &str) -> Result<String, std::io::Error> {
+    let socket = UdpSocket::bind("0.0.0.0:0")?;
+    socket.connect(target)?;
+    Ok(socket.local_addr()?.ip().to_string())
+}
+
+/// 过滤掉代理/虚拟网卡地址
+fn is_real_lan_ip(ip: &str) -> bool {
+    if ip.starts_with("127.") || ip.starts_with("198.18.") || ip.starts_with("169.254.") {
+        return false;
+    }
+    // 只保留常见局域网段
+    ip.starts_with("192.168.") || ip.starts_with("10.") || ip.starts_with("172.")
 }
