@@ -4,6 +4,7 @@ import 'firework/firework_page.dart';
 import 'conversation/view/conversation_page.dart';
 import 'heartbeat/view/heartbeat_page.dart';
 import 'auth/view/login_page.dart';
+import 'ws_auth/view/ws_auth_page.dart';
 
 void main() {
   runApp(
@@ -62,6 +63,14 @@ class PlaygroundPage extends StatelessWidget {
             onTap: () => Navigator.of(
               context,
             ).push(MaterialPageRoute(builder: (_) => const LoginPage())),
+          ),
+          _PlaygroundItem(
+            icon: '🔗',
+            title: '认证通信',
+            subtitle: 'WebSocket + JWT 身份认证整合练习',
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const WsAuthPage())),
           ),
         ],
       ),

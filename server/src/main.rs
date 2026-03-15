@@ -8,14 +8,14 @@ use axum::{
     Json,
 };
 use chrono::Utc;
-use futures::StreamExt;
+use futures::{SinkExt, StreamExt};
 use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
 use rand::Rng;
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use std::net::UdpSocket;
 use std::sync::Arc;
-use tokio::sync::Mutex;
+use tokio::sync::{broadcast, Mutex};
 use tower_http::services::ServeDir;
 
 const JWT_SECRET: &str = "flash-im-playground-secret";
@@ -27,6 +27,7 @@ struct AppState {
     users: Mutex<HashMap<String, User>>,       // phone -> User
     sms_codes: Mutex<HashMap<String, String>>, // phone -> code
     next_id: Mutex<i64>,
+    chat_tx: broadcast::Sender<String>,        // 聊天室广播
 }
 
 /// 用户信息
@@ -251,19 +252,196 @@ async fn handle_socket(mut socket: WebSocket) {
 
     println!("❌ WebSocket 连接已断开");
 }
+/// GET /ws/auth — 需要认证的 WebSocket 端点
+async fn ws_auth_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_auth_socket(socket, state))
+}
+
+/// 处理带认证的 WebSocket 连接
+async fn handle_auth_socket(mut socket: WebSocket, state: Arc<AppState>) {
+    println!("🔗 [ws/auth] 连接已建立，等待认证...");
+
+    // 10 秒内必须完成认证
+    let auth_result = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        wait_for_auth(&mut socket, &state),
+    )
+    .await;
+
+    let user = match auth_result {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            let _ = socket.send(Message::Text(r#"{"type":"auth_fail","message":"Token 无效"}"#.into())).await;
+            let _ = socket.send(Message::Close(None)).await;
+            println!("❌ [ws/auth] 认证失败");
+            return;
+        }
+        Err(_) => {
+            let _ = socket.send(Message::Text(r#"{"type":"auth_timeout","message":"认证超时"}"#.into())).await;
+            let _ = socket.send(Message::Close(None)).await;
+            println!("⏰ [ws/auth] 认证超时（10s）");
+            return;
+        }
+    };
+
+    // 认证成功
+    let welcome = format!(
+        r#"{{"type":"auth_ok","user_id":{},"nickname":"{}"}}"#,
+        user.user_id, user.nickname
+    );
+    let _ = socket.send(Message::Text(welcome.into())).await;
+    println!("✅ [ws/auth] 用户 {} (ID:{}) 认证成功", user.nickname, user.user_id);
+
+    // 进入正常消息循环
+    while let Some(Ok(msg)) = socket.next().await {
+        match msg {
+            Message::Text(text) => {
+                println!("📨 [ws/auth] 用户{}说: {text}", user.user_id);
+                let reply = format!(
+                    r#"{{"type":"message","from":{},"text":"echo: {text}"}}"#,
+                    user.user_id
+                );
+                if socket.send(Message::Text(reply.into())).await.is_err() {
+                    break;
+                }
+            }
+            Message::Close(_) => break,
+            _ => {}
+        }
+    }
+
+    println!("❌ [ws/auth] 用户 {} 断开连接", user.user_id);
+}
+
+/// 等待客户端发送 Token 进行认证
+async fn wait_for_auth(socket: &mut WebSocket, state: &Arc<AppState>) -> Option<User> {
+    while let Some(Ok(msg)) = socket.next().await {
+        if let Message::Text(text) = msg {
+            // 尝试解析 JSON: {"token": "xxx"}
+            if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
+                if let Some(token) = parsed.get("token").and_then(|t| t.as_str()) {
+                    if let Ok(user_id) = verify_token(token) {
+                        let users = state.users.lock().await;
+                        return users.values().find(|u| u.user_id == user_id).cloned();
+                    }
+                }
+            }
+            return None; // 第一条消息格式不对，直接失败
+        }
+    }
+    None
+}
+/// GET /ws/chat_room — 聊天室 WebSocket 端点（需认证）
+async fn ws_chat_room_handler(
+    ws: WebSocketUpgrade,
+    State(state): State<Arc<AppState>>,
+) -> impl IntoResponse {
+    ws.on_upgrade(move |socket| handle_chat_room(socket, state))
+}
+
+/// 处理聊天室连接：认证 → 广播消息
+async fn handle_chat_room(mut socket: WebSocket, state: Arc<AppState>) {
+    println!("🔗 [chat_room] 连接已建立，等待认证...");
+
+    // 10 秒认证超时
+    let auth_result = tokio::time::timeout(
+        std::time::Duration::from_secs(10),
+        wait_for_auth(&mut socket, &state),
+    )
+    .await;
+
+    let user = match auth_result {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            let _ = socket.send(Message::Text(r#"{"type":"auth_fail","message":"Token 无效"}"#.into())).await;
+            let _ = socket.send(Message::Close(None)).await;
+            return;
+        }
+        Err(_) => {
+            let _ = socket.send(Message::Text(r#"{"type":"auth_timeout","message":"认证超时"}"#.into())).await;
+            let _ = socket.send(Message::Close(None)).await;
+            return;
+        }
+    };
+
+    // 认证成功
+    let welcome = format!(
+        r#"{{"type":"auth_ok","user_id":{},"nickname":"{}","avatar":"{}"}}"#,
+        user.user_id, user.nickname, user.avatar
+    );
+    let _ = socket.send(Message::Text(welcome.into())).await;
+    println!("✅ [chat_room] {} (ID:{}) 进入聊天室", user.nickname, user.user_id);
+
+    // 广播「加入」
+    let join_msg = format!(
+        r#"{{"type":"join","user_id":{},"nickname":"{}","avatar":"{}"}}"#,
+        user.user_id, user.nickname, user.avatar
+    );
+    let _ = state.chat_tx.send(join_msg);
+
+    // 订阅广播
+    let mut rx = state.chat_tx.subscribe();
+    let tx = state.chat_tx.clone();
+    let uid = user.user_id;
+    let nick = user.nickname.clone();
+    let avatar = user.avatar.clone();
+
+    let (mut ws_sink, mut ws_stream) = socket.split();
+
+    // 任务1：广播 → 客户端
+    let send_task = tokio::spawn(async move {
+        while let Ok(msg) = rx.recv().await {
+            if ws_sink.send(Message::Text(msg.into())).await.is_err() {
+                break;
+            }
+        }
+    });
+
+    // 任务2：客户端 → 广播
+    while let Some(Ok(msg)) = ws_stream.next().await {
+        match msg {
+            Message::Text(text) => {
+                let broadcast_msg = format!(
+                    r#"{{"type":"message","user_id":{},"nickname":"{}","avatar":"{}","text":{}}}"#,
+                    uid, nick, avatar, serde_json::to_string(&text.to_string()).unwrap_or_default()
+                );
+                let _ = tx.send(broadcast_msg);
+            }
+            Message::Close(_) => break,
+            _ => {}
+        }
+    }
+
+    // 广播「离开」
+    let leave_msg = format!(
+        r#"{{"type":"leave","user_id":{},"nickname":"{}","avatar":"{}"}}"#,
+        uid, nick, avatar
+    );
+    let _ = tx.send(leave_msg);
+    send_task.abort();
+    println!("❌ [chat_room] {} 离开聊天室", nick);
+}
 
 #[tokio::main]
 async fn main() {
+    let (chat_tx, _) = broadcast::channel::<String>(256);
+
     let state = Arc::new(AppState {
         users: Mutex::new(HashMap::new()),
         sms_codes: Mutex::new(HashMap::new()),
         next_id: Mutex::new(0),
+        chat_tx,
     });
 
     let app = Router::new()
         .route("/v", get(version))
         .route("/conversation", get(conversation))
         .route("/ws", get(ws_handler))
+        .route("/ws/auth", get(ws_auth_handler))
+        .route("/ws/chat_room", get(ws_chat_room_handler))
         .route("/auth/sms", post(send_sms))
         .route("/auth/login", post(login))
         .route("/user/profile", get(profile))
