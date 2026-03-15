@@ -1,13 +1,165 @@
 use axum::{
     Router,
     extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    extract::State,
+    http::{HeaderMap, StatusCode},
     response::IntoResponse,
-    routing::get,
+    routing::{get, post},
+    Json,
 };
+use chrono::Utc;
 use futures::StreamExt;
-use serde::Serialize;
+use jsonwebtoken::{DecodingKey, EncodingKey, Header, Validation, decode, encode};
+use rand::Rng;
+use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::net::UdpSocket;
+use std::sync::Arc;
+use tokio::sync::Mutex;
 use tower_http::services::ServeDir;
+
+const JWT_SECRET: &str = "flash-im-playground-secret";
+
+// ========== 共享状态 ==========
+
+/// 内存用户存储
+struct AppState {
+    users: Mutex<HashMap<String, User>>,       // phone -> User
+    sms_codes: Mutex<HashMap<String, String>>, // phone -> code
+    next_id: Mutex<i64>,
+}
+
+/// 用户信息
+#[derive(Clone, Serialize)]
+struct User {
+    user_id: i64,
+    phone: String,
+    nickname: String,
+    avatar: String,
+}
+
+// ========== JWT ==========
+
+#[derive(Serialize, Deserialize)]
+struct Claims {
+    sub: String,   // 用户 ID
+    exp: i64,      // 过期时间
+    iat: i64,      // 签发时间
+}
+
+fn generate_token(user_id: i64) -> String {
+    let now = Utc::now().timestamp();
+    let claims = Claims {
+        sub: user_id.to_string(),
+        exp: now + 7 * 24 * 3600, // 7 天
+        iat: now,
+    };
+    encode(&Header::default(), &claims, &EncodingKey::from_secret(JWT_SECRET.as_bytes())).unwrap()
+}
+
+fn verify_token(token: &str) -> Result<i64, &'static str> {
+    let data = decode::<Claims>(
+        token,
+        &DecodingKey::from_secret(JWT_SECRET.as_bytes()),
+        &Validation::default(),
+    )
+    .map_err(|_| "Token 无效")?;
+    data.claims.sub.parse().map_err(|_| "用户 ID 解析失败")
+}
+
+// ========== 认证接口 ==========
+
+#[derive(Deserialize)]
+struct SmsRequest {
+    phone: String,
+}
+
+#[derive(Serialize)]
+struct SmsResponse {
+    code: String,
+    message: String,
+}
+
+/// POST /auth/sms — 发送验证码（模拟）
+async fn send_sms(State(state): State<Arc<AppState>>, Json(req): Json<SmsRequest>) -> Result<Json<SmsResponse>, StatusCode> {
+    if req.phone.len() != 11 || !req.phone.starts_with('1') {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    let code: String = format!("{:06}", rand::rng().random_range(0..1000000));
+    println!("📱 验证码 [{}] -> {}", req.phone, code);
+    state.sms_codes.lock().await.insert(req.phone, code.clone());
+    Ok(Json(SmsResponse { code, message: "验证码已发送".into() }))
+}
+
+#[derive(Deserialize)]
+struct LoginRequest {
+    phone: String,
+    code: String,
+}
+
+#[derive(Serialize)]
+struct LoginResponse {
+    token: String,
+    user_id: i64,
+}
+
+/// POST /auth/login — 验证码登录（登录即注册）
+async fn login(State(state): State<Arc<AppState>>, Json(req): Json<LoginRequest>) -> Result<Json<LoginResponse>, StatusCode> {
+    if req.phone.len() != 11 || !req.phone.starts_with('1') {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+    // 校验验证码
+    let codes = state.sms_codes.lock().await;
+    match codes.get(&req.phone) {
+        Some(c) if c == &req.code => {}
+        _ => return Err(StatusCode::UNAUTHORIZED),
+    }
+    drop(codes);
+
+    // 查找或创建用户
+    let mut users = state.users.lock().await;
+    let user = if let Some(u) = users.get(&req.phone) {
+        u.clone()
+    } else {
+        let mut next_id = state.next_id.lock().await;
+        *next_id += 1;
+        let user = User {
+            user_id: *next_id,
+            phone: req.phone.clone(),
+            nickname: req.phone.clone(),
+            avatar: format!("https://picsum.photos/seed/{}/100/100", *next_id),
+        };
+        users.insert(req.phone.clone(), user.clone());
+        println!("🆕 新用户注册: {} (ID: {})", req.phone, user.user_id);
+        user
+    };
+
+    // 清除已使用的验证码
+    state.sms_codes.lock().await.remove(&req.phone);
+
+    let token = generate_token(user.user_id);
+    println!("🔑 用户登录: {} (ID: {})", req.phone, user.user_id);
+    Ok(Json(LoginResponse { token, user_id: user.user_id }))
+}
+
+/// GET /user/profile — 获取用户信息（需要 Token）
+async fn profile(State(state): State<Arc<AppState>>, headers: HeaderMap) -> Result<Json<User>, StatusCode> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+
+    let user_id = verify_token(token).map_err(|_| StatusCode::UNAUTHORIZED)?;
+
+    let users = state.users.lock().await;
+    users
+        .values()
+        .find(|u| u.user_id == user_id)
+        .cloned()
+        .ok_or(StatusCode::NOT_FOUND)
+        .map(Json)
+}
 
 /// 系统版本信息
 #[derive(Serialize)]
@@ -102,11 +254,21 @@ async fn handle_socket(mut socket: WebSocket) {
 
 #[tokio::main]
 async fn main() {
+    let state = Arc::new(AppState {
+        users: Mutex::new(HashMap::new()),
+        sms_codes: Mutex::new(HashMap::new()),
+        next_id: Mutex::new(0),
+    });
+
     let app = Router::new()
         .route("/v", get(version))
         .route("/conversation", get(conversation))
         .route("/ws", get(ws_handler))
-        .nest_service("/static", ServeDir::new("static"));
+        .route("/auth/sms", post(send_sms))
+        .route("/auth/login", post(login))
+        .route("/user/profile", get(profile))
+        .nest_service("/static", ServeDir::new("static"))
+        .with_state(state);
 
     let port = 9600;
     let addr = format!("0.0.0.0:{port}");

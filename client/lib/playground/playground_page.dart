@@ -1,14 +1,20 @@
 import 'package:flutter/material.dart';
+import 'package:oktoast/oktoast.dart';
 import 'firework/firework_page.dart';
 import 'conversation/view/conversation_page.dart';
 import 'heartbeat/view/heartbeat_page.dart';
+import 'auth/view/login_page.dart';
 
 void main() {
-  runApp(const MaterialApp(
-    title: '开发游乐场',
-    debugShowCheckedModeBanner: false,
-    home: PlaygroundPage(),
-  ));
+  runApp(
+    OKToast(
+      child: const MaterialApp(
+        title: '开发游乐场',
+        debugShowCheckedModeBanner: false,
+        home: PlaygroundPage(),
+      ),
+    ),
+  );
 }
 
 /// 开发游乐场入口（仅 debug 模式可见）
@@ -29,25 +35,33 @@ class PlaygroundPage extends StatelessWidget {
             icon: '🎆',
             title: '烟花秀',
             subtitle: '粒子系统 & Canvas 绑定练习',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const FireworkPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const FireworkPage())),
           ),
           _PlaygroundItem(
             icon: '💬',
             title: '会话列表',
             subtitle: '网络请求 & 列表渲染练习',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const ConversationPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const ConversationPage())),
           ),
           _PlaygroundItem(
             icon: '💓',
             title: '心跳通信',
             subtitle: 'WebSocket 双向实时通信练习',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(builder: (_) => const HeartbeatPage()),
-            ),
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const HeartbeatPage())),
+          ),
+          _PlaygroundItem(
+            icon: '🔐',
+            title: '用户认证',
+            subtitle: '登录流程 & Token 鉴权练习',
+            onTap: () => Navigator.of(
+              context,
+            ).push(MaterialPageRoute(builder: (_) => const LoginPage())),
           ),
         ],
       ),
