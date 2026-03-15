@@ -36,7 +36,7 @@ void main() {
     });
 
     test('toJson 序列化正确', () {
-      const c = Conversation(title: '李四', lastMsg: '收到', time: '09:00');
+      const c = Conversation(title: '李四', lastMsg: '收到', time: '09:00', avatar: '');
       final json = c.toJson();
       expect(json['title'], '李四');
       expect(json['last_msg'], '收到');

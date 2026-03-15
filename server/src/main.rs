@@ -1,6 +1,13 @@
-use axum::{Router, routing::get};
+use axum::{
+    Router,
+    extract::ws::{Message, WebSocket, WebSocketUpgrade},
+    response::IntoResponse,
+    routing::get,
+};
+use futures::StreamExt;
 use serde::Serialize;
 use std::net::UdpSocket;
+use tower_http::services::ServeDir;
 
 /// 系统版本信息
 #[derive(Serialize)]
@@ -64,11 +71,42 @@ async fn version() -> axum::Json<VersionInfo> {
     })
 }
 
+/// GET /ws — WebSocket 升级端点
+async fn ws_handler(ws: WebSocketUpgrade) -> impl IntoResponse {
+    ws.on_upgrade(handle_socket)
+}
+
+/// 处理单个 WebSocket 连接
+async fn handle_socket(mut socket: WebSocket) {
+    println!("🔗 WebSocket 连接已建立");
+
+    let welcome = "欢迎连接 Flash IM WebSocket 服务！";
+    let _ = socket.send(Message::Text(welcome.into())).await;
+
+    while let Some(Ok(msg)) = socket.next().await {
+        match msg {
+            Message::Text(text) => {
+                println!("📨 收到文本: {text}");
+                let reply = format!("echo: {text}");
+                if socket.send(Message::Text(reply.into())).await.is_err() {
+                    break;
+                }
+            }
+            Message::Close(_) => break,
+            _ => {}
+        }
+    }
+
+    println!("❌ WebSocket 连接已断开");
+}
+
 #[tokio::main]
 async fn main() {
     let app = Router::new()
         .route("/v", get(version))
-        .route("/conversation", get(conversation));
+        .route("/conversation", get(conversation))
+        .route("/ws", get(ws_handler))
+        .nest_service("/static", ServeDir::new("static"));
 
     let port = 9600;
     let addr = format!("0.0.0.0:{port}");
@@ -78,6 +116,8 @@ async fn main() {
     println!("🚀 Flash IM server listening on:");
     println!("   Local:   http://127.0.0.1:{port}");
     println!("   Network: http://{local_ip}:{port}");
+    println!("   WS:      ws://{local_ip}:{port}/ws");
+    println!("   测试台:  http://{local_ip}:{port}/static/ws_test.html");
 
     let listener = tokio::net::TcpListener::bind(&addr).await.unwrap();
     axum::serve(listener, app).await.unwrap();

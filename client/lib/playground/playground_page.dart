@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'firework/firework_page.dart';
 import 'conversation/view/conversation_page.dart';
+import 'heartbeat/view/heartbeat_page.dart';
 
 void main() {
   runApp(const MaterialApp(
@@ -38,6 +39,14 @@ class PlaygroundPage extends StatelessWidget {
             subtitle: '网络请求 & 列表渲染练习',
             onTap: () => Navigator.of(context).push(
               MaterialPageRoute(builder: (_) => const ConversationPage()),
+            ),
+          ),
+          _PlaygroundItem(
+            icon: '💓',
+            title: '心跳通信',
+            subtitle: 'WebSocket 双向实时通信练习',
+            onTap: () => Navigator.of(context).push(
+              MaterialPageRoute(builder: (_) => const HeartbeatPage()),
             ),
           ),
         ],

@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>WebSocket 测试</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: system-ui, sans-serif; background: #1a1a2e; color: #eee; height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 40px 20px; }
+  h1 { font-size: 20px; margin-bottom: 20px; color: #a78bfa; }
+  #log { width: 100%; max-width: 600px; height: 400px; background: #16213e; border-radius: 12px; padding: 16px; overflow-y: auto; font-family: monospace; font-size: 14px; line-height: 1.8; margin-bottom: 16px; }
+  .msg-in { color: #4ade80; }
+  .msg-out { color: #60a5fa; }
+  .msg-sys { color: #fbbf24; }
+  .msg-err { color: #f87171; }
+  .input-row { display: flex; gap: 8px; width: 100%; max-width: 600px; }
+  input { flex: 1; padding: 10px 14px; border-radius: 8px; border: none; background: #16213e; color: #eee; font-size: 14px; outline: none; }
+  input:focus { box-shadow: 0 0 0 2px #a78bfa; }
+  button { padding: 10px 20px; border-radius: 8px; border: none; background: #7c3aed; color: #fff; font-size: 14px; cursor: pointer; }
+  button:hover { background: #6d28d9; }
+  button:disabled { background: #444; cursor: not-allowed; }
+  .btn-row { display: flex; gap: 8px; margin-bottom: 12px; }
+</style>
+</head>
+<body>
+  <h1>⚡ Flash IM WebSocket 测试台</h1>
+  <div class="btn-row">
+    <button id="btnConnect" onclick="connect()">连接</button>
+    <button id="btnDisconnect" onclick="disconnect()" disabled>断开</button>
+  </div>
+  <p style="font-size:12px;color:#888;margin-bottom:12px;">Ping/Pong 是协议层控制帧，浏览器自动处理，无需手动发送</p>
+  <div id="log"></div>
+  <div class="input-row">
+    <input id="msgInput" placeholder="输入消息，回车发送" onkeydown="if(event.key==='Enter')sendMsg()" />
+    <button onclick="sendMsg()">发送</button>
+  </div>
+<script>
+let ws = null;
+const log = document.getElementById('log');
+const input = document.getElementById('msgInput');
+
+function appendLog(text, cls) {
+  const div = document.createElement('div');
+  div.className = cls;
+  div.textContent = `[${new Date().toLocaleTimeString()}] ${text}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function connect() {
+  const host = location.host || '127.0.0.1:9600';
+  ws = new WebSocket(`ws://${host}/ws`);
+  ws.onopen = () => {
+    appendLog('✅ 连接已建立', 'msg-sys');
+    document.getElementById('btnConnect').disabled = true;
+    document.getElementById('btnDisconnect').disabled = false;
+  };
+  ws.onmessage = e => appendLog(`← ${e.data}`, 'msg-in');
+  ws.onclose = () => {
+    appendLog('❌ 连接已断开', 'msg-sys');
+    document.getElementById('btnConnect').disabled = false;
+    document.getElementById('btnDisconnect').disabled = true;
+    ws = null;
+  };
+  ws.onerror = () => appendLog('⚠️ 连接错误', 'msg-err');
+}
+
+function disconnect() { if (ws) ws.close(); }
+
+function sendMsg() {
+  const text = input.value.trim();
+  if (!text || !ws) return;
+  ws.send(text);
+  appendLog(`→ ${text}`, 'msg-out');
+  input.value = '';
+}
+</script>
+</body>
+</html>
