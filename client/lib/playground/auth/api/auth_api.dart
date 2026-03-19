@@ -22,7 +22,19 @@ class AuthApi {
   Future<int> login(String phone, String code) async {
     final res = await _dio.post('/auth/login', data: {
       'phone': phone,
-      'code': code,
+      'type': 'sms',
+      'credential': code,
+    });
+    _token = res.data['token'] as String;
+    return res.data['user_id'] as int;
+  }
+
+  /// 密码登录，返回 user_id
+  Future<int> loginByPassword(String phone, String password) async {
+    final res = await _dio.post('/auth/login', data: {
+      'phone': phone,
+      'type': 'password',
+      'credential': password,
     });
     _token = res.data['token'] as String;
     return res.data['user_id'] as int;

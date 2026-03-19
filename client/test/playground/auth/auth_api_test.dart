@@ -144,6 +144,48 @@ void main() {
     });
   });
 
+  group('AuthApi 密码登录', () {
+    late AuthApi api;
+
+    setUp(() {
+      api = AuthApi();
+    });
+
+    test('内置账号正确密码应登录成功', () async {
+      final userId = await api.loginByPassword('13800000001', '123456');
+      expect(userId, greaterThan(0));
+      expect(api.token, isNotNull);
+      expect(api.token, isNotEmpty);
+    });
+
+    test('登录后应能获取用户信息且昵称正确', () async {
+      await api.loginByPassword('13800000001', '123456');
+      final profile = await api.getProfile();
+      expect(profile.phone, '13800000001');
+      expect(profile.nickname, '张三');
+    });
+
+    test('错误密码应登录失败', () async {
+      expect(
+        () => api.loginByPassword('13800000001', 'wrong_pwd'),
+        throwsA(isA<DioException>()),
+      );
+    });
+
+    test('非内置账号应登录失败', () async {
+      expect(
+        () => api.loginByPassword('13899999999', '123456'),
+        throwsA(isA<DioException>()),
+      );
+    });
+
+    test('同一账号重复密码登录应返回相同 user_id', () async {
+      final id1 = await api.loginByPassword('13800000002', '123456');
+      final id2 = await api.loginByPassword('13800000002', '123456');
+      expect(id1, equals(id2));
+    });
+  });
+
   group('AuthApi 完整登录链路', () {
     test('发送验证码 → 登录 → 获取信息 → 退出 完整流程', () async {
       final api = AuthApi();
