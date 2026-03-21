@@ -21,9 +21,22 @@ void main() {
     test('不同手机号应返回不同验证码', () async {
       final code1 = await api.sendSms('13800138001');
       final code2 = await api.sendSms('13800138002');
-      // 随机生成，极小概率相同，但结构都是 6 位数字
       expect(code1, hasLength(6));
       expect(code2, hasLength(6));
+    });
+
+    test('同一手机号重复发送应覆盖旧验证码', () async {
+      final code1 = await api.sendSms('13800138003');
+      final code2 = await api.sendSms('13800138003');
+      expect(code1, hasLength(6));
+      expect(code2, hasLength(6));
+      // 旧验证码应失效，用 code1 登录应失败（除非碰巧相同）
+      if (code1 != code2) {
+        expect(
+          () => api.login('13800138003', code1),
+          throwsA(isA<DioException>()),
+        );
+      }
     });
 
     test('非法手机号应抛出异常 (位数不足)', () async {
@@ -41,7 +54,7 @@ void main() {
     });
   });
 
-  group('AuthApi 登录', () {
+  group('AuthApi 短信登录', () {
     late AuthApi api;
 
     setUp(() {
@@ -71,7 +84,18 @@ void main() {
       );
     });
 
-    test('同一手机号重复登录应返回相同 user_id', () async {
+    test('验证码使用后应失效（不能重复使用）', () async {
+      final code = await api.sendSms('13900139003');
+      await api.login('13900139003', code);
+      // 同一验证码再次登录应失败
+      final api2 = AuthApi();
+      expect(
+        () => api2.login('13900139003', code),
+        throwsA(isA<DioException>()),
+      );
+    });
+
+    test('同一手机号重复登录应返回相同 user_id（登录即注册）', () async {
       final code1 = await api.sendSms('13900139002');
       final id1 = await api.login('13900139002', code1);
 
@@ -79,6 +103,17 @@ void main() {
       final id2 = await api.login('13900139002', code2);
 
       expect(id1, equals(id2));
+    });
+
+    test('新手机号首次登录应自动注册', () async {
+      final code = await api.sendSms('13900139050');
+      final userId = await api.login('13900139050', code);
+      expect(userId, greaterThan(0));
+
+      // 注册后应能查到用户信息
+      final profile = await api.getProfile();
+      expect(profile.phone, '13900139050');
+      expect(profile.nickname, contains('9050')); // 昵称包含手机号后4位
     });
   });
 
@@ -108,10 +143,7 @@ void main() {
     });
 
     test('伪造 token 应请求失败', () async {
-      // 手动注入一个假 token
       final fakeDio = Dio(BaseOptions(baseUrl: PlaygroundConfig.baseUrl));
-      final fakeApi = AuthApi(dio: fakeDio);
-      // 通过登录流程拿到 api 实例后篡改 token 不可行，直接用 dio 请求
       expect(
         () => fakeDio.get('/user/profile',
             options: Options(headers: {'Authorization': 'Bearer fake.token.here'})),
@@ -141,48 +173,6 @@ void main() {
         () => api.getProfile(),
         throwsA(isA<DioException>()),
       );
-    });
-  });
-
-  group('AuthApi 密码登录', () {
-    late AuthApi api;
-
-    setUp(() {
-      api = AuthApi();
-    });
-
-    test('内置账号正确密码应登录成功', () async {
-      final userId = await api.loginByPassword('13800000001', '123456');
-      expect(userId, greaterThan(0));
-      expect(api.token, isNotNull);
-      expect(api.token, isNotEmpty);
-    });
-
-    test('登录后应能获取用户信息且昵称正确', () async {
-      await api.loginByPassword('13800000001', '123456');
-      final profile = await api.getProfile();
-      expect(profile.phone, '13800000001');
-      expect(profile.nickname, '张三');
-    });
-
-    test('错误密码应登录失败', () async {
-      expect(
-        () => api.loginByPassword('13800000001', 'wrong_pwd'),
-        throwsA(isA<DioException>()),
-      );
-    });
-
-    test('非内置账号应登录失败', () async {
-      expect(
-        () => api.loginByPassword('13899999999', '123456'),
-        throwsA(isA<DioException>()),
-      );
-    });
-
-    test('同一账号重复密码登录应返回相同 user_id', () async {
-      final id1 = await api.loginByPassword('13800000002', '123456');
-      final id2 = await api.loginByPassword('13800000002', '123456');
-      expect(id1, equals(id2));
     });
   });
 

@@ -5,15 +5,14 @@ use std::sync::Arc;
 use crate::auth::jwt::verify_token;
 use crate::state::{AppState, User};
 
-/// 等待客户端发送 Token 进行认证（公共函数，chat_room 等端点复用）
+/// 等待客户端发送 Token 进行认证，从数据库查询用户信息
 pub async fn wait_for_auth(socket: &mut WebSocket, state: &Arc<AppState>) -> Option<User> {
     while let Some(Ok(msg)) = socket.next().await {
         if let Message::Text(text) = msg {
             if let Ok(parsed) = serde_json::from_str::<serde_json::Value>(&text) {
                 if let Some(token) = parsed.get("token").and_then(|t| t.as_str()) {
                     if let Ok(user_id) = verify_token(token) {
-                        let users = state.users.lock().await;
-                        return users.values().find(|u| u.user_id == user_id).cloned();
+                        return find_user(state, user_id).await;
                     }
                 }
             }
@@ -23,8 +22,41 @@ pub async fn wait_for_auth(socket: &mut WebSocket, state: &Arc<AppState>) -> Opt
     None
 }
 
+/// 从数据库查询用户信息
+async fn find_user(state: &Arc<AppState>, user_id: i64) -> Option<User> {
+    let row: Option<(i64, String, Option<String>)> = sqlx::query_as(
+        "SELECT p.account_id, p.nickname, p.avatar
+         FROM user_profiles p
+         JOIN accounts a ON a.id = p.account_id
+         WHERE p.account_id = $1 AND a.status = 0"
+    )
+    .bind(user_id)
+    .fetch_optional(&state.db)
+    .await
+    .ok()?;
+
+    let (account_id, nickname, avatar) = row?;
+
+    let phone_row: Option<(String,)> = sqlx::query_as(
+        "SELECT identifier FROM auth_credentials
+         WHERE account_id = $1 AND auth_type = 'phone'"
+    )
+    .bind(account_id)
+    .fetch_optional(&state.db)
+    .await
+    .ok()?;
+
+    let phone = phone_row.map(|(p,)| p).unwrap_or_default();
+
+    Some(User {
+        user_id: account_id,
+        phone,
+        nickname,
+        avatar: avatar.unwrap_or_default(),
+    })
+}
+
 /// [Playground] 带认证的 WebSocket echo 测试端点
-/// 认证成功后进入 echo 模式（你发什么回什么），用于验证 WebSocket + JWT 整合流程
 pub async fn handle_auth_socket(mut socket: WebSocket, state: Arc<AppState>) {
     println!("🔗 [ws/auth] 连接已建立，等待认证...");
 

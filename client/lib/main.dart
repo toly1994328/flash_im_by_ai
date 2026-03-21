@@ -1,23 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:oktoast/oktoast.dart';
-import 'src/home_page.dart';
+import 'src/app.dart';
+import 'src/auth/service/auth_service.dart';
 
-void main() {
-  runApp(const MyApp());
-}
-
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Flash IM',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const HomePage(),
-    );
-  }
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final authService = AuthService();
+  runApp(FlashApp(authService: authService));
 }

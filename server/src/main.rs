@@ -5,11 +5,29 @@ mod mock;
 mod util;
 
 use axum::Router;
+use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 
 #[tokio::main]
 async fn main() {
-    let state = state::create_app_state();
+    dotenvy::dotenv().ok();
+
+    let database_url = std::env::var("DATABASE_URL")
+        .expect("DATABASE_URL must be set in .env");
+    let port: u16 = std::env::var("SERVER_PORT")
+        .unwrap_or_else(|_| "9600".into())
+        .parse()
+        .expect("SERVER_PORT must be a valid port number");
+
+    let db = PgPoolOptions::new()
+        .max_connections(10)
+        .connect(&database_url)
+        .await
+        .expect("Failed to connect to database");
+
+    println!("✅ Database connected");
+
+    let state = state::create_app_state(db);
     let local_ip = util::network::get_local_ip();
 
     let app = Router::new()
@@ -19,7 +37,6 @@ async fn main() {
         .nest_service("/static", ServeDir::new("static"))
         .with_state(state);
 
-    let port = 9600;
     println!("🚀 Flash IM server listening on:");
     println!("   Local:   http://127.0.0.1:{port}");
     println!("   Network: http://{local_ip}:{port}");
