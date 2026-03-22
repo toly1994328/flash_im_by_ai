@@ -1,19 +1,26 @@
-import 'package:dio/dio.dart';
-import '../config.dart';
-import '../auth/service/auth_service.dart';
+import 'dart:ui';
 
-/// Dio 单例 + Token 拦截器
+import 'package:dio/dio.dart';
+import 'config.dart';
+
 class HttpClient {
   late final Dio dio;
-  final AuthService _authService;
-  void Function()? onUnauthorized;
+  String? Function() tokenProvider;
+  final VoidCallback? onUnauthorized;
 
-  HttpClient(this._authService) {
-    dio = Dio(BaseOptions(baseUrl: AppConfig.baseUrl));
+  HttpClient({
+    required this.tokenProvider,
+    this.onUnauthorized,
+  }) {
+    dio = Dio(BaseOptions(
+      baseUrl: AppConfig.baseUrl,
+      connectTimeout: const Duration(seconds: 10),
+      receiveTimeout: const Duration(seconds: 10),
+    ));
 
     dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) {
-        final token = _authService.token;
+        final token = tokenProvider();
         if (token != null) {
           options.headers['Authorization'] = 'Bearer $token';
         }

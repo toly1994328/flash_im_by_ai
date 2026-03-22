@@ -1,9 +1,37 @@
 import 'package:flutter/material.dart';
-import 'src/app.dart';
-import 'src/auth/service/auth_service.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
+import 'src/application/app.dart';
+import 'src/auth/logic/auth/auth_cubit.dart';
+import 'src/auth/data/repository/auth_repository.dart';
+import 'src/application/http_client.dart';
+import 'src/application/router.dart';
+import 'src/starter/data/repository/startup_repository.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  final authService = AuthService();
-  runApp(FlashApp(authService: authService));
+
+  final startupRepository = StartupRepository();
+  final authCubit = AuthCubit();
+  final httpClient = HttpClient(
+    tokenProvider: () => null, // 临时，下面覆盖
+  );
+  final authRepository = AuthRepository(dio: httpClient.dio);
+  httpClient.tokenProvider = () => authRepository.token ?? authCubit.state.token;
+
+  final router = createRouter(
+    startupRepository: startupRepository,
+    authRepository: authRepository,
+    onStartupComplete: (result) => authCubit.applyStartupSnapshot(
+      token: result.token,
+      user: result.user,
+      hasPassword: result.hasPassword,
+    ),
+  );
+
+  runApp(
+    BlocProvider.value(
+      value: authCubit,
+      child: FlashApp(router: router),
+    ),
+  );
 }
