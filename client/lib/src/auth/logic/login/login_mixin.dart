@@ -33,7 +33,7 @@ mixin LoginMixin on State<LoginPage> {
 
   void initMixin() {
     smsStrategy = SmsLoginStrategy(
-      repo: widget.authRepository,
+      sendSmsCallback: (phone) => widget.authRepository.sendSms(phone),
       refresh: () => setState(() {}),
     );
     passwordStrategy = PasswordLoginStrategy(

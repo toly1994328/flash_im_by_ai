@@ -6,14 +6,10 @@ import '../model/login_result.dart';
 
 class AuthRepository {
   final Dio _dio;
-  String? _token;
-
-  String? get token => _token;
 
   AuthRepository({required Dio dio}) : _dio = dio;
 
   Future<void> _saveToken(String token) async {
-    _token = token;
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
   }
@@ -25,7 +21,6 @@ class AuthRepository {
   }
 
   Future<void> _clearAll() async {
-    _token = null;
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
     await prefs.remove('user_info');
@@ -52,7 +47,10 @@ class AuthRepository {
     final loginResult = LoginResult.fromJson(res.data as Map<String, dynamic>);
     await _saveToken(loginResult.token);
 
-    final profileRes = await _dio.get('/user/profile');
+    final profileRes = await _dio.get(
+      '/user/profile',
+      options: Options(headers: {'Authorization': 'Bearer ${loginResult.token}'}),
+    );
     final user = User.fromJson(profileRes.data as Map<String, dynamic>);
     await _cacheUserInfo(user, loginResult.hasPassword);
 

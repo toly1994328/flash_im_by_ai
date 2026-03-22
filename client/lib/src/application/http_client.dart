@@ -3,9 +3,11 @@ import 'dart:ui';
 import 'package:dio/dio.dart';
 import 'config.dart';
 
+typedef TokenProvider = String? Function();
+
 class HttpClient {
   late final Dio dio;
-  String? Function() tokenProvider;
+  final TokenProvider tokenProvider;
   final VoidCallback? onUnauthorized;
 
   HttpClient({

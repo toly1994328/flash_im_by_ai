@@ -13,10 +13,9 @@ void main() async {
   final startupRepository = StartupRepository();
   final authCubit = AuthCubit();
   final httpClient = HttpClient(
-    tokenProvider: () => null, // 临时，下面覆盖
+    tokenProvider: () => authCubit.state.token,
   );
   final authRepository = AuthRepository(dio: httpClient.dio);
-  httpClient.tokenProvider = () => authRepository.token ?? authCubit.state.token;
 
   final router = createRouter(
     startupRepository: startupRepository,

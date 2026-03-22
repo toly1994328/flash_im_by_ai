@@ -5,8 +5,10 @@ import 'package:oktoast/oktoast.dart';
 import '../../../data/repository/auth_repository.dart';
 import 'login_strategy.dart';
 
+typedef SendSmsCallback = Future<String> Function(String phone);
+
 class SmsLoginStrategy extends LoginStrategy {
-  final AuthRepository _repo;
+  final SendSmsCallback sendSmsCallback;
   final VoidCallback _refresh;
 
   final phoneCtrl = TextEditingController();
@@ -14,9 +16,8 @@ class SmsLoginStrategy extends LoginStrategy {
   int countdown = 0;
   Timer? _timer;
 
-  SmsLoginStrategy({required AuthRepository repo, required VoidCallback refresh})
-      : _repo = repo,
-        _refresh = refresh;
+  SmsLoginStrategy({required this.sendSmsCallback, required VoidCallback refresh})
+      : _refresh = refresh;
 
   String get phone => phoneCtrl.text.trim();
   String get credential => codeCtrl.text.trim();
@@ -44,7 +45,7 @@ class SmsLoginStrategy extends LoginStrategy {
       return;
     }
     try {
-      final code = await _repo.sendSms(phone);
+      final code = await sendSmsCallback(phone);
       codeCtrl.text = code;
       _startCountdown();
     } catch (e) {
