@@ -1,17 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:oktoast/oktoast.dart';
-import '../../auth/logic/auth/auth_cubit.dart';
-import '../../auth/data/repository/auth_repository.dart';
-import '../../auth/view/components/action_button.dart';
+import 'package:flash_session/flash_session.dart';
 
 class SetPasswordPage extends StatefulWidget {
-  final AuthRepository authRepository;
   final bool hasPassword;
 
   const SetPasswordPage({
     super.key,
-    required this.authRepository,
     required this.hasPassword,
   });
 
@@ -40,9 +36,8 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
   Future<void> _submit() async {
     setState(() => _loading = true);
     try {
-      await widget.authRepository.setPassword(_controller.text.trim());
+      await context.read<SessionCubit>().setPassword(_controller.text.trim());
       if (!mounted) return;
-      context.read<AuthCubit>().onPasswordSet();
       showToast('密码设置成功');
       Navigator.of(context).pop();
     } catch (e) {
@@ -95,15 +90,43 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
               ),
             ),
             const SizedBox(height: 48),
-            ActionButton(
-              enabled: _canSubmit,
-              loading: _loading,
-              text: '确认',
-              onPressed: _submit,
-            ),
+            _buildActionButton(),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildActionButton() {
+    const primary = Color(0xFF3B82F6);
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: _canSubmit
+          ? ElevatedButton(
+              onPressed: _submit,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: primary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                elevation: 0,
+              ),
+              child: _loading
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : const Text('确认', style: TextStyle(fontSize: 16)),
+            )
+          : OutlinedButton(
+              onPressed: null,
+              style: OutlinedButton.styleFrom(
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                side: BorderSide(color: Colors.grey[300]!),
+              ),
+              child: Text('确认', style: TextStyle(fontSize: 16, color: Colors.grey[400])),
+            ),
     );
   }
 }

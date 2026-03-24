@@ -1,18 +1,35 @@
+[workspace]
+resolver = "3"
+members = [
+    ".",
+    "modules/flash-core",
+    "modules/flash-auth",
+]
+
+[workspace.dependencies]
+axum = { version = "0.8", features = ["ws"] }
+tokio = { version = "1", features = ["full"] }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
+chrono = { version = "0.4", features = ["serde"] }
+jsonwebtoken = "9"
+argon2 = "0.5"
+rand = "0.9"
+
 [package]
 name = "flash-im"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-axum = { version = "0.8", features = ["ws"] }
-tokio = { version = "1", features = ["full"] }
-serde = { version = "1", features = ["derive"] }
-serde_json = "1"
+flash-core = { path = "modules/flash-core" }
+flash-auth = { path = "modules/flash-auth" }
+axum.workspace = true
+tokio.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+sqlx.workspace = true
 futures = "0.3"
 tower-http = { version = "0.6", features = ["fs"] }
-jsonwebtoken = "9"
-chrono = { version = "0.4", features = ["serde"] }
-rand = "0.9"
-sqlx = { version = "0.8", features = ["runtime-tokio", "postgres", "uuid", "chrono"] }
 dotenvy = "0.15"
-argon2 = "0.5"

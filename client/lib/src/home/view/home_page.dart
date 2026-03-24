@@ -1,15 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../../auth/logic/auth/auth_cubit.dart';
-import '../../auth/logic/auth/auth_state.dart';
-import '../../auth/data/repository/auth_repository.dart';
+import 'package:flash_session/flash_session.dart';
 import '../profile/profile_page.dart';
 import '../profile/set_password_page.dart';
 
 class HomePage extends StatefulWidget {
-  final AuthRepository authRepository;
-
-  const HomePage({super.key, required this.authRepository});
+  const HomePage({super.key});
 
   @override
   State<HomePage> createState() => _HomePageState();
@@ -28,8 +24,8 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _checkPasswordGuide() {
-    final state = context.read<AuthCubit>().state;
-    if (state.status == AuthStatus.authenticated && !state.hasPassword && !_hasShownPasswordGuide) {
+    final state = context.read<SessionCubit>().state;
+    if (state.status == SessionStatus.active && !state.hasPassword && !_hasShownPasswordGuide) {
       _hasShownPasswordGuide = true;
       _showPasswordGuideDialog();
     }
@@ -54,11 +50,8 @@ class _HomePageState extends State<HomePage> {
               Navigator.of(context).push(
                 MaterialPageRoute(
                   builder: (_) => BlocProvider.value(
-                    value: context.read<AuthCubit>(),
-                    child: SetPasswordPage(
-                      authRepository: widget.authRepository,
-                      hasPassword: false,
-                    ),
+                    value: context.read<SessionCubit>(),
+                    child: const SetPasswordPage(hasPassword: false),
                   ),
                 ),
               );
@@ -75,7 +68,7 @@ class _HomePageState extends State<HomePage> {
     final pages = [
       const Center(child: Text('暂无消息', style: TextStyle(fontSize: 16, color: Colors.grey))),
       const Center(child: Text('暂无联系人', style: TextStyle(fontSize: 16, color: Colors.grey))),
-      ProfilePage(authRepository: widget.authRepository),
+      const ProfilePage(),
     ];
 
     return Scaffold(

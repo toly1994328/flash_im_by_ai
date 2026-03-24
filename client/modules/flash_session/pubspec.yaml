@@ -1,0 +1,20 @@
+name: flash_session
+description: Flash IM 用户会话管理
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.0
+  equatable: ^2.0.0
+  dio: ^5.8.0+1
+  shared_preferences: ^2.3.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0

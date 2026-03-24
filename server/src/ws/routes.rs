@@ -7,7 +7,7 @@ use axum::{
 };
 use std::sync::Arc;
 
-use crate::state::AppState;
+use flash_core::state::AppState;
 use super::auth::handle_auth_socket;
 use super::chat_room::handle_chat_room;
 use super::handler::ws_handler;

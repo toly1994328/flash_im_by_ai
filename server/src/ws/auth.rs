@@ -2,8 +2,8 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::StreamExt;
 use std::sync::Arc;
 
-use crate::auth::jwt::verify_token;
-use crate::state::{AppState, User};
+use flash_core::jwt::verify_token;
+use flash_core::state::{AppState, User};
 
 /// 等待客户端发送 Token 进行认证，从数据库查询用户信息
 pub async fn wait_for_auth(socket: &mut WebSocket, state: &Arc<AppState>) -> Option<User> {

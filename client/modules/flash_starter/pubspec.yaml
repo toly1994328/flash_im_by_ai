@@ -1,0 +1,11 @@
+name: flash_starter
+description: Flash IM 启动框架，提供 StartupTask 抽象和 SplashPage 启动页
+version: 0.0.1
+publish_to: 'none'
+
+environment:
+  sdk: ^3.11.1
+
+dependencies:
+  flutter:
+    sdk: flutter

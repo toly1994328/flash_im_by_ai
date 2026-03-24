@@ -2,7 +2,7 @@ use axum::extract::ws::{Message, WebSocket};
 use futures::{SinkExt, StreamExt};
 use std::sync::Arc;
 
-use crate::state::AppState;
+use flash_core::state::AppState;
 use super::auth::wait_for_auth;
 
 /// [Playground] 聊天室端点：认证 → 多人广播

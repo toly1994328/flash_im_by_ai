@@ -1,10 +1,10 @@
-mod state;
-mod auth;
 mod ws;
 mod mock;
-mod util;
+mod user;
 
 use axum::Router;
+use flash_core::state::create_app_state;
+use flash_core::get_local_ip;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 
@@ -27,11 +27,12 @@ async fn main() {
 
     println!("✅ Database connected");
 
-    let state = state::create_app_state(db);
-    let local_ip = util::network::get_local_ip();
+    let state = create_app_state(db);
+    let local_ip = get_local_ip();
 
     let app = Router::new()
-        .merge(auth::routes::router())
+        .merge(flash_auth::router())
+        .merge(user::routes::router())
         .merge(ws::routes::router())
         .merge(mock::routes::router())
         .nest_service("/static", ServeDir::new("static"))
@@ -41,6 +42,7 @@ async fn main() {
     println!("   Local:   http://127.0.0.1:{port}");
     println!("   Network: http://{local_ip}:{port}");
 
-    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}")).await.unwrap();
+    let listener = tokio::net::TcpListener::bind(format!("0.0.0.0:{port}"))
+        .await.unwrap();
     axum::serve(listener, app).await.unwrap();
 }

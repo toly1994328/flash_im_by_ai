@@ -41,6 +41,12 @@ dependencies:
   flutter_bloc: ^8.1.0
   equatable: ^2.0.0
   go_router: ^17.1.0
+  flash_auth:
+    path: modules/flash_auth
+  flash_session:
+    path: modules/flash_session
+  flash_starter:
+    path: modules/flash_starter
 
 dev_dependencies:
   flutter_test:

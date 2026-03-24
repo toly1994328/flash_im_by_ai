@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
-import '../../auth/logic/auth/auth_cubit.dart';
-import '../../auth/logic/auth/auth_state.dart';
-import '../../auth/data/repository/auth_repository.dart';
+import 'package:flash_session/flash_session.dart';
 import 'set_password_page.dart';
 
 class ProfilePage extends StatelessWidget {
-  final AuthRepository authRepository;
-
-  const ProfilePage({super.key, required this.authRepository});
+  const ProfilePage({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return BlocBuilder<AuthCubit, AuthState>(
+    return BlocBuilder<SessionCubit, SessionState>(
       builder: (context, state) {
         final user = state.user;
         final hasPassword = state.hasPassword;
@@ -71,7 +67,6 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // 信息条目
               _buildCell(
                 icon: Icons.phone,
                 label: '手机号',
@@ -80,18 +75,14 @@ class ProfilePage extends StatelessWidget {
 
               const SizedBox(height: 8),
 
-              // 设置密码
               _buildActionCell(
                 icon: Icons.lock_outline,
                 label: hasPassword ? '修改密码' : '设置密码',
                 onTap: () => Navigator.of(context).push(
                   MaterialPageRoute(
                     builder: (_) => BlocProvider.value(
-                      value: context.read<AuthCubit>(),
-                      child: SetPasswordPage(
-                        authRepository: authRepository,
-                        hasPassword: hasPassword,
-                      ),
+                      value: context.read<SessionCubit>(),
+                      child: SetPasswordPage(hasPassword: hasPassword),
                     ),
                   ),
                 ),
@@ -104,9 +95,8 @@ class ProfilePage extends StatelessWidget {
                 color: Colors.white,
                 child: InkWell(
                   onTap: () async {
-                    await authRepository.logout();
+                    await context.read<SessionCubit>().deactivate();
                     if (!context.mounted) return;
-                    context.read<AuthCubit>().logout();
                     context.go('/login');
                   },
                   child: const Padding(
@@ -165,14 +155,6 @@ class ProfilePage extends StatelessWidget {
     );
   }
 
-  Widget _divider() {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.only(left: 48),
-      child: Divider(height: 0.5, thickness: 0.5, color: Colors.grey[200]),
-    );
-  }
-
   Widget _buildActionCell({
     required IconData icon,
     required String label,
@@ -197,5 +179,4 @@ class ProfilePage extends StatelessWidget {
       ),
     );
   }
-
 }
