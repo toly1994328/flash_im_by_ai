@@ -1,5 +1,5 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'session_repository.dart';
+import '../data/session_repository.dart';
 import 'session_state.dart';
 
 /// 全局用户会话管理
@@ -88,6 +88,40 @@ class SessionCubit extends Cubit<SessionState> {
         hasPassword: true,
       ));
     }
+  }
+
+  /// 更新用户资料，服务端返回完整 User 后更新状态 + 缓存
+  Future<void> updateProfile({
+    String? nickname,
+    String? signature,
+    String? avatar,
+  }) async {
+    final user = await _repo.updateProfile(
+      nickname: nickname,
+      signature: signature,
+      avatar: avatar,
+    );
+    await _repo.saveLocal(
+      token: state.token!,
+      user: user,
+      hasPassword: state.hasPassword,
+    );
+    emit(SessionState.active(
+      token: state.token!,
+      user: user,
+      hasPassword: state.hasPassword,
+    ));
+  }
+
+  /// 修改密码（需旧密码）
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    await _repo.changePassword(
+      oldPassword: oldPassword,
+      newPassword: newPassword,
+    );
   }
 
   /// 结束会话，清状态 + 清缓存

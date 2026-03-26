@@ -15,6 +15,7 @@ CREATE TABLE user_profiles (
     account_id BIGINT       PRIMARY KEY REFERENCES accounts(id),
     nickname   VARCHAR(50)  NOT NULL,
     avatar     VARCHAR(500),
+    signature  VARCHAR(100) DEFAULT '',  -- 个性签名
     bio        VARCHAR(200),
     gender     SMALLINT     DEFAULT 0,  -- 0:未知 1:男 2:女
     updated_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()

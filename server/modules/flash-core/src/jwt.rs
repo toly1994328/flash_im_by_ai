@@ -1,4 +1,5 @@
 use jsonwebtoken::{DecodingKey, Validation, decode};
+use axum::http::{HeaderMap, StatusCode};
 use serde::{Deserialize, Serialize};
 use std::sync::OnceLock;
 
@@ -28,4 +29,14 @@ pub fn verify_token(token: &str) -> Result<i64, &'static str> {
     )
     .map_err(|_| "Token 无效")?;
     data.claims.sub.parse().map_err(|_| "用户 ID 解析失败")
+}
+
+/// 从请求头 Authorization: Bearer <token> 提取 user_id
+pub fn extract_user_id(headers: &HeaderMap) -> Result<i64, StatusCode> {
+    let token = headers
+        .get("Authorization")
+        .and_then(|v| v.to_str().ok())
+        .and_then(|v| v.strip_prefix("Bearer "))
+        .ok_or(StatusCode::UNAUTHORIZED)?;
+    verify_token(token).map_err(|_| StatusCode::UNAUTHORIZED)
 }

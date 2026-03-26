@@ -35,13 +35,3 @@ pub struct LoginResponse {
     pub user_id: i64,
     pub has_password: bool,
 }
-
-#[derive(Deserialize)]
-pub struct PasswordRequest {
-    pub new_password: String,
-}
-
-#[derive(Serialize)]
-pub struct MessageResponse {
-    pub message: String,
-}

@@ -16,6 +16,7 @@ pub struct User {
     pub phone: String,
     pub nickname: String,
     pub avatar: String,
+    pub signature: String,
 }
 
 /// 创建应用状态

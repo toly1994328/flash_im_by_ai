@@ -13,6 +13,7 @@ dependencies:
   equatable: ^2.0.0
   dio: ^5.8.0+1
   shared_preferences: ^2.3.0
+  oktoast: ^3.4.0
 
 dev_dependencies:
   flutter_test:

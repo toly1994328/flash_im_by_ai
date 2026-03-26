@@ -1,8 +1,7 @@
-use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
-use argon2::password_hash::SaltString;
+use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
     extract::State,
-    http::{HeaderMap, StatusCode},
+    http::StatusCode,
     Json,
 };
 use chrono::Utc;
@@ -10,11 +9,9 @@ use rand::Rng;
 use std::sync::Arc;
 
 use flash_core::state::AppState;
-use flash_core::jwt::verify_token;
 use super::jwt::generate_token;
 use super::model::{
-    LoginRequest, LoginResponse, LoginType, MessageResponse,
-    PasswordRequest, SmsRequest, SmsResponse,
+    LoginRequest, LoginResponse, LoginType, SmsRequest, SmsResponse,
 };
 
 /// POST /auth/sms — 发送验证码，写入 sms_codes 表
@@ -57,48 +54,7 @@ pub async fn login(
     }
 }
 
-/// POST /auth/password — 设置密码（需 Token）
-pub async fn set_password(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    Json(req): Json<PasswordRequest>,
-) -> Result<Json<MessageResponse>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
-
-    if req.new_password.len() < 6 {
-        return Err(StatusCode::BAD_REQUEST);
-    }
-
-    let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
-    let password_hash = Argon2::default()
-        .hash_password(req.new_password.as_bytes(), &salt)
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .to_string();
-
-    sqlx::query(
-        "UPDATE auth_credentials SET credential = $1
-         WHERE account_id = $2 AND auth_type = 'phone'"
-    )
-    .bind(&password_hash)
-    .bind(user_id)
-    .execute(&state.db)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
-
-    println!("🔒 密码设置: user_id={}", user_id);
-    Ok(Json(MessageResponse { message: "密码设置成功".into() }))
-}
-
 // ─── 内部函数 ───
-
-fn extract_user_id(headers: &HeaderMap) -> Result<i64, StatusCode> {
-    let token = headers
-        .get("Authorization")
-        .and_then(|v| v.to_str().ok())
-        .and_then(|v| v.strip_prefix("Bearer "))
-        .ok_or(StatusCode::UNAUTHORIZED)?;
-    verify_token(token).map_err(|_| StatusCode::UNAUTHORIZED)
-}
 
 fn validate_phone(phone: &str) -> Result<(), StatusCode> {
     if phone.len() == 11 && phone.starts_with('1') {
@@ -195,7 +151,7 @@ async fn find_or_create_user(
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     let nickname = format!("用户{}", &phone[phone.len() - 4..]);
-    let avatar = format!("https://picsum.photos/seed/{}/100/100", account_id);
+    let avatar = format!("identicon:{}", account_id);
 
     sqlx::query(
         "INSERT INTO user_profiles (account_id, nickname, avatar, updated_at)

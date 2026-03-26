@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
 import '../profile/profile_page.dart';
-import '../profile/set_password_page.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -51,7 +50,7 @@ class _HomePageState extends State<HomePage> {
                 MaterialPageRoute(
                   builder: (_) => BlocProvider.value(
                     value: context.read<SessionCubit>(),
-                    child: const SetPasswordPage(hasPassword: false),
+                    child: const SetPasswordPage(),
                   ),
                 ),
               );

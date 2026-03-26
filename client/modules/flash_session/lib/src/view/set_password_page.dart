@@ -4,12 +4,7 @@ import 'package:oktoast/oktoast.dart';
 import 'package:flash_session/flash_session.dart';
 
 class SetPasswordPage extends StatefulWidget {
-  final bool hasPassword;
-
-  const SetPasswordPage({
-    super.key,
-    required this.hasPassword,
-  });
+  const SetPasswordPage({super.key});
 
   @override
   State<SetPasswordPage> createState() => _SetPasswordPageState();
@@ -49,7 +44,7 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
 
   @override
   Widget build(BuildContext context) {
-    final title = widget.hasPassword ? '修改密码' : '设置密码';
+    final title = '设置密码';
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -69,7 +64,7 @@ class _SetPasswordPageState extends State<SetPasswordPage> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              widget.hasPassword ? '请输入新密码' : '为账号设置一个密码',
+              '为账号设置一个密码',
               style: TextStyle(fontSize: 14, color: Colors.grey[600]),
             ),
             const SizedBox(height: 24),

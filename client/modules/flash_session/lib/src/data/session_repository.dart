@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'model/user.dart';
+import 'user.dart';
 
 /// 会话快照 — 从本地缓存恢复时使用
 class SessionSnapshot {
@@ -28,11 +28,36 @@ class SessionRepository {
     return User.fromJson(res.data as Map<String, dynamic>);
   }
 
-  /// 设置/修改密码
+  /// 设置密码（首次）
   Future<void> setPassword(String newPassword) async {
-    await _dio.post('/auth/password', data: {'new_password': newPassword});
+    await _dio.post('/user/password', data: {'new_password': newPassword});
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('has_password', true);
+  }
+
+  /// 更新用户资料（字段可选，只传需要修改的）
+  Future<User> updateProfile({
+    String? nickname,
+    String? signature,
+    String? avatar,
+  }) async {
+    final body = <String, dynamic>{};
+    if (nickname != null) body['nickname'] = nickname;
+    if (signature != null) body['signature'] = signature;
+    if (avatar != null) body['avatar'] = avatar;
+    final res = await _dio.put('/user/profile', data: body);
+    return User.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// 修改密码（需旧密码）
+  Future<void> changePassword({
+    required String oldPassword,
+    required String newPassword,
+  }) async {
+    await _dio.put('/user/password', data: {
+      'old_password': oldPassword,
+      'new_password': newPassword,
+    });
   }
 
   /// 缓存会话数据到本地

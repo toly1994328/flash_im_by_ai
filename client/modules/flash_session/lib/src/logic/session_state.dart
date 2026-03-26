@@ -1,5 +1,5 @@
 import 'package:equatable/equatable.dart';
-import 'model/user.dart';
+import '../data/user.dart';
 
 enum SessionStatus { unknown, active, ended }
 

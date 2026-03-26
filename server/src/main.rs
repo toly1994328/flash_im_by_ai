@@ -1,6 +1,5 @@
 mod ws;
 mod mock;
-mod user;
 
 use axum::Router;
 use flash_core::state::create_app_state;
@@ -32,7 +31,7 @@ async fn main() {
 
     let app = Router::new()
         .merge(flash_auth::router())
-        .merge(user::routes::router())
+        .merge(flash_user::router())
         .merge(ws::routes::router())
         .merge(mock::routes::router())
         .nest_service("/static", ServeDir::new("static"))

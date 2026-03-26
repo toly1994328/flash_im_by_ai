@@ -1,0 +1,12 @@
+[package]
+name = "flash-user"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+flash-core = { path = "../flash-core" }
+axum.workspace = true
+tokio.workspace = true
+serde.workspace = true
+sqlx.workspace = true
+argon2 = "0.5"

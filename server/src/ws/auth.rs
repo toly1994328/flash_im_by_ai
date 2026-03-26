@@ -53,6 +53,7 @@ async fn find_user(state: &Arc<AppState>, user_id: i64) -> Option<User> {
         phone,
         nickname,
         avatar: avatar.unwrap_or_default(),
+        signature: String::new(),
     })
 }
 

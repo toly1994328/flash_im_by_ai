@@ -405,12 +405,25 @@ dependencies = [
  "dotenvy",
  "flash-auth",
  "flash-core",
+ "flash-user",
  "futures",
  "serde",
  "serde_json",
  "sqlx",
  "tokio",
  "tower-http",
+]
+
+[[package]]
+name = "flash-user"
+version = "0.1.0"
+dependencies = [
+ "argon2",
+ "axum",
+ "flash-core",
+ "serde",
+ "sqlx",
+ "tokio",
 ]
 
 [[package]]
