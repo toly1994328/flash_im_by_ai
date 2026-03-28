@@ -7,18 +7,23 @@ class UserAvatar extends StatelessWidget {
   final User? user;
   final double size;
   final double borderRadius;
+  final Color? backgroundColor;
+  final double? paddingRatio;
 
   const UserAvatar({
     super.key,
     required this.user,
     this.size = 64,
     this.borderRadius = 8,
+    this.backgroundColor,
+    this.paddingRatio,
   });
 
   @override
   Widget build(BuildContext context) {
+    Widget avatar;
     if (user == null) {
-      return Container(
+      avatar = Container(
         width: size,
         height: size,
         decoration: BoxDecoration(
@@ -27,9 +32,8 @@ class UserAvatar extends StatelessWidget {
         ),
         child: Icon(Icons.person, color: Colors.white, size: size * 0.55),
       );
-    }
-    if (user!.hasCustomAvatar) {
-      return ClipRRect(
+    } else if (user!.hasCustomAvatar) {
+      avatar = ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: Image.network(
           user!.avatar,
@@ -48,9 +52,23 @@ class UserAvatar extends StatelessWidget {
           ),
         ),
       );
+    } else {
+      avatar = IdenticonAvatar(
+          seed: user!.identiconSeed, size: size, borderRadius: borderRadius,
+          backgroundColor: backgroundColor ?? const Color(0xFFEEEEEE),
+          paddingRatio: paddingRatio ?? 0.15);
     }
-    return IdenticonAvatar(
-        seed: user!.identiconSeed, size: size, borderRadius: borderRadius);
+
+    if (backgroundColor != null) {
+      return Container(
+        decoration: BoxDecoration(
+          color: backgroundColor,
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        child: avatar,
+      );
+    }
+    return avatar;
   }
 }
 

@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_auth/flash_auth.dart';
 import 'package:flash_session/flash_session.dart';
+import 'package:flash_im_core/flash_im_core.dart';
 import 'package:go_router/go_router.dart';
 import 'src/application/app.dart';
+import 'src/application/config.dart';
 import 'src/application/http_client.dart';
 import 'src/application/router.dart';
 import 'src/application/tasks/restore_session_task.dart';
@@ -21,6 +23,11 @@ void main() async {
 
   final authRepository = AuthRepository(dio: httpClient.dio);
 
+  final wsClient = WsClient(
+    config: ImConfig(wsUrl: 'ws://${AppConfig.host}:${AppConfig.port}/ws/im'),
+    tokenProvider: () => sessionCubit.token,
+  );
+
   late final GoRouter router;
   router = createRouter(
     authRepository: authRepository,
@@ -29,6 +36,7 @@ void main() async {
     ],
     onStartupComplete: (results) {
       final authenticated = results[RestoreSessionTask] as bool;
+      if (authenticated) wsClient.connect();
       router.go(authenticated ? '/home' : '/login');
     },
     onLoginSuccess: (loginResult) async {
@@ -36,14 +44,20 @@ void main() async {
         token: loginResult.token,
         hasPassword: loginResult.hasPassword,
       );
+      wsClient.connect();
       router.go('/home');
     },
   );
 
   runApp(
-    BlocProvider.value(
-      value: sessionCubit,
-      child: FlashApp(router: router),
+    MultiRepositoryProvider(
+      providers: [
+        RepositoryProvider.value(value: wsClient),
+      ],
+      child: BlocProvider.value(
+        value: sessionCubit,
+        child: FlashApp(router: router),
+      ),
     ),
   );
 }

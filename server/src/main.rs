@@ -1,9 +1,10 @@
-mod ws;
 mod mock;
 
 use axum::Router;
+use axum::routing::get;
 use flash_core::state::create_app_state;
 use flash_core::get_local_ip;
+use im_ws::handler::ws_handler;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 
@@ -32,8 +33,8 @@ async fn main() {
     let app = Router::new()
         .merge(flash_auth::router())
         .merge(flash_user::router())
-        .merge(ws::routes::router())
         .merge(mock::routes::router())
+        .route("/ws/im", get(ws_handler))
         .nest_service("/static", ServeDir::new("static"))
         .with_state(state);
 

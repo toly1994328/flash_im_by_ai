@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flash_session/flash_session.dart';
+import 'package:flash_im_core/flash_im_core.dart';
 
 /// 微信风格"我"页面
 class ProfilePage extends StatelessWidget {
@@ -59,6 +60,7 @@ class ProfilePage extends StatelessWidget {
                 color: Colors.white,
                 child: InkWell(
                   onTap: () async {
+                    context.read<WsClient>().disconnect();
                     await context.read<SessionCubit>().deactivate();
                     if (!context.mounted) return;
                     context.go('/login');

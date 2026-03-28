@@ -3,23 +3,28 @@ import 'package:flutter/material.dart';
 /// 基于 seed 生成 5×5 对称方块图案的 CustomPainter
 class IdenticonPainter extends CustomPainter {
   final String seed;
+  final Color backgroundColor;
+  final double paddingRatio;
 
-  IdenticonPainter({required this.seed});
+  IdenticonPainter({
+    required this.seed,
+    this.backgroundColor = const Color(0xFFEEEEEE),
+    this.paddingRatio = 0.15,
+  });
 
   @override
   void paint(Canvas canvas, Size size) {
     final hash = _hashSeed(seed);
-    final bgColor = const Color(0xFFEEEEEE);
     final hue = (hash[0] + hash[1] * 256) % 360;
     final fgColor = HSLColor.fromAHSL(1.0, hue.toDouble(), 0.6, 0.5).toColor();
 
-    final padding = size.width * 0.15;
+    final padding = size.width * paddingRatio;
     final innerSize = size.width - padding * 2;
     final cellW = innerSize / 5;
     final cellH = innerSize / 5;
 
     // 背景
-    canvas.drawRect(Offset.zero & size, Paint()..color = bgColor);
+    canvas.drawRect(Offset.zero & size, Paint()..color = backgroundColor);
 
     final paint = Paint()..color = fgColor;
 
@@ -69,12 +74,16 @@ class IdenticonAvatar extends StatelessWidget {
   final String seed;
   final double size;
   final double borderRadius;
+  final Color backgroundColor;
+  final double paddingRatio;
 
   const IdenticonAvatar({
     super.key,
     required this.seed,
     this.size = 56,
     this.borderRadius = 6,
+    this.backgroundColor = const Color(0xFFEEEEEE),
+    this.paddingRatio = 0.15,
   });
 
   @override
@@ -83,7 +92,11 @@ class IdenticonAvatar extends StatelessWidget {
       borderRadius: BorderRadius.circular(borderRadius),
       child: CustomPaint(
         size: Size(size, size),
-        painter: IdenticonPainter(seed: seed),
+        painter: IdenticonPainter(
+          seed: seed,
+          backgroundColor: backgroundColor,
+          paddingRatio: paddingRatio,
+        ),
       ),
     );
   }

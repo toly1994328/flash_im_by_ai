@@ -5,6 +5,7 @@ members = [
     "modules/flash-core",
     "modules/flash-auth",
     "modules/flash-user",
+    "modules/im-ws",
 ]
 
 [workspace.dependencies]
@@ -27,6 +28,7 @@ edition = "2024"
 flash-core = { path = "modules/flash-core" }
 flash-auth = { path = "modules/flash-auth" }
 flash-user = { path = "modules/flash-user" }
+im-ws = { path = "modules/im-ws" }
 axum.workspace = true
 tokio.workspace = true
 serde.workspace = true

@@ -47,6 +47,8 @@ dependencies:
     path: modules/flash_session
   flash_starter:
     path: modules/flash_starter
+  flash_im_core:
+    path: modules/flash_im_core
 
 dev_dependencies:
   flutter_test:
