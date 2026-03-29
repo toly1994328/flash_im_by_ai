@@ -15,8 +15,22 @@ class IdenticonPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final hash = _hashSeed(seed);
-    final hue = (hash[0] + hash[1] * 256) % 360;
-    final fgColor = HSLColor.fromAHSL(1.0, hue.toDouble(), 0.6, 0.5).toColor();
+
+    // 解析颜色：如果 seed 包含 ":"，前面是颜色 hex，后面是实际 seed
+    final Color fgColor;
+    if (seed.contains(':')) {
+      final hex = seed.split(':').last;
+      final colorValue = int.tryParse(hex, radix: 16);
+      if (colorValue != null) {
+        fgColor = Color(0xFF000000 | colorValue);
+      } else {
+        final hue = (hash[0] + hash[1] * 256) % 360;
+        fgColor = HSLColor.fromAHSL(1.0, hue.toDouble(), 0.6, 0.5).toColor();
+      }
+    } else {
+      final hue = (hash[0] + hash[1] * 256) % 360;
+      fgColor = HSLColor.fromAHSL(1.0, hue.toDouble(), 0.6, 0.5).toColor();
+    }
 
     final padding = size.width * paddingRatio;
     final innerSize = size.width - padding * 2;

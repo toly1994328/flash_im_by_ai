@@ -3,6 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_auth/flash_auth.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
+import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:go_router/go_router.dart';
 import 'src/application/app.dart';
 import 'src/application/config.dart';
@@ -22,6 +23,8 @@ void main() async {
   sessionCubit = SessionCubit(repo: sessionRepo);
 
   final authRepository = AuthRepository(dio: httpClient.dio);
+
+  final conversationRepo = ConversationRepository(dio: httpClient.dio);
 
   final wsClient = WsClient(
     config: ImConfig(wsUrl: 'ws://${AppConfig.host}:${AppConfig.port}/ws/im'),
@@ -53,6 +56,7 @@ void main() async {
     MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: wsClient),
+        RepositoryProvider.value(value: conversationRepo),
       ],
       child: BlocProvider.value(
         value: sessionCubit,

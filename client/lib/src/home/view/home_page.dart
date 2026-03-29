@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
+import 'package:flash_im_conversation/flash_im_conversation.dart';
 import '../profile/profile_page.dart';
 
 const _kPrimary = Color(0xFF3B82F6);
@@ -221,8 +222,11 @@ class _HomePageState extends State<HomePage> {
           },
         ),
       ),
-      body: const Center(
-        child: Text('暂无消息', style: TextStyle(fontSize: 16, color: Colors.grey)),
+      body: BlocProvider(
+        create: (_) => ConversationListCubit(
+          context.read<ConversationRepository>(),
+        )..loadConversations(),
+        child: const ConversationListPage(),
       ),
     );
   }

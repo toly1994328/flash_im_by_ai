@@ -49,6 +49,8 @@ dependencies:
     path: modules/flash_starter
   flash_im_core:
     path: modules/flash_im_core
+  flash_im_conversation:
+    path: modules/flash_im_conversation
 
 dev_dependencies:
   flutter_test:

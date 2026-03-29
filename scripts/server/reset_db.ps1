@@ -33,4 +33,8 @@ Write-Host "[DB] Creating database '$DbName'..."
 Write-Host "[DB] Running migration..."
 & $psqlExe -U $PgUser -h 127.0.0.1 -p 5432 -w -d $DbName -f $migrationFile
 
+$migrationFile2 = Join-Path $PSScriptRoot "..\..\server\migrations\20260329_002_conversations.sql"
+$migrationFile2 = (Resolve-Path $migrationFile2).Path
+& $psqlExe -U $PgUser -h 127.0.0.1 -p 5432 -w -d $DbName -f $migrationFile2
+
 Write-Host "[DB] Database reset complete."

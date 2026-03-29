@@ -34,6 +34,7 @@ async fn main() {
         .merge(flash_auth::router())
         .merge(flash_user::router())
         .merge(mock::routes::router())
+        .merge(im_conversation::router())
         .route("/ws/im", get(ws_handler))
         .nest_service("/static", ServeDir::new("static"))
         .with_state(state);
