@@ -21,22 +21,29 @@ inclusion: manual
 
 ```
 docs/features/{feature}/api/
-├── request/
-│   └── {module}.py          # Python 测试脚本
-└── docs/
-    └── {module}/
-        ├── 00_link.md       # 大纲表格，可跳转到各接口文档
-        ├── 01_{name}.md     # 接口文档（自动生成）
-        ├── 02_{name}.md
-        └── ...
+├── {module}/
+│   ├── request/
+│   │   └── {module}.py          # Python 测试脚本
+│   └── doc/
+│       ├── 00_link.md           # 大纲表格，可跳转到各接口文档
+│       ├── 01_{name}.md         # 接口文档（自动生成）
+│       ├── 02_{name}.md
+│       └── ...
+├── {module2}/
+│   ├── request/
+│   │   └── {module2}.py
+│   └── doc/
+│       └── ...
+└── ...
 ```
 
 命名规则：
-- `{feature}` = 功能域（如 session、im/core/conversation）
-- `{module}` = 具体模块（如 user_profile、conversation）
+- `{feature}` = 功能域（如 im/core）
+- `{module}` = 具体模块（如 conversation、message）
 - `{name}` = 接口简称（如 create_private、list）
 - 文档按执行顺序编号：`01_`、`02_`...
 - `00_link.md` 固定为大纲
+- 脚本生成的文档输出到同级的 `doc/` 目录
 
 ## 脚本结构
 
@@ -59,11 +66,28 @@ docs/features/{feature}/api/
 ### 测试框架要求
 
 ```python
-step(n, desc)      # 打印步骤标题
-fail(msg)           # 打印失败信息并 sys.exit(1)
-ok()                # 打印 [PASS]，计数器 +1
-write_doc(...)      # 生成单个接口文档 md
-write_link()        # 生成 00_link.md 大纲
+# ANSI 颜色
+CYAN = "\033[36m"
+GREEN = "\033[32m"
+RED = "\033[31m"
+YELLOW = "\033[33m"
+RESET = "\033[0m"
+
+def step(n, desc):    print(f"{CYAN}========== [{n}] {desc} =========={RESET}")  # 不加空行
+def fail(msg):        print(f"{RED}[FAIL] {msg}{RESET}"); sys.exit(1)
+def ok():             print(f"{GREEN}[PASS]{RESET}")
+write_doc(...)        # 生成单个接口文档 md
+write_link()          # 生成 00_link.md 大纲
+```
+
+### DOCS_DIR 规范
+
+脚本放在 `{module}/request/` 下，文档输出到 `{module}/doc/`：
+
+```python
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DOCS_DIR = os.path.join(SCRIPT_DIR, "..", "doc")
+os.makedirs(DOCS_DIR, exist_ok=True)
 ```
 
 ## 每个测试步骤的模式
@@ -155,14 +179,14 @@ Base URL: `{base_url}`
 ### 前置依赖
 
 如果模块需要认证，在 `pre` 步骤中：
-1. POST /auth/sms 获取验证码
-2. POST /auth/login 获取 token
-3. 将 token 存入变量供后续步骤使用
+1. POST /auth/login（type=password，credential=111111）获取 token
+2. 如需特定会话，POST /conversations 幂等创建
+3. 将 token、user_id、conversation_id 存入变量供后续步骤使用
 
 ## 参考模板
 
 现有模板文件：
-- Python: `docs/features/im/core/conversation/api/request/conversation.py`
+- Python: `docs/features/im/core/api/conversation/request/conversation.py`
 
 编写新模块时，复制模板的 Curl 类和测试框架函数，只需替换测试步骤。
 

@@ -129,4 +129,73 @@ impl ConversationService {
         }
         Ok(())
     }
+
+    /// 更新会话最后消息预览和时间
+    pub async fn update_last_message(
+        &self,
+        conversation_id: Uuid,
+        preview: &str,
+    ) -> Result<(), StatusCode> {
+        sqlx::query(
+            "UPDATE conversations SET last_message_preview = $2, \
+             last_message_at = NOW(), updated_at = NOW() WHERE id = $1",
+        )
+        .bind(conversation_id)
+        .bind(preview)
+        .execute(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(())
+    }
+
+    /// 给其他成员未读数 +1
+    pub async fn increment_unread(
+        &self,
+        conversation_id: Uuid,
+        sender_id: i64,
+    ) -> Result<(), StatusCode> {
+        sqlx::query(
+            "UPDATE conversation_members SET unread_count = unread_count + 1 \
+             WHERE conversation_id = $1 AND user_id != $2 AND is_deleted = false",
+        )
+        .bind(conversation_id)
+        .bind(sender_id)
+        .execute(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(())
+    }
+
+    /// 获取会话成员 ID 列表
+    pub async fn get_member_ids(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<Vec<i64>, StatusCode> {
+        let rows: Vec<(i64,)> = sqlx::query_as(
+            "SELECT user_id FROM conversation_members WHERE conversation_id = $1",
+        )
+        .bind(conversation_id)
+        .fetch_all(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(rows.into_iter().map(|(id,)| id).collect())
+    }
+
+    /// 检查用户是否是会话成员
+    pub async fn is_member(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<bool, StatusCode> {
+        let row: Option<(i32,)> = sqlx::query_as(
+            "SELECT 1 FROM conversation_members \
+             WHERE conversation_id = $1 AND user_id = $2",
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .fetch_optional(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(row.is_some())
+    }
 }

@@ -25,6 +25,9 @@ pub enum WsFrameType {
     Pong = 1,
     Auth = 2,
     AuthResult = 3,
+    ChatMessage = 4,
+    MessageAck = 5,
+    ConversationUpdate = 6,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -37,6 +40,9 @@ impl WsFrameType {
             Self::Pong => "PONG",
             Self::Auth => "AUTH",
             Self::AuthResult => "AUTH_RESULT",
+            Self::ChatMessage => "CHAT_MESSAGE",
+            Self::MessageAck => "MESSAGE_ACK",
+            Self::ConversationUpdate => "CONVERSATION_UPDATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -46,6 +52,113 @@ impl WsFrameType {
             "PONG" => Some(Self::Pong),
             "AUTH" => Some(Self::Auth),
             "AUTH_RESULT" => Some(Self::AuthResult),
+            "CHAT_MESSAGE" => Some(Self::ChatMessage),
+            "MESSAGE_ACK" => Some(Self::MessageAck),
+            "CONVERSATION_UPDATE" => Some(Self::ConversationUpdate),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ChatMessage {
+    #[prost(string, tag = "1")]
+    pub id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub sender_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "4")]
+    pub seq: i64,
+    #[prost(enumeration = "MessageType", tag = "5")]
+    pub r#type: i32,
+    #[prost(string, tag = "6")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "7")]
+    pub extra: ::prost::alloc::vec::Vec<u8>,
+    #[prost(enumeration = "MessageStatus", tag = "8")]
+    pub status: i32,
+    #[prost(int64, tag = "9")]
+    pub created_at: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct SendMessageRequest {
+    #[prost(string, tag = "1")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(enumeration = "MessageType", tag = "2")]
+    pub r#type: i32,
+    #[prost(string, tag = "3")]
+    pub content: ::prost::alloc::string::String,
+    #[prost(bytes = "vec", tag = "4")]
+    pub extra: ::prost::alloc::vec::Vec<u8>,
+    #[prost(string, tag = "5")]
+    pub client_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MessageAck {
+    #[prost(string, tag = "1")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub seq: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ConversationUpdate {
+    #[prost(string, tag = "1")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub last_message_preview: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub last_message_at: i64,
+    #[prost(int32, tag = "4")]
+    pub unread_count: i32,
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MessageType {
+    Text = 0,
+}
+impl MessageType {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Text => "TEXT",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "TEXT" => Some(Self::Text),
+            _ => None,
+        }
+    }
+}
+#[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
+#[repr(i32)]
+pub enum MessageStatus {
+    Normal = 0,
+    Recalled = 1,
+    Deleted = 2,
+}
+impl MessageStatus {
+    /// String value of the enum field names used in the ProtoBuf definition.
+    ///
+    /// The values are not transformed in any way and thus are considered stable
+    /// (if the ProtoBuf definition does not change) and safe for programmatic use.
+    pub fn as_str_name(&self) -> &'static str {
+        match self {
+            Self::Normal => "NORMAL",
+            Self::Recalled => "RECALLED",
+            Self::Deleted => "DELETED",
+        }
+    }
+    /// Creates an enum from field names used in the ProtoBuf definition.
+    pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
+        match value {
+            "NORMAL" => Some(Self::Normal),
+            "RECALLED" => Some(Self::Recalled),
+            "DELETED" => Some(Self::Deleted),
             _ => None,
         }
     }

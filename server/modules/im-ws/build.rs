@@ -16,7 +16,10 @@ fn main() {
     prost_build::Config::new()
         .out_dir(&out_dir)
         .compile_protos(
-            &[proto_dir.join("ws.proto")],
+            &[
+                proto_dir.join("ws.proto"),
+                proto_dir.join("message.proto"),
+            ],
             &[&proto_dir],
         )
         .expect("Failed to compile proto files");

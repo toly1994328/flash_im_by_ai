@@ -1,30 +1,64 @@
-//! 帧分发器
-//!
-//! 根据 WsFrameType 分发到对应的处理逻辑。
+//! 消息分发器
 
+use std::sync::Arc;
 use prost::Message as ProstMessage;
+use uuid::Uuid;
 
-use crate::proto::{WsFrame, WsFrameType};
+use im_message::{MessageService, models::NewMessage};
 
-/// 处理收到的帧，返回需要回复的帧字节（如果有）
-pub fn handle_frame(frame: WsFrame) -> Option<Vec<u8>> {
-    let frame_type = WsFrameType::try_from(frame.r#type).ok();
+use crate::proto::{MessageAck, SendMessageRequest, WsFrame, WsFrameType};
+use crate::state::WsState;
 
-    match frame_type {
-        Some(WsFrameType::Ping) => {
-            let pong = WsFrame {
-                r#type: WsFrameType::Pong as i32,
-                payload: vec![],
-            };
-            Some(pong.encode_to_vec())
-        }
-        Some(other) => {
-            println!("⚠️ [im-ws] 未处理的帧类型: {:?}", other);
-            None
-        }
-        None => {
-            println!("⚠️ [im-ws] 未知的帧类型编号: {}", frame.r#type);
-            None
-        }
+pub struct MessageDispatcher {
+    msg_service: Arc<MessageService>,
+    ws_state: Arc<WsState>,
+}
+
+impl MessageDispatcher {
+    pub fn new(msg_service: Arc<MessageService>, ws_state: Arc<WsState>) -> Self {
+        Self { msg_service, ws_state }
+    }
+
+    pub async fn handle_chat_message(&self, sender_id: i64, payload: &[u8]) {
+        let request = match SendMessageRequest::decode(payload) {
+            Ok(r) => r,
+            Err(e) => {
+                println!("⚠️ [dispatcher] decode SendMessageRequest failed: {}", e);
+                return;
+            }
+        };
+
+        let conversation_id = match Uuid::parse_str(&request.conversation_id) {
+            Ok(id) => id,
+            Err(_) => return,
+        };
+
+        let new_msg = NewMessage {
+            conversation_id,
+            sender_id,
+            content: request.content,
+        };
+
+        let message = match self.msg_service.send(new_msg).await {
+            Ok(m) => m,
+            Err(e) => {
+                println!("⚠️ [dispatcher] send message failed: {:?}", e);
+                return;
+            }
+        };
+
+        // 发送 ACK 给发送者
+        let ack = MessageAck {
+            message_id: message.id.to_string(),
+            seq: message.seq,
+        };
+        let ack_frame = WsFrame {
+            r#type: WsFrameType::MessageAck as i32,
+            payload: ack.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(sender_id, ack_frame.encode_to_vec()).await;
+
+        println!("📨 [dispatcher] message sent: conv={}, seq={}, from={}",
+            message.conversation_id, message.seq, sender_id);
     }
 }

@@ -1,0 +1,3 @@
+# Protobuf 生成的 Python 代码（可从 .proto 重新生成）
+**/proto/*_pb2.py
+**/proto/__pycache__/

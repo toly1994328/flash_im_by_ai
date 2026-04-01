@@ -37,4 +37,8 @@ $migrationFile2 = Join-Path $PSScriptRoot "..\..\server\migrations\20260329_002_
 $migrationFile2 = (Resolve-Path $migrationFile2).Path
 & $psqlExe -U $PgUser -h 127.0.0.1 -p 5432 -w -d $DbName -f $migrationFile2
 
+$migrationFile3 = Join-Path $PSScriptRoot "..\..\server\migrations\20260330_003_messages.sql"
+$migrationFile3 = (Resolve-Path $migrationFile3).Path
+& $psqlExe -U $PgUser -h 127.0.0.1 -p 5432 -w -d $DbName -f $migrationFile3
+
 Write-Host "[DB] Database reset complete."

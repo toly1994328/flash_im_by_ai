@@ -7,6 +7,7 @@ members = [
     "modules/flash-user",
     "modules/im-ws",
     "modules/im-conversation",
+    "modules/im-message",
 ]
 
 [workspace.dependencies]
@@ -31,6 +32,7 @@ flash-auth = { path = "modules/flash-auth" }
 flash-user = { path = "modules/flash-user" }
 im-ws = { path = "modules/im-ws" }
 im-conversation = { path = "modules/im-conversation" }
+im-message = { path = "modules/im-message" }
 axum.workspace = true
 tokio.workspace = true
 serde.workspace = true

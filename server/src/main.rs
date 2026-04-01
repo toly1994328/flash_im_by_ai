@@ -1,10 +1,14 @@
 mod mock;
 
+use std::sync::Arc;
 use axum::Router;
 use axum::routing::get;
 use flash_core::state::create_app_state;
 use flash_core::get_local_ip;
-use im_ws::handler::ws_handler;
+use im_ws::handler::{ws_handler, WsHandlerState};
+use im_ws::state::WsState;
+use im_ws::broadcaster::WsBroadcaster;
+use im_ws::dispatcher::MessageDispatcher;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 
@@ -27,17 +31,36 @@ async fn main() {
 
     println!("✅ Database connected");
 
-    let state = create_app_state(db);
+    let state = create_app_state(db.clone());
     let local_ip = get_local_ip();
+
+    // WebSocket 状态
+    let ws_state = Arc::new(WsState::new());
+
+    // 广播器（依赖 ws_state）
+    let broadcaster = Arc::new(WsBroadcaster::new(ws_state.clone()));
+
+    // 消息服务（依赖 broadcaster）
+    let msg_service = Arc::new(im_message::MessageService::new(db.clone(), broadcaster));
+
+    // 消息分发器（依赖 msg_service + ws_state）
+    let dispatcher = Arc::new(MessageDispatcher::new(msg_service.clone(), ws_state.clone()));
+
+    // WS handler 状态
+    let ws_handler_state = Arc::new(WsHandlerState {
+        ws_state,
+        dispatcher,
+    });
 
     let app = Router::new()
         .merge(flash_auth::router())
         .merge(flash_user::router())
         .merge(mock::routes::router())
         .merge(im_conversation::router())
-        .route("/ws/im", get(ws_handler))
-        .nest_service("/static", ServeDir::new("static"))
-        .with_state(state);
+        .with_state(state)
+        .merge(im_message::router(msg_service))
+        .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
+        .nest_service("/static", ServeDir::new("static"));
 
     println!("🚀 Flash IM server listening on:");
     println!("   Local:   http://127.0.0.1:{port}");

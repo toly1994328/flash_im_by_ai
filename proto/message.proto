@@ -1,0 +1,44 @@
+syntax = "proto3";
+package im;
+
+enum MessageType {
+  TEXT = 0;
+}
+
+enum MessageStatus {
+  NORMAL = 0;
+  RECALLED = 1;
+  DELETED = 2;
+}
+
+message ChatMessage {
+  string id = 1;
+  string conversation_id = 2;
+  string sender_id = 3;
+  int64 seq = 4;
+  MessageType type = 5;
+  string content = 6;
+  bytes extra = 7;
+  MessageStatus status = 8;
+  int64 created_at = 9;
+}
+
+message SendMessageRequest {
+  string conversation_id = 1;
+  MessageType type = 2;
+  string content = 3;
+  bytes extra = 4;
+  string client_id = 5;
+}
+
+message MessageAck {
+  string message_id = 1;
+  int64 seq = 2;
+}
+
+message ConversationUpdate {
+  string conversation_id = 1;
+  string last_message_preview = 2;
+  int64 last_message_at = 3;
+  int32 unread_count = 4;
+}
