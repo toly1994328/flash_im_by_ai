@@ -19,11 +19,12 @@ class ConversationListLoading extends ConversationListState {
 class ConversationListLoaded extends ConversationListState {
   final List<Conversation> conversations;
   final bool hasMore;
+  final int totalUnread;
 
-  const ConversationListLoaded(this.conversations, {this.hasMore = false});
+  const ConversationListLoaded(this.conversations, {this.hasMore = false, this.totalUnread = 0});
 
   @override
-  List<Object?> get props => [conversations, hasMore];
+  List<Object?> get props => [conversations, hasMore, totalUnread];
 }
 
 class ConversationListError extends ConversationListState {

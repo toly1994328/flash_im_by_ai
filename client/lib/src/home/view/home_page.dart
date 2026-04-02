@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
+import 'package:flash_im_chat/flash_im_chat.dart';
 import '../profile/profile_page.dart';
 
 const _kPrimary = Color(0xFF3B82F6);
@@ -18,10 +19,15 @@ class HomePage extends StatefulWidget {
 class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _hasShownPasswordGuide = false;
+  late final ConversationListCubit _convCubit;
 
   @override
   void initState() {
     super.initState();
+    _convCubit = ConversationListCubit(
+      context.read<ConversationRepository>(),
+      wsClient: context.read<WsClient>(),
+    )..loadConversations();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPasswordGuide();
     });
@@ -117,6 +123,7 @@ class _HomePageState extends State<HomePage> {
                     icon: Icons.chat_bubble_outline,
                     activeIcon: Icons.chat_bubble,
                     label: '消息',
+                    badge: _buildUnreadBadge(),
                   ),
                   _buildNavItem(
                     index: 1,
@@ -222,11 +229,38 @@ class _HomePageState extends State<HomePage> {
           },
         ),
       ),
-      body: BlocProvider(
-        create: (_) => ConversationListCubit(
-          context.read<ConversationRepository>(),
-        )..loadConversations(),
-        child: const ConversationListPage(),
+      body: BlocProvider.value(
+        value: _convCubit,
+        child: ConversationListPage(
+          onConversationTap: (conversation) {
+            final session = context.read<SessionCubit>().state;
+            final user = session.user;
+            if (user == null) return;
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => MultiRepositoryProvider(
+                providers: [
+                  RepositoryProvider.value(value: context.read<MessageRepository>()),
+                  RepositoryProvider.value(value: context.read<WsClient>()),
+                ],
+                child: BlocProvider(
+                  create: (_) => ChatCubit(
+                    repository: context.read<MessageRepository>(),
+                    wsClient: context.read<WsClient>(),
+                    conversationId: conversation.id,
+                    currentUserId: user.userId.toString(),
+                    currentUserName: user.nickname,
+                    currentUserAvatar: user.avatar,
+                  )..loadMessages(),
+                  child: ChatPage(
+                    conversationId: conversation.id,
+                    peerName: conversation.displayName,
+                    peerAvatar: conversation.displayAvatar,
+                  ),
+                ),
+              ),
+            ));
+          },
+        ),
       ),
     );
   }
@@ -236,6 +270,7 @@ class _HomePageState extends State<HomePage> {
     required IconData icon,
     required IconData activeIcon,
     required String label,
+    Widget? badge,
   }) {
     final isSelected = _currentIndex == index;
     final color = isSelected ? _kPrimary : Colors.grey;
@@ -246,7 +281,13 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(isSelected ? activeIcon : icon, color: color, size: 24),
+            Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(isSelected ? activeIcon : icon, color: color, size: 24),
+                if (badge != null) Positioned(right: -8, top: -4, child: badge),
+              ],
+            ),
             const SizedBox(height: 2),
             Text(
               label,
@@ -259,6 +300,25 @@ class _HomePageState extends State<HomePage> {
           ],
         ),
       ),
+    );
+  }
+
+  Widget? _buildUnreadBadge() {
+    return BlocBuilder<ConversationListCubit, ConversationListState>(
+      bloc: _convCubit,
+      builder: (context, state) {
+        final total = state is ConversationListLoaded ? state.totalUnread : 0;
+        if (total <= 0) return const SizedBox.shrink();
+        final text = total > 99 ? '99+' : total.toString();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
+        );
+      },
     );
   }
 }

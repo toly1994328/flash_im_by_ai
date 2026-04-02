@@ -7,6 +7,7 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 import '../data/im_config.dart';
 import '../data/proto/ws.pb.dart';
 import '../data/proto/ws.pbenum.dart';
+import '../data/proto/message.pb.dart' as msg;
 
 typedef TokenProvider = String? Function();
 
@@ -42,6 +43,14 @@ class WsClient {
 
   final _frameController = StreamController<WsFrame>.broadcast();
   Stream<WsFrame> get frameStream => _frameController.stream;
+
+  final _chatMessageController = StreamController<WsFrame>.broadcast();
+  final _messageAckController = StreamController<WsFrame>.broadcast();
+  final _conversationUpdateController = StreamController<WsFrame>.broadcast();
+
+  Stream<WsFrame> get chatMessageStream => _chatMessageController.stream;
+  Stream<WsFrame> get messageAckStream => _messageAckController.stream;
+  Stream<WsFrame> get conversationUpdateStream => _conversationUpdateController.stream;
 
   WsClient({
     required ImConfig config,
@@ -131,6 +140,17 @@ class WsClient {
       return;
     }
 
+    // 按类型分发
+    switch (frame.type) {
+      case WsFrameType.CHAT_MESSAGE:
+        _chatMessageController.add(frame);
+      case WsFrameType.MESSAGE_ACK:
+        _messageAckController.add(frame);
+      case WsFrameType.CONVERSATION_UPDATE:
+        _conversationUpdateController.add(frame);
+      default:
+        break;
+    }
     _frameController.add(frame);
   }
 
@@ -185,6 +205,23 @@ class WsClient {
     _channel?.sink.add(frame.writeToBuffer());
   }
 
+  /// 发送聊天消息
+  void sendMessage({
+    required String conversationId,
+    required String content,
+    String? clientId,
+  }) {
+    final req = msg.SendMessageRequest()
+      ..conversationId = conversationId
+      ..type = msg.MessageType.TEXT
+      ..content = content
+      ..clientId = clientId ?? '';
+    final frame = WsFrame()
+      ..type = WsFrameType.CHAT_MESSAGE
+      ..payload = req.writeToBuffer();
+    sendFrame(frame);
+  }
+
   /// 主动断开连接，不触发重连
   void disconnect() {
     _intentionalDisconnect = true;
@@ -199,5 +236,8 @@ class WsClient {
     disconnect();
     _stateController.close();
     _frameController.close();
+    _chatMessageController.close();
+    _messageAckController.close();
+    _conversationUpdateController.close();
   }
 }

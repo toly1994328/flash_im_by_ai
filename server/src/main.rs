@@ -38,7 +38,7 @@ async fn main() {
     let ws_state = Arc::new(WsState::new());
 
     // 广播器（依赖 ws_state）
-    let broadcaster = Arc::new(WsBroadcaster::new(ws_state.clone()));
+    let broadcaster = Arc::new(WsBroadcaster::new(ws_state.clone(), db.clone()));
 
     // 消息服务（依赖 broadcaster）
     let msg_service = Arc::new(im_message::MessageService::new(db.clone(), broadcaster));

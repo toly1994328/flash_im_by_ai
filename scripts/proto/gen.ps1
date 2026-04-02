@@ -78,7 +78,7 @@ Write-Host "[后端] 完成 -> server/modules/im-ws/src/generated/"
 # ===== 前端 (Dart) =====
 Write-Host "[前端] 生成 Dart proto 代码..."
 New-Item -ItemType Directory -Force -Path $dartOut | Out-Null
-& $protocBin --proto_path=$protoDir --dart_out=$dartOut "$protoDir/ws.proto"
+& $protocBin --proto_path=$protoDir --dart_out=$dartOut "$protoDir/ws.proto" "$protoDir/message.proto"
 Write-Host "[前端] 完成 -> $dartOut"
 
 Write-Host ""

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import '../data/conversation.dart';
 import '../logic/conversation_list_cubit.dart';
 import '../logic/conversation_list_state.dart';
 import 'conversation_tile.dart';
 
 /// 会话列表页面（支持下拉刷新 + 滚动加载更多）
 class ConversationListPage extends StatefulWidget {
-  const ConversationListPage({super.key});
+  final void Function(Conversation conversation)? onConversationTap;
+  const ConversationListPage({super.key, this.onConversationTap});
 
   @override
   State<ConversationListPage> createState() => _ConversationListPageState();
@@ -86,7 +88,7 @@ class _ConversationListPageState extends State<ConversationListPage> {
                         }
                         return ConversationTile(
                           conversation: conversations[index],
-                          onTap: () {},
+                          onTap: () => widget.onConversationTap?.call(conversations[index]),
                         );
                       },
                     ),

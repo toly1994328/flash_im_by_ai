@@ -1,65 +1,107 @@
+import 'dart:async';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flash_im_core/flash_im_core.dart';
 import '../data/conversation_repository.dart';
 import '../data/conversation.dart';
 import 'conversation_list_state.dart';
 
-/// 会话列表状态管理（支持分页）
+/// 会话列表状态管理（支持分页 + 实时更新）
 class ConversationListCubit extends Cubit<ConversationListState> {
   final ConversationRepository _repository;
+  final WsClient? _wsClient;
   static const int _pageSize = 20;
   bool _isLoadingMore = false;
+  StreamSubscription? _updateSub;
 
-  ConversationListCubit(this._repository)
-      : super(const ConversationListInitial());
+  ConversationListCubit(this._repository, {WsClient? wsClient})
+      : _wsClient = wsClient,
+        super(const ConversationListInitial()) {
+    _updateSub = _wsClient?.conversationUpdateStream.listen(_handleUpdate);
+  }
 
-  /// 加载会话列表（首页）
+  void _handleUpdate(WsFrame frame) {
+    try {
+      final update = ConversationUpdate.fromBuffer(frame.payload);
+      final current = state;
+      if (current is! ConversationListLoaded) return;
+
+      final updated = current.conversations.map((c) {
+        if (c.id == update.conversationId) {
+          return Conversation(
+            id: c.id,
+            type: c.type,
+            name: c.name,
+            peerUserId: c.peerUserId,
+            peerNickname: c.peerNickname,
+            peerAvatar: c.peerAvatar,
+            lastMessageAt: DateTime.fromMillisecondsSinceEpoch(update.lastMessageAt.toInt()),
+            lastMessagePreview: update.lastMessagePreview,
+            unreadCount: c.unreadCount + update.unreadCount,
+            isPinned: c.isPinned,
+            isMuted: c.isMuted,
+            createdAt: c.createdAt,
+          );
+        }
+        return c;
+      }).toList();
+
+      // 按 lastMessageAt 倒序排列
+      updated.sort((a, b) {
+        final aTime = a.lastMessageAt ?? a.createdAt;
+        final bTime = b.lastMessageAt ?? b.createdAt;
+        return bTime.compareTo(aTime);
+      });
+
+      emit(ConversationListLoaded(
+        updated,
+        hasMore: current.hasMore,
+        totalUnread: update.totalUnread,
+      ));
+    } catch (_) {}
+  }
+
   Future<void> loadConversations() async {
     _isLoadingMore = false;
     emit(const ConversationListLoading());
     try {
       final conversations = await _repository.getList(limit: _pageSize, offset: 0);
       final hasMore = conversations.length >= _pageSize;
-      print('[ConversationList] ${DateTime.now()} loaded ${conversations.length} conversations, hasMore=$hasMore');
       emit(ConversationListLoaded(conversations, hasMore: hasMore));
     } catch (e) {
-      print('[ConversationList] ${DateTime.now()} load failed: $e');
       emit(ConversationListError(e.toString()));
     }
   }
 
-  /// 加载更多
   Future<void> loadMore() async {
     final current = state;
     if (current is! ConversationListLoaded || !current.hasMore || _isLoadingMore) return;
-
     _isLoadingMore = true;
     try {
       final offset = current.conversations.length;
-      print('[ConversationList] ${DateTime.now()} loading more, offset=$offset');
-      final more = await _repository.getList(
-        limit: _pageSize,
-        offset: offset,
-      );
+      final more = await _repository.getList(limit: _pageSize, offset: offset);
       final hasMore = more.length >= _pageSize;
       final all = [...current.conversations, ...more];
-      print('[ConversationList] ${DateTime.now()} loaded ${more.length} more, total=${all.length}, hasMore=$hasMore');
-      emit(ConversationListLoaded(all, hasMore: hasMore));
-    } catch (e) {
-      print('[ConversationList] ${DateTime.now()} loadMore failed: $e');
+      emit(ConversationListLoaded(all, hasMore: hasMore, totalUnread: current.totalUnread));
+    } catch (_) {
     } finally {
       _isLoadingMore = false;
     }
   }
 
-  /// 删除会话
   Future<void> deleteConversation(String id) async {
     try {
       await _repository.delete(id);
       final current = state;
       if (current is ConversationListLoaded) {
         final updated = current.conversations.where((c) => c.id != id).toList();
-        emit(ConversationListLoaded(updated, hasMore: current.hasMore));
+        emit(ConversationListLoaded(updated, hasMore: current.hasMore, totalUnread: current.totalUnread));
       }
     } catch (_) {}
+  }
+
+  @override
+  Future<void> close() {
+    _updateSub?.cancel();
+    return super.close();
   }
 }

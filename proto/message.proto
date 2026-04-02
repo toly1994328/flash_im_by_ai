@@ -41,4 +41,5 @@ message ConversationUpdate {
   string last_message_preview = 2;
   int64 last_message_at = 3;
   int32 unread_count = 4;
+  int32 total_unread = 5;
 }

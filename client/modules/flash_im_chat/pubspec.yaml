@@ -1,5 +1,5 @@
-name: flash_im_core
-description: Flash IM 核心模块 - WebSocket 通信与协议
+name: flash_im_chat
+description: Flash IM 聊天模块
 version: 0.0.1
 publish_to: none
 
@@ -10,9 +10,12 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  protobuf: ^6.0.0
-  fixnum: ^1.1.1
-  web_socket_channel: ^3.0.3
+  dio: ^5.8.0+1
+  flutter_bloc: ^8.1.6
+  equatable: ^2.0.7
+  shimmer: ^3.0.0
+  flash_im_core:
+    path: ../flash_im_core
 
 dev_dependencies:
   flutter_test:

@@ -966,6 +966,7 @@ dependencies = [
  "im-message",
  "prost",
  "prost-build",
+ "sqlx",
  "tokio",
  "uuid",
 ]

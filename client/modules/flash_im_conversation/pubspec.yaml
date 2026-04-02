@@ -15,6 +15,8 @@ dependencies:
   equatable: ^2.0.7
   flash_session:
     path: ../flash_session
+  flash_im_core:
+    path: ../flash_im_core
 
 dev_dependencies:
   flutter_test:

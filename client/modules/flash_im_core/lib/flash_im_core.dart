@@ -6,6 +6,8 @@ library;
 // data
 export 'src/data/proto/ws.pb.dart';
 export 'src/data/proto/ws.pbenum.dart';
+export 'src/data/proto/message.pb.dart';
+export 'src/data/proto/message.pbenum.dart';
 export 'src/data/im_config.dart';
 
 // logic

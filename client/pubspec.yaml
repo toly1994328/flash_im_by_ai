@@ -51,6 +51,8 @@ dependencies:
     path: modules/flash_im_core
   flash_im_conversation:
     path: modules/flash_im_conversation
+  flash_im_chat:
+    path: modules/flash_im_chat
 
 dev_dependencies:
   flutter_test:

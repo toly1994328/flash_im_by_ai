@@ -12,11 +12,12 @@ use crate::state::WsState;
 
 pub struct WsBroadcaster {
     ws_state: Arc<WsState>,
+    db: sqlx::PgPool,
 }
 
 impl WsBroadcaster {
-    pub fn new(ws_state: Arc<WsState>) -> Self {
-        Self { ws_state }
+    pub fn new(ws_state: Arc<WsState>, db: sqlx::PgPool) -> Self {
+        Self { ws_state, db }
     }
 }
 
@@ -65,31 +66,33 @@ impl MessageBroadcaster for WsBroadcaster {
     ) {
         let now_ms = chrono::Utc::now().timestamp_millis();
 
-        // 给其他成员推送（含 unread_count=1 增量）
-        let update_others = ConversationUpdate {
-            conversation_id: conversation_id.to_string(),
-            last_message_preview: preview.to_string(),
-            last_message_at: now_ms,
-            unread_count: 1,
-        };
-        let frame_others = WsFrame {
-            r#type: WsFrameType::ConversationUpdate as i32,
-            payload: update_others.encode_to_vec(),
-        };
-        let others: Vec<i64> = member_ids.iter().filter(|&&id| id != sender_id).copied().collect();
-        self.ws_state.send_to_users(&others, frame_others.encode_to_vec()).await;
+        // 给每个成员推送（各自的 total_unread 不同）
+        for &uid in member_ids {
+            let unread = if uid == sender_id { 0 } else { 1 };
 
-        // 给发送者推送（unread_count=0，仅更新预览）
-        let update_sender = ConversationUpdate {
-            conversation_id: conversation_id.to_string(),
-            last_message_preview: preview.to_string(),
-            last_message_at: now_ms,
-            unread_count: 0,
-        };
-        let frame_sender = WsFrame {
-            r#type: WsFrameType::ConversationUpdate as i32,
-            payload: update_sender.encode_to_vec(),
-        };
-        self.ws_state.send_to_users(&[sender_id], frame_sender.encode_to_vec()).await;
+            // 查询该用户的总未读数
+            let total: i32 = sqlx::query_as::<_, (i64,)>(
+                "SELECT COALESCE(SUM(unread_count), 0) FROM conversation_members \
+                 WHERE user_id = $1 AND is_deleted = false"
+            )
+            .bind(uid)
+            .fetch_one(&self.db)
+            .await
+            .map(|(n,)| n as i32)
+            .unwrap_or(0);
+
+            let update = ConversationUpdate {
+                conversation_id: conversation_id.to_string(),
+                last_message_preview: preview.to_string(),
+                last_message_at: now_ms,
+                unread_count: unread,
+                total_unread: total,
+            };
+            let frame = WsFrame {
+                r#type: WsFrameType::ConversationUpdate as i32,
+                payload: update.encode_to_vec(),
+            };
+            self.ws_state.send_to_user(uid, frame.encode_to_vec()).await;
+        }
     }
 }

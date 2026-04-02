@@ -110,6 +110,8 @@ pub struct ConversationUpdate {
     pub last_message_at: i64,
     #[prost(int32, tag = "4")]
     pub unread_count: i32,
+    #[prost(int32, tag = "5")]
+    pub total_unread: i32,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
