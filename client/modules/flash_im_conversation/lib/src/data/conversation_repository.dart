@@ -31,4 +31,9 @@ class ConversationRepository {
   Future<void> delete(String conversationId) async {
     await _dio.delete('/conversations/$conversationId');
   }
+
+  /// 标记已读（重置未读数）
+  Future<void> markRead(String conversationId) async {
+    await _dio.post('/conversations/$conversationId/read');
+  }
 }

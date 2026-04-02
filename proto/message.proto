@@ -21,6 +21,8 @@ message ChatMessage {
   bytes extra = 7;
   MessageStatus status = 8;
   int64 created_at = 9;
+  string sender_name = 10;
+  string sender_avatar = 11;
 }
 
 message SendMessageRequest {

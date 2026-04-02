@@ -20,6 +20,7 @@ tags: [聊天页, chat, message, flutter]
 - 通过 HTTP 加载历史消息（基于 seq 分页）
 - 消息乐观更新（先显示再确认）
 - 从会话列表点击进入聊天页
+- 进入聊天页后，将该会话的未读数置 0，并通知 ConversationListCubit 更新（减少 totalUnread）
 
 本版本只支持文本消息，不涉及图片/文件/语音。
 
@@ -227,6 +228,7 @@ WsClient 需要把收到的帧按 type 分发到不同的 Stream：
 | 往上滚动加载更早的历史消息 | 手动操作 |
 | 发消息后会话列表的预览和时间更新 | 观察会话列表 |
 | 底部导航消息 Tab 显示总未读数角标 | 观察角标变化 |
+| 进入聊天页后该会话未读数归零，角标数字减少 | 观察会话列表和角标 |
 | flutter analyze 零 error | `flutter analyze` |
 
 ## 7. 暂不实现

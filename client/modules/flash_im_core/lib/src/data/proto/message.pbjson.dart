@@ -68,6 +68,8 @@ const ChatMessage$json = {
       '10': 'status'
     },
     {'1': 'created_at', '3': 9, '4': 1, '5': 3, '10': 'createdAt'},
+    {'1': 'sender_name', '3': 10, '4': 1, '5': 9, '10': 'senderName'},
+    {'1': 'sender_avatar', '3': 11, '4': 1, '5': 9, '10': 'senderAvatar'},
   ],
 };
 
@@ -77,7 +79,9 @@ final $typed_data.Uint8List chatMessageDescriptor = $convert.base64Decode(
     '5jb252ZXJzYXRpb25JZBIbCglzZW5kZXJfaWQYAyABKAlSCHNlbmRlcklkEhAKA3NlcRgEIAEo'
     'A1IDc2VxEiMKBHR5cGUYBSABKA4yDy5pbS5NZXNzYWdlVHlwZVIEdHlwZRIYCgdjb250ZW50GA'
     'YgASgJUgdjb250ZW50EhQKBWV4dHJhGAcgASgMUgVleHRyYRIpCgZzdGF0dXMYCCABKA4yES5p'
-    'bS5NZXNzYWdlU3RhdHVzUgZzdGF0dXMSHQoKY3JlYXRlZF9hdBgJIAEoA1IJY3JlYXRlZEF0');
+    'bS5NZXNzYWdlU3RhdHVzUgZzdGF0dXMSHQoKY3JlYXRlZF9hdBgJIAEoA1IJY3JlYXRlZEF0Eh'
+    '8KC3NlbmRlcl9uYW1lGAogASgJUgpzZW5kZXJOYW1lEiMKDXNlbmRlcl9hdmF0YXIYCyABKAlS'
+    'DHNlbmRlckF2YXRhcg==');
 
 @$core.Deprecated('Use sendMessageRequestDescriptor instead')
 const SendMessageRequest$json = {

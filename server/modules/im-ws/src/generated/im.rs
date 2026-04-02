@@ -79,6 +79,10 @@ pub struct ChatMessage {
     pub status: i32,
     #[prost(int64, tag = "9")]
     pub created_at: i64,
+    #[prost(string, tag = "10")]
+    pub sender_name: ::prost::alloc::string::String,
+    #[prost(string, tag = "11")]
+    pub sender_avatar: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct SendMessageRequest {

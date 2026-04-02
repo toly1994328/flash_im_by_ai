@@ -330,25 +330,19 @@ RepositoryProvider.value(value: messageRepo),
 
 ### 10.3 会话列表 onTap 导航到聊天页 `⬜`
 
-文件：`client/modules/flash_im_conversation/lib/src/view/conversation_list_page.dart`（修改）
+文件：`client/lib/src/home/view/home_page.dart`（修改）
 
-ConversationTile 的 onTap 改为导航到 ChatPage：
+ConversationTile 的 onTap 改为导航到 ChatPage，同时调用 clearUnread 清除未读：
 
 ```dart
 onTap: () {
+  // 清除该会话未读数
+  convCubit.clearUnread(conversation.id);
+  // 导航到聊天页
   Navigator.of(context).push(MaterialPageRoute(
     builder: (_) => BlocProvider(
-      create: (_) => ChatCubit(
-        repository: context.read<MessageRepository>(),
-        wsClient: context.read<WsClient>(),
-        conversationId: conversation.id,
-        currentUserId: currentUser.userId.toString(),
-      )..loadMessages(),
-      child: ChatPage(
-        conversationId: conversation.id,
-        peerName: conversation.displayName,
-        peerAvatar: conversation.displayAvatar,
-      ),
+      create: (_) => ChatCubit(...)..loadMessages(),
+      child: ChatPage(...),
     ),
   ));
 },
@@ -385,7 +379,26 @@ void _handleConversationUpdate(WsFrame frame) {
 
 ConversationListLoaded 状态新增 `int totalUnread` 字段，从 CONVERSATION_UPDATE 帧的 total_unread 取值。
 
-### 11.4 dispose 取消订阅 `⬜`
+### 11.4 clearUnread 方法 `⬜`
+
+进入聊天页时调用，将指定会话的 unreadCount 置 0，totalUnread 相应减少：
+
+```dart
+void clearUnread(String conversationId) {
+  final current = state;
+  if (current is! ConversationListLoaded) return;
+  final conv = current.conversations.firstWhere((c) => c.id == conversationId, orElse: () => null);
+  if (conv == null || conv.unreadCount == 0) return;
+  final delta = conv.unreadCount;
+  final updated = current.conversations.map((c) {
+    if (c.id == conversationId) return c.copyWith(unreadCount: 0);
+    return c;
+  }).toList();
+  emit(ConversationListLoaded(updated, hasMore: current.hasMore, totalUnread: current.totalUnread - delta));
+}
+```
+
+### 11.5 dispose 取消订阅 `⬜`
 
 ---
 

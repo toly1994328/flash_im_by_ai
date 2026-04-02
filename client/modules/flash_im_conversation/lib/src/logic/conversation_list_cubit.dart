@@ -99,6 +99,28 @@ class ConversationListCubit extends Cubit<ConversationListState> {
     } catch (_) {}
   }
 
+  /// 进入聊天页时清除该会话的未读数
+  void clearUnread(String conversationId) {
+    final current = state;
+    if (current is! ConversationListLoaded) return;
+    final idx = current.conversations.indexWhere((c) => c.id == conversationId);
+    if (idx == -1) return;
+    final conv = current.conversations[idx];
+    if (conv.unreadCount == 0) return;
+    final delta = conv.unreadCount;
+    final updated = current.conversations.map((c) {
+      if (c.id == conversationId) return c.copyWith(unreadCount: 0);
+      return c;
+    }).toList();
+    emit(ConversationListLoaded(
+      updated,
+      hasMore: current.hasMore,
+      totalUnread: (current.totalUnread - delta).clamp(0, 999999),
+    ));
+    // 通知后端
+    _repository.markRead(conversationId).catchError((_) {});
+  }
+
   @override
   Future<void> close() {
     _updateSub?.cancel();

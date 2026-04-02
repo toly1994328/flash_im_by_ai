@@ -29,6 +29,17 @@ impl MessageBroadcaster for WsBroadcaster {
         member_ids: &[i64],
         exclude_sender: bool,
     ) {
+        // 查询发送者昵称和头像
+        let (sender_name, sender_avatar) = sqlx::query_as::<_, (String, Option<String>)>(
+            "SELECT COALESCE(nickname, '?'), avatar FROM user_profiles WHERE account_id = $1"
+        )
+        .bind(message.sender_id)
+        .fetch_optional(&self.db)
+        .await
+        .ok()
+        .flatten()
+        .unwrap_or(("?".to_string(), None));
+
         let chat_msg = ChatMessage {
             id: message.id.to_string(),
             conversation_id: message.conversation_id.to_string(),
@@ -39,6 +50,8 @@ impl MessageBroadcaster for WsBroadcaster {
             extra: vec![],
             status: 0,
             created_at: message.created_at.timestamp_millis(),
+            sender_name,
+            sender_avatar: sender_avatar.unwrap_or_default(),
         };
 
         let frame = WsFrame {

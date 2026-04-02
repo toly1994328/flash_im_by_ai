@@ -9,6 +9,7 @@ use uuid::Uuid;
 
 use flash_core::jwt::extract_user_id;
 use flash_core::state::AppState;
+use sqlx;
 
 use super::models::{CreatePrivateRequest, MessageResponse};
 use super::service::ConversationService;
@@ -49,8 +50,28 @@ async fn delete_conversation(
     Ok(Json(MessageResponse { message: "会话已删除".to_string() }))
 }
 
+async fn mark_read(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<MessageResponse>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    sqlx::query(
+        "UPDATE conversation_members SET unread_count = 0 \
+         WHERE conversation_id = $1 AND user_id = $2",
+    )
+    .bind(conversation_id)
+    .bind(user_id)
+    .execute(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(MessageResponse { message: "ok".to_string() }))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/conversations", post(create_conversation).get(list_conversations))
         .route("/conversations/{id}", delete(delete_conversation))
+        .route("/conversations/{id}/read", post(mark_read))
 }

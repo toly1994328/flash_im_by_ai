@@ -32,6 +32,8 @@ class ChatMessage extends $pb.GeneratedMessage {
     $core.List<$core.int>? extra,
     MessageStatus? status,
     $fixnum.Int64? createdAt,
+    $core.String? senderName,
+    $core.String? senderAvatar,
   }) {
     final result = create();
     if (id != null) result.id = id;
@@ -43,6 +45,8 @@ class ChatMessage extends $pb.GeneratedMessage {
     if (extra != null) result.extra = extra;
     if (status != null) result.status = status;
     if (createdAt != null) result.createdAt = createdAt;
+    if (senderName != null) result.senderName = senderName;
+    if (senderAvatar != null) result.senderAvatar = senderAvatar;
     return result;
   }
 
@@ -71,6 +75,8 @@ class ChatMessage extends $pb.GeneratedMessage {
     ..aE<MessageStatus>(8, _omitFieldNames ? '' : 'status',
         enumValues: MessageStatus.values)
     ..aInt64(9, _omitFieldNames ? '' : 'createdAt')
+    ..aOS(10, _omitFieldNames ? '' : 'senderName')
+    ..aOS(11, _omitFieldNames ? '' : 'senderAvatar')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -172,6 +178,24 @@ class ChatMessage extends $pb.GeneratedMessage {
   $core.bool hasCreatedAt() => $_has(8);
   @$pb.TagNumber(9)
   void clearCreatedAt() => $_clearField(9);
+
+  @$pb.TagNumber(10)
+  $core.String get senderName => $_getSZ(9);
+  @$pb.TagNumber(10)
+  set senderName($core.String value) => $_setString(9, value);
+  @$pb.TagNumber(10)
+  $core.bool hasSenderName() => $_has(9);
+  @$pb.TagNumber(10)
+  void clearSenderName() => $_clearField(10);
+
+  @$pb.TagNumber(11)
+  $core.String get senderAvatar => $_getSZ(10);
+  @$pb.TagNumber(11)
+  set senderAvatar($core.String value) => $_setString(10, value);
+  @$pb.TagNumber(11)
+  $core.bool hasSenderAvatar() => $_has(10);
+  @$pb.TagNumber(11)
+  void clearSenderAvatar() => $_clearField(11);
 }
 
 class SendMessageRequest extends $pb.GeneratedMessage {

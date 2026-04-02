@@ -236,6 +236,7 @@ class _HomePageState extends State<HomePage> {
             final session = context.read<SessionCubit>().state;
             final user = session.user;
             if (user == null) return;
+            _convCubit.clearUnread(conversation.id);
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => MultiRepositoryProvider(
                 providers: [

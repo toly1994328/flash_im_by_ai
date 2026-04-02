@@ -38,6 +38,28 @@ class Conversation {
   String? get displayAvatar =>
       type == 0 ? peerAvatar : avatar;
 
+  Conversation copyWith({
+    int? unreadCount,
+    DateTime? lastMessageAt,
+    String? lastMessagePreview,
+  }) {
+    return Conversation(
+      id: id,
+      type: type,
+      name: name,
+      avatar: avatar,
+      peerUserId: peerUserId,
+      peerNickname: peerNickname,
+      peerAvatar: peerAvatar,
+      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
+      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      unreadCount: unreadCount ?? this.unreadCount,
+      isPinned: isPinned,
+      isMuted: isMuted,
+      createdAt: createdAt,
+    );
+  }
+
   factory Conversation.fromJson(Map<String, dynamic> json) {
     return Conversation(
       id: json['id'] as String,
