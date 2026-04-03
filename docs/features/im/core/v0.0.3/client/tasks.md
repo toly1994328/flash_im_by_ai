@@ -8,32 +8,34 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — WsClient 帧分发扩展（flash_im_core 修改）
-2. ⬜ 任务 2 — 创建 flash_im_chat 模块骨架
-3. ⬜ 任务 3 — Message 数据模型
-4. ⬜ 任务 4 — MessageRepository（HTTP 历史消息）
-5. ⬜ 任务 5 — ChatCubit + ChatState
-6. ⬜ 任务 6 — MessageBubble 组件
-7. ⬜ 任务 7 — ChatInput 组件
-8. ⬜ 任务 8 — ChatPage 页面
-9. ⬜ 任务 9 — barrel 导出
-10. ⬜ 任务 10 — 主工程集成（路由 + 会话列表 onTap）
-11. ⬜ 任务 11 — ConversationListCubit 扩展（CONVERSATION_UPDATE 监听 + total_unread）
-12. ⬜ 任务 12 — 底部导航角标（total_unread）
-13. ⬜ 任务 13 — 编译验证 + 功能验证
+1. ✅ 任务 1 — WsClient 帧分发扩展（flash_im_core 修改）
+2. ✅ 任务 2 — 创建 flash_shared 公共模块
+3. ✅ 任务 3 — 创建 flash_im_chat 模块骨架
+4. ✅ 任务 4 — Message 数据模型
+5. ✅ 任务 5 — MessageRepository（HTTP 历史消息）
+6. ✅ 任务 6 — ChatCubit + ChatState
+7. ✅ 任务 7 — MessageBubble 组件
+8. ✅ 任务 8 — ChatInput 组件
+9. ✅ 任务 9 — ChatPage 页面
+10. ✅ 任务 10 — barrel 导出
+11. ✅ 任务 11 — 主工程集成（路由 + 会话列表 onTap）
+12. ✅ 任务 12 — ConversationListCubit 扩展（CONVERSATION_UPDATE 监听 + total_unread）
+13. ✅ 任务 13 — 底部导航角标（total_unread）
+14. ✅ 任务 14 — 全局主题 + UI 调优
+15. ✅ 任务 15 — 编译验证 + 功能验证
 
 ---
 
-## 任务 1：WsClient 帧分发扩展 `⬜`
+## 任务 1：WsClient 帧分发扩展 `✅`
 
 文件：`client/modules/flash_im_core/lib/src/logic/ws_client.dart`（修改）
 
-### 1.1 新增 proto 导入 `⬜`
+### 1.1 新增 proto 导入 `✅`
 
 导入 message.proto 生成的 Dart 代码（ChatMessage、MessageAck、ConversationUpdate 等）。
 需要先运行 proto 代码生成脚本。
 
-### 1.2 新增分类型 StreamController `⬜`
+### 1.2 新增分类型 StreamController `✅`
 
 ```dart
 final _chatMessageController = StreamController<WsFrame>.broadcast();
@@ -45,16 +47,12 @@ Stream<WsFrame> get messageAckStream => _messageAckController.stream;
 Stream<WsFrame> get conversationUpdateStream => _conversationUpdateController.stream;
 ```
 
-### 1.3 修改 _onData 帧分发 `⬜`
+### 1.3 修改 _onData 帧分发 `✅`
 
 在已认证阶段，按 frame.type 分发到对应 StreamController：
 
 ```dart
-// 已认证：按类型分发
 switch (frame.type) {
-  case WsFrameType.PONG:
-    _missedPongs = 0;
-    return;
   case WsFrameType.CHAT_MESSAGE:
     _chatMessageController.add(frame);
   case WsFrameType.MESSAGE_ACK:
@@ -64,60 +62,69 @@ switch (frame.type) {
   default:
     break;
 }
-_frameController.add(frame); // 保留原始帧流
+_frameController.add(frame);
 ```
 
-### 1.4 dispose 中关闭新增 StreamController `⬜`
+### 1.4 dispose 中关闭新增 StreamController `✅`
 
-### 1.5 新增 sendMessage 便捷方法 `⬜`
+### 1.5 新增 sendMessage 便捷方法 `✅`
 
 ```dart
-/// 发送聊天消息
 void sendMessage({
   required String conversationId,
   required String content,
   String? clientId,
-}) {
-  final req = SendMessageRequest()
-    ..conversationId = conversationId
-    ..type = MessageType.TEXT
-    ..content = content
-    ..clientId = clientId ?? '';
-  final frame = WsFrame()
-    ..type = WsFrameType.CHAT_MESSAGE
-    ..payload = req.writeToBuffer();
-  sendFrame(frame);
-}
+})
 ```
 
 ---
 
-## 任务 2：创建 flash_im_chat 模块骨架 `⬜`
+## 任务 2：创建 flash_shared 公共模块 `✅`
 
-### 2.1 flutter create `⬜`
+### 2.1 flutter create `✅`
 
 ```powershell
 cd client/modules
-flutter create --template=package --project-name=flash_im_chat flash_im_chat
+flutter create --template=package --project-name=flash_shared flash_shared
 ```
 
-### 2.2 添加依赖 `⬜`
+### 2.2 IdenticonPainter + IdenticonAvatar `✅`
 
-文件：`client/modules/flash_im_chat/pubspec.yaml`（修改）
+文件：`client/modules/flash_shared/lib/src/identicon_avatar.dart`（新建）
 
-```yaml
-dependencies:
-  flutter:
-    sdk: flutter
-  dio: ^5.8.0+1
-  flutter_bloc: ^8.1.6
-  equatable: ^2.0.7
-  shimmer: ^3.0.0
-  flash_im_core:
-    path: ../flash_im_core
+从 flash_session 提取，基于 seed 生成 5x5 对称方块图案。支持 `seed:hex` 格式指定颜色。
+
+### 2.3 AvatarWidget `✅`
+
+文件：`client/modules/flash_shared/lib/src/avatar_widget.dart`（新建）
+
+统一头像入口：
+- `identicon:xxx` → IdenticonAvatar
+- `http(s)://...` → 网络图片（带 errorBuilder 降级）
+- 空或 null → 占位图标
+
+### 2.4 barrel 导出 `✅`
+
+文件：`client/modules/flash_shared/lib/flash_shared.dart`
+
+```dart
+export 'src/identicon_avatar.dart';
+export 'src/avatar_widget.dart';
 ```
 
-### 2.3 三层目录结构 `⬜`
+---
+
+## 任务 3：创建 flash_im_chat 模块骨架 `✅`
+
+### 3.1 flutter create `✅`
+
+### 3.2 添加依赖 `✅`
+
+文件：`client/modules/flash_im_chat/pubspec.yaml`
+
+依赖：dio, flutter_bloc, equatable, shimmer, flash_im_core, flash_shared
+
+### 3.3 三层目录结构 `✅`
 
 ```
 lib/src/
@@ -135,304 +142,170 @@ lib/src/
 
 ---
 
-## 任务 3：Message 数据模型 `⬜`
+## 任务 4：Message 数据模型 `✅`
 
 文件：`client/modules/flash_im_chat/lib/src/data/message.dart`（新建）
 
-```dart
-enum MessageStatus { sending, sent, failed }
-
-class Message {
-  final String id;
-  final String conversationId;
-  final String senderId;
-  final String senderName;
-  final String? senderAvatar;
-  final int seq;
-  final String content;
-  final MessageStatus status;
-  final DateTime createdAt;
-
-  // fromJson（HTTP 历史消息）
-  // fromProto（WebSocket ChatMessage 帧）
-  // sending() 工厂方法（本地乐观更新）
-  // copyWith（更新状态）
-}
-```
+包含：MessageStatus 枚举、Message 类（fromJson、sending 工厂、copyWith）
 
 ---
 
-## 任务 4：MessageRepository `⬜`
+## 任务 5：MessageRepository `✅`
 
 文件：`client/modules/flash_im_chat/lib/src/data/message_repository.dart`（新建）
 
-```dart
-class MessageRepository {
-  final Dio _dio;
-
-  /// 获取历史消息
-  Future<List<Message>> getMessages(String conversationId, {int? beforeSeq, int limit = 50}) async
-  // GET /conversations/:id/messages?before_seq=&limit=
-}
-```
+GET /conversations/:id/messages?before_seq=&limit= 历史消息查询
 
 ---
 
-## 任务 5：ChatCubit + ChatState `⬜`
+## 任务 6：ChatCubit + ChatState `✅`
 
-### 5.1 ChatState `⬜`
+### 6.1 ChatState `✅`
 
-文件：`client/modules/flash_im_chat/lib/src/logic/chat_state.dart`（新建）
+sealed class：ChatInitial / ChatLoading / ChatLoaded（messages, hasMore, isLoadingMore） / ChatError
 
-```dart
-sealed class ChatState extends Equatable { ... }
-class ChatInitial extends ChatState { ... }
-class ChatLoading extends ChatState { ... }
-class ChatLoaded extends ChatState {
-  final List<Message> messages;
-  final bool hasMore;
-  final bool isLoadingMore;
-}
-class ChatError extends ChatState { final String message; }
-```
+### 6.2 ChatCubit `✅`
 
-### 5.2 ChatCubit `⬜`
-
-文件：`client/modules/flash_im_chat/lib/src/logic/chat_cubit.dart`（新建）
-
-```dart
-class ChatCubit extends Cubit<ChatState> {
-  final MessageRepository _repository;
-  final WsClient _wsClient;
-  final String conversationId;
-  final String currentUserId;
-
-  StreamSubscription? _chatMessageSub;
-  StreamSubscription? _messageAckSub;
-  final Map<String, String> _pendingMessages = {}; // clientId -> localId
-
-  // loadMessages() — HTTP 加载历史，emit Loading → Loaded
-  // loadMore() — 基于 before_seq 加载更早消息
-  // sendMessage(content) — 乐观更新 + WS 发送 + 超时处理
-  // _handleIncomingMessage(frame) — 解析 ChatMessage，过滤当前会话，追加列表
-  // _handleMessageAck(frame) — 匹配 pending，更新 status=sent，填入 id/seq
-  // dispose() — 取消订阅
-}
-```
-
-关键逻辑：
-- loadMessages: emit ChatLoading → repo.getMessages → emit ChatLoaded
-- sendMessage: 生成 localId + clientId → 创建 Message.sending() → emit 追加 → wsClient.sendMessage → 10s 超时标记 failed
-- _handleIncomingMessage: 只处理当前会话、跳过自己发的、去重、按 seq 排序
-- _handleMessageAck: 取 _pendingMessages 第一个匹配、更新 id/seq/status
+- loadMessages() — HTTP 加载历史
+- loadMore() — 基于 before_seq 加载更早消息
+- sendMessage(content) — 乐观更新 + WS 发送 + 10s 超时
+- _handleIncomingMessage — 解析 ChatMessage，过滤当前会话，跳过自己发的
+- _handleMessageAck — 匹配 pending，更新 status=sent
 
 ---
 
-## 任务 6：MessageBubble 组件 `⬜`
+## 任务 7：MessageBubble 组件 `✅`
 
 文件：`client/modules/flash_im_chat/lib/src/view/message_bubble.dart`（新建）
 
-```dart
-class MessageBubble extends StatelessWidget {
-  final Message message;
-  final bool isMe;
-
-  // 布局：
-  // isMe=true: 靠右，蓝色背景，白色文字
-  // isMe=false: 靠左，灰色背景，黑色文字
-  // 气泡内：content 文字
-  // 气泡外下方：时间（HH:mm）
-  // status=sending: 小时钟图标
-  // status=failed: 红色感叹号
-}
-```
+- 左右布局（isMe）、头像（AvatarWidget from flash_shared）、昵称、气泡、状态图标
+- 蓝色/灰色气泡、sending 转圈、failed 红色感叹号
 
 ---
 
-## 任务 7：ChatInput 组件 `⬜`
+## 任务 8：ChatInput 组件 `✅`
 
 文件：`client/modules/flash_im_chat/lib/src/view/chat_input.dart`（新建）
 
-```dart
-class ChatInput extends StatefulWidget {
-  final ValueChanged<String> onSend;
-
-  // 布局：
-  // Row [ TextField(Expanded) + 发送按钮 ]
-  // 发送按钮：内容为空时禁用
-  // 发送后清空输入框
-  // 底部安全区域适配
-}
-```
+Row [ TextField(Expanded) + 发送按钮 ]，空内容禁用，发送后清空
 
 ---
 
-## 任务 8：ChatPage 页面 `⬜`
+## 任务 9：ChatPage 页面 `✅`
 
 文件：`client/modules/flash_im_chat/lib/src/view/chat_page.dart`（新建）
 
-```dart
-class ChatPage extends StatelessWidget {
-  final String conversationId;
-  final String peerName;
-  final String? peerAvatar;
-
-  // AppBar: 对方昵称 + 返回按钮
-  // Body:
-  //   ChatLoading → 骨架屏（Shimmer 模拟消息气泡）
-  //   ChatError → 错误提示 + 重试
-  //   ChatLoaded → ListView.builder(reverse: true) + MessageBubble
-  //     - 滚动到顶部触发 loadMore
-  //     - hasMore 时顶部显示 loading 指示器
-  // BottomBar: ChatInput
-  //   - onSend → cubit.sendMessage(content)
-}
-```
+- AppBar 显示对方昵称
+- ChatLoading → Shimmer 骨架屏
+- ChatLoaded → ListView.builder(reverse: true) + MessageBubble
+- 滚动到顶部触发 loadMore
+- 底部 ChatInput
 
 ---
 
-## 任务 9：barrel 导出 `⬜`
+## 任务 10：barrel 导出 `✅`
 
-文件：`client/modules/flash_im_chat/lib/flash_im_chat.dart`（修改）
+文件：`client/modules/flash_im_chat/lib/flash_im_chat.dart`
 
-```dart
-export 'src/data/message.dart';
-export 'src/data/message_repository.dart';
-export 'src/logic/chat_cubit.dart';
-export 'src/logic/chat_state.dart';
-export 'src/view/chat_page.dart';
-export 'src/view/message_bubble.dart';
-export 'src/view/chat_input.dart';
-```
+导出所有 data/logic/view 文件
 
 ---
 
-## 任务 10：主工程集成 `⬜`
+## 任务 11：主工程集成 `✅`
 
-### 10.1 pubspec.yaml 注册模块 `⬜`
+### 11.1 pubspec.yaml 注册模块 `✅`
 
-文件：`client/pubspec.yaml`（修改）
+### 11.2 main.dart 注入 MessageRepository `✅`
 
-```yaml
-  flash_im_chat:
-    path: modules/flash_im_chat
-```
+### 11.3 会话列表 onTap 导航到 ChatPage `✅`
 
-### 10.2 main.dart 注入 Repository `⬜`
-
-文件：`client/lib/main.dart`（修改）
-
-```dart
-final messageRepo = MessageRepository(dio: httpClient.dio);
-// 通过 RepositoryProvider 传递
-RepositoryProvider.value(value: messageRepo),
-```
-
-### 10.3 会话列表 onTap 导航到聊天页 `⬜`
-
-文件：`client/lib/src/home/view/home_page.dart`（修改）
-
-ConversationTile 的 onTap 改为导航到 ChatPage，同时调用 clearUnread 清除未读：
-
-```dart
-onTap: () {
-  // 清除该会话未读数
-  convCubit.clearUnread(conversation.id);
-  // 导航到聊天页
-  Navigator.of(context).push(MaterialPageRoute(
-    builder: (_) => BlocProvider(
-      create: (_) => ChatCubit(...)..loadMessages(),
-      child: ChatPage(...),
-    ),
-  ));
-},
-```
+点击会话 → clearUnread → Navigator.push ChatPage（BlocProvider + ChatCubit）
 
 ---
 
-## 任务 11：ConversationListCubit 扩展 `⬜`
+## 任务 12：ConversationListCubit 扩展 `✅`
 
-文件：`client/modules/flash_im_conversation/lib/src/logic/conversation_list_cubit.dart`（修改）
+### 12.1 监听 conversationUpdateStream `✅`
 
-### 11.1 监听 conversationUpdateStream `⬜`
+### 12.2 _handleConversationUpdate 方法 `✅`
 
-构造函数中订阅 WsClient.conversationUpdateStream：
+解析 ConversationUpdate → 更新 preview/time/unread → 重排序 → emit
 
-```dart
-_updateSub = wsClient.conversationUpdateStream.listen(_handleConversationUpdate);
-```
+### 12.3 totalUnread 字段 `✅`
 
-### 11.2 _handleConversationUpdate 方法 `⬜`
+ConversationListLoaded 新增 totalUnread，从 CONVERSATION_UPDATE 帧取值
 
-```dart
-void _handleConversationUpdate(WsFrame frame) {
-  // 1. 解析 ConversationUpdate
-  // 2. 在当前列表中找到对应 conversation_id
-  // 3. 更新 lastMessagePreview、lastMessageAt、unreadCount
-  // 4. 重新排序（按 lastMessageAt 倒序）
-  // 5. 更新 totalUnread
-  // 6. emit 新状态
-}
-```
+### 12.4 clearUnread 方法 `✅`
 
-### 11.3 totalUnread 字段 `⬜`
+本地置 0 + totalUnread 减少 + 后端 POST /conversations/:id/read
 
-ConversationListLoaded 状态新增 `int totalUnread` 字段，从 CONVERSATION_UPDATE 帧的 total_unread 取值。
-
-### 11.4 clearUnread 方法 `⬜`
-
-进入聊天页时调用，将指定会话的 unreadCount 置 0，totalUnread 相应减少：
-
-```dart
-void clearUnread(String conversationId) {
-  final current = state;
-  if (current is! ConversationListLoaded) return;
-  final conv = current.conversations.firstWhere((c) => c.id == conversationId, orElse: () => null);
-  if (conv == null || conv.unreadCount == 0) return;
-  final delta = conv.unreadCount;
-  final updated = current.conversations.map((c) {
-    if (c.id == conversationId) return c.copyWith(unreadCount: 0);
-    return c;
-  }).toList();
-  emit(ConversationListLoaded(updated, hasMore: current.hasMore, totalUnread: current.totalUnread - delta));
-}
-```
-
-### 11.5 dispose 取消订阅 `⬜`
+### 12.5 dispose 取消订阅 `✅`
 
 ---
 
-## 任务 12：底部导航角标 `⬜`
+## 任务 13：底部导航角标 `✅`
 
-文件：`client/lib/src/home/view/home_page.dart`（修改）
+文件：`client/lib/src/home/view/home_page.dart`
 
-在消息 Tab 的 BottomNavigationBarItem 上显示未读角标：
-
-```dart
-// 从 ConversationListCubit 的 state 中取 totalUnread
-// totalUnread > 0 时在图标右上角显示红色圆点或数字
-// totalUnread > 99 显示 "99+"
-```
+BlocBuilder 监听 totalUnread，>0 显示红色角标，>99 显示 "99+"
 
 ---
 
-## 任务 13：编译验证 + 功能验证 `⬜`
+## 任务 14：全局主题 + UI 调优 `✅`
 
-### 13.1 编译 `⬜`
+### 14.1 全局 AppBarTheme `✅`
 
-```powershell
-cd client
-flutter pub get
-flutter analyze
+文件：`client/lib/src/application/app.dart`（修改）
+
+```dart
+appBarTheme: const AppBarTheme(
+  backgroundColor: Color(0xFFEDEDED),
+  foregroundColor: Colors.black,
+  elevation: 0,
+  scrolledUnderElevation: 0,
+  surfaceTintColor: Colors.transparent,
+  centerTitle: true,
+  titleTextStyle: TextStyle(fontSize: 17, fontWeight: FontWeight.bold, color: Colors.black),
+),
+scaffoldBackgroundColor: const Color(0xFFEDEDED),
 ```
 
-### 13.2 功能验证 `⬜`
+### 14.2 ChatPage body 白色背景 `✅`
 
+文件：`client/modules/flash_im_chat/lib/src/view/chat_page.dart`（修改）
+
+body 用 `Container(color: Colors.white)` 包裹，消息内容区白色，AppBar 灰色。
+AnnotatedRegion 统一状态栏风格。
+
+### 14.3 MessageBubble 样式调优 `✅`
+
+文件：`client/modules/flash_im_chat/lib/src/view/message_bubble.dart`（修改）
+
+- 垂直间距：4 → 8
+- 气泡圆角：16/4 → 12/4
+
+### 14.4 消息不足一屏靠顶显示 `✅`
+
+文件：`client/modules/flash_im_chat/lib/src/view/chat_page.dart`（修改）
+
+消息 ≤15 条时 shrinkWrap + Align(topCenter)，超过后切回普通 ListView 避免性能问题。
+
+---
+
+## 任务 15：编译验证 + 功能验证 `✅`
+
+### 15.1 编译 `✅`
+
+flutter analyze 零 error（28 issues 全为 info/warning，均在 playground 废弃代码中）
+
+### 15.2 功能验证 `⬜`
+
+待手动测试：
 1. 重置数据库 + 种子数据
 2. 启动后端
 3. 启动客户端
 4. 用朱红登录，点击会话列表中的橘橙
-5. 聊天页显示骨架屏 → 加载完成显示历史消息（如果有）
+5. 聊天页显示骨架屏 → 加载完成显示历史消息
 6. 输入文字发送，消息立刻出现（sending 状态）
 7. 收到 ACK 后状态变为 sent
 8. 用另一台设备登录橘橙，验证实时收到消息

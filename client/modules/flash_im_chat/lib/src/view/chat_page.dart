@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
+import '../data/message.dart';
 import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
 import 'message_bubble.dart';
@@ -47,67 +49,90 @@ class _ChatPageState extends State<ChatPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.peerName),
-        backgroundColor: Colors.white,
-        foregroundColor: Colors.black,
-        elevation: 0.5,
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Color(0xFFF6F6F6),
+        systemNavigationBarIconBrightness: Brightness.dark,
       ),
-      body: Column(
-        children: [
-          Expanded(
-            child: BlocBuilder<ChatCubit, ChatState>(
-              builder: (context, state) {
-                return switch (state) {
-                  ChatInitial() => const SizedBox.shrink(),
-                  ChatLoading() => _buildSkeleton(),
-                  ChatError(:final message) => Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(message, style: const TextStyle(color: Colors.grey)),
-                        const SizedBox(height: 8),
-                        TextButton(
-                          onPressed: () => context.read<ChatCubit>().loadMessages(),
-                          child: const Text('重试'),
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.peerName),
+        ),
+        body: Container(
+          color: Colors.white,
+          child: Column(
+            children: [
+              Expanded(
+                child: BlocBuilder<ChatCubit, ChatState>(
+                  builder: (context, state) {
+                    return switch (state) {
+                      ChatInitial() => const SizedBox.shrink(),
+                      ChatLoading() => _buildSkeleton(),
+                      ChatError(:final message) => Center(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(message, style: const TextStyle(color: Colors.grey)),
+                            const SizedBox(height: 8),
+                            TextButton(
+                              onPressed: () => context.read<ChatCubit>().loadMessages(),
+                              child: const Text('重试'),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
-                  ),
-                  ChatLoaded(:final messages, :final hasMore, :final isLoadingMore) =>
-                    messages.isEmpty
-                      ? const Center(child: Text('暂无消息', style: TextStyle(color: Colors.grey)))
-                      : ListView.builder(
-                          controller: _scrollController,
-                          reverse: true,
-                          itemCount: messages.length + (hasMore ? 1 : 0),
-                          itemBuilder: (_, index) {
-                            if (index >= messages.length) {
-                              return const Padding(
-                                padding: EdgeInsets.all(16),
-                                child: Center(child: SizedBox(
-                                  width: 20, height: 20,
-                                  child: CircularProgressIndicator(strokeWidth: 2),
-                                )),
-                              );
-                            }
-                            // reverse 列表：index 0 是最新消息
-                            final msg = messages[messages.length - 1 - index];
-                            final isMe = msg.senderId == context.read<ChatCubit>().currentUserId;
-                            return MessageBubble(message: msg, isMe: isMe);
-                          },
-                        ),
-                };
-              },
-            ),
+                      ),
+                      ChatLoaded(:final messages, :final hasMore, :final isLoadingMore) =>
+                        messages.isEmpty
+                          ? const Center(child: Text('暂无消息', style: TextStyle(color: Colors.grey)))
+                          : _buildMessageList(messages, hasMore),
+                    };
+                  },
+                ),
+              ),
+              ChatInput(
+                onSend: (content) => context.read<ChatCubit>().sendMessage(content),
+              ),
+            ],
           ),
-          ChatInput(
-            onSend: (content) => context.read<ChatCubit>().sendMessage(content),
-          ),
-        ],
+        ),
       ),
     );
+  }
+
+  /// 消息少时 shrinkWrap 靠顶，消息多时普通滚动（避免性能问题）
+  static const _shrinkWrapThreshold = 15;
+
+  Widget _buildMessageList(List<Message> messages, bool hasMore) {
+    final itemCount = messages.length + (hasMore ? 1 : 0);
+    final useShrinkWrap = messages.length <= _shrinkWrapThreshold;
+
+    Widget list = ListView.builder(
+      controller: _scrollController,
+      reverse: true,
+      shrinkWrap: useShrinkWrap,
+      itemCount: itemCount,
+      itemBuilder: (_, index) {
+        if (index >= messages.length) {
+          return const Padding(
+            padding: EdgeInsets.all(16),
+            child: Center(child: SizedBox(
+              width: 20, height: 20,
+              child: CircularProgressIndicator(strokeWidth: 2),
+            )),
+          );
+        }
+        final msg = messages[messages.length - 1 - index];
+        final isMe = msg.senderId == context.read<ChatCubit>().currentUserId;
+        return MessageBubble(message: msg, isMe: isMe);
+      },
+    );
+
+    if (useShrinkWrap) {
+      list = Align(alignment: Alignment.topCenter, child: list);
+    }
+    return list;
   }
 
   Widget _buildSkeleton() {

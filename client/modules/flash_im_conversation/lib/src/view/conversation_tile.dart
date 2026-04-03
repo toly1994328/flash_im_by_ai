@@ -21,7 +21,7 @@ class ConversationTile extends StatelessWidget {
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: const BoxDecoration(
           color: Colors.white,
           border: Border(
@@ -50,6 +50,21 @@ class ConversationTile extends StatelessWidget {
   }
 
   Widget _buildAvatar() {
+    return Stack(
+      clipBehavior: Clip.none,
+      children: [
+        _buildAvatarImage(),
+        if (conversation.unreadCount > 0)
+          Positioned(
+            top: -6,
+            right: -6,
+            child: _buildUnreadBadge(),
+          ),
+      ],
+    );
+  }
+
+  Widget _buildAvatarImage() {
     final peerId = conversation.peerUserId;
     if (conversation.type == 0 && peerId != null) {
       // 单聊：用对方信息构建临时 User 给 UserAvatar
@@ -60,12 +75,12 @@ class ConversationTile extends StatelessWidget {
         avatar: conversation.peerAvatar ?? '',
         signature: '',
       );
-      return UserAvatar(user: tempUser, size: 48, borderRadius: 6);
+      return UserAvatar(user: tempUser, size: 44, borderRadius: 6);
     }
     // 群聊或无对方信息：占位头像
     return Container(
-      width: 48,
-      height: 48,
+      width: 44,
+      height: 44,
       decoration: BoxDecoration(
         color: Colors.grey[300],
         borderRadius: BorderRadius.circular(6),
@@ -99,33 +114,37 @@ class ConversationTile extends StatelessWidget {
   }
 
   Widget _buildSubtitleRow() {
-    return Row(
-      children: [
-        Expanded(
-          child: Text(
-            conversation.lastMessagePreview ?? '',
-            style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
-        ),
-        if (conversation.unreadCount > 0) _buildUnreadBadge(),
-      ],
+    return Text(
+      conversation.lastMessagePreview ?? '',
+      style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
     );
   }
 
   Widget _buildUnreadBadge() {
     final count = conversation.unreadCount;
     final text = count > 99 ? '99+' : count.toString();
+    final isSingleDigit = text.length < 2;
+    final width = isSingleDigit ? 20.0 : (text.length == 2 ? 26.0 : 34.0);
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+      width: width,
+      height: 20,
       decoration: BoxDecoration(
         color: Colors.red,
-        borderRadius: BorderRadius.circular(10),
+        shape: isSingleDigit ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: isSingleDigit ? null : BorderRadius.circular(10),
       ),
+      alignment: Alignment.center,
       child: Text(
         text,
-        style: const TextStyle(color: Colors.white, fontSize: 11),
+        style: const TextStyle(
+          color: Colors.white,
+          fontSize: 12,
+          fontWeight: FontWeight.w600,
+          height: 1,
+        ),
       ),
     );
   }

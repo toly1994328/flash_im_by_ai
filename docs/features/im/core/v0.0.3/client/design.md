@@ -162,25 +162,44 @@ sequenceDiagram
 ### 项目结构
 
 ```
-client/modules/flash_im_chat/         # 新增 package
+client/modules/flash_shared/              # 新增 package（跨模块共享组件）
 └── lib/
-    ├── flash_im_chat.dart            # barrel 导出
+    ├── flash_shared.dart                 # barrel 导出
+    └── src/
+        ├── identicon_avatar.dart         # IdenticonPainter + IdenticonAvatar
+        └── avatar_widget.dart            # AvatarWidget（统一头像入口）
+
+client/modules/flash_im_chat/             # 新增 package
+└── lib/
+    ├── flash_im_chat.dart                # barrel 导出
     └── src/
         ├── data/
-        │   ├── message.dart          # Message 模型
-        │   └── message_repository.dart  # HTTP 历史消息查询
+        │   ├── message.dart              # Message 模型
+        │   └── message_repository.dart   # HTTP 历史消息查询
         ├── logic/
-        │   ├── chat_cubit.dart       # 聊天页状态管理
-        │   └── chat_state.dart       # 状态定义
+        │   ├── chat_cubit.dart           # 聊天页状态管理
+        │   └── chat_state.dart           # 状态定义
         └── view/
-            ├── chat_page.dart        # 聊天页面
-            ├── message_bubble.dart   # 消息气泡
-            └── chat_input.dart       # 输入框
+            ├── chat_page.dart            # 聊天页面
+            ├── message_bubble.dart       # 消息气泡
+            └── chat_input.dart           # 输入框
 
-client/modules/flash_im_core/         # 修改
+client/modules/flash_im_core/             # 修改
 └── lib/src/logic/
-    └── ws_client.dart               # 新增帧类型分发（chatMessageStream 等）
+    └── ws_client.dart                    # 新增帧类型分发（chatMessageStream 等）
 ```
+
+### flash_shared 模块
+
+跨模块共享的 UI 组件，从 flash_session 中提取，避免 flash_im_chat 强依赖 flash_session。
+
+| 组件 | 说明 |
+|------|------|
+| IdenticonPainter | 基于 seed 生成 5x5 对称方块图案的 CustomPainter |
+| IdenticonAvatar | 包装 IdenticonPainter 的 Widget，支持 size/borderRadius |
+| AvatarWidget | 统一头像入口：`identicon:xxx` → IdenticonAvatar，`http(s)://` → 网络图片，空 → 占位图标 |
+
+依赖关系：`flash_im_chat → flash_shared`，`flash_session` 也可迁移到依赖 flash_shared（暂未改动）。
 
 ### WsClient 帧分发扩展
 
@@ -205,6 +224,43 @@ WsClient 需要把收到的帧按 type 分发到不同的 Stream：
 | 帧分发 | StreamController.broadcast | 多个 Cubit 可以同时监听 |
 | 聊天页生命周期 | 打开时订阅，关闭时取消 | 避免内存泄漏 |
 | 加载状态 | 骨架屏（Shimmer） | 比 loading 圈更自然，保持页面结构感 |
+| 消息不足一屏 | shrinkWrap + Align topCenter | 消息少时靠顶显示，≤15 条时启用，超过后切回普通滚动避免性能问题 |
+
+### UI 设计细节
+
+#### 全局主题（app.dart）
+
+| 属性 | 值 | 说明 |
+|------|------|------|
+| seedColor | `#3B82F6` | 全局主色调 |
+| scaffoldBackgroundColor | `#EDEDED` | 全局 Scaffold 背景灰色，避免页面转场时白色闪烁 |
+| AppBar backgroundColor | `#EDEDED` | 与首页一致的灰色 AppBar |
+| AppBar elevation | 0 | 无阴影 |
+| AppBar scrolledUnderElevation | 0 | 滚动时不变色 |
+| AppBar surfaceTintColor | transparent | 禁用 Material 3 色调覆盖 |
+| AppBar titleTextStyle | 17px, bold, black | 标题样式 |
+| AppBar centerTitle | true | 标题居中 |
+
+#### 聊天页
+
+| 元素 | 样式 | 说明 |
+|------|------|------|
+| body 背景 | 白色 Container 包裹 | 消息内容区白色，与灰色 AppBar 区分 |
+| 状态栏 | AnnotatedRegion 透明 + dark 图标 | 统一状态栏风格 |
+
+#### 消息气泡（MessageBubble）
+
+| 元素 | 样式 |
+|------|------|
+| 垂直间距 | 8px |
+| 圆角（大） | 12px |
+| 圆角（尖角） | 4px（自己发的右下角，对方发的左下角） |
+| 自己发的背景 | `#3B82F6`（蓝色），白色文字 |
+| 对方发的背景 | `#F0F0F0`（浅灰），黑色文字 |
+| 头像 | AvatarWidget 36px，borderRadius 4 |
+| 昵称 | 11px，`#999999`，仅对方消息显示 |
+| sending 状态 | 12px CircularProgressIndicator |
+| failed 状态 | 14px 红色感叹号图标 |
 
 ### 第三方依赖
 
@@ -215,6 +271,7 @@ WsClient 需要把收到的帧按 type 分发到不同的 Stream：
 | equatable | 状态值比较 | 需新增到 flash_im_chat |
 | shimmer | 骨架屏加载效果 | 需新增到 flash_im_chat |
 | flash_im_core | WsClient、Protobuf 编解码 | 需新增到 flash_im_chat |
+| flash_shared | AvatarWidget 头像组件 | 新建模块，flash_im_chat 依赖 |
 
 ## 6. 验收标准
 

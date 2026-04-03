@@ -1,7 +1,7 @@
-name: flash_im_chat
-description: Flash IM 聊天模块
+name: flash_shared
+description: "A new Flutter package project."
 version: 0.0.1
-publish_to: none
+homepage:
 
 environment:
   sdk: ^3.11.1
@@ -10,14 +10,6 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
-  dio: ^5.8.0+1
-  flutter_bloc: ^8.1.6
-  equatable: ^2.0.7
-  shimmer: ^3.0.0
-  flash_im_core:
-    path: ../flash_im_core
-  flash_shared:
-    path: ../flash_shared
 
 dev_dependencies:
   flutter_test:

@@ -156,6 +156,13 @@ packages:
       relative: true
     source: path
     version: "0.0.1"
+  flash_shared:
+    dependency: transitive
+    description:
+      path: "modules/flash_shared"
+      relative: true
+    source: path
+    version: "0.0.1"
   flash_starter:
     dependency: "direct main"
     description:
