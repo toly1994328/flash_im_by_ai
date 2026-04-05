@@ -47,7 +47,10 @@ impl MessageBroadcaster for WsBroadcaster {
             seq: message.seq,
             r#type: message.msg_type as i32,
             content: message.content.clone(),
-            extra: vec![],
+            extra: message.extra
+                .as_ref()
+                .map(|v| serde_json::to_vec(v).unwrap_or_default())
+                .unwrap_or_default(),
             status: 0,
             created_at: message.created_at.timestamp_millis(),
             sender_name,

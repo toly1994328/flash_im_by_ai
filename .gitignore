@@ -1,6 +1,8 @@
 .idea
 .vscode
 target/
+server/uploads/
+__pycache__/
 docs/ref
 .kiro/steering/book-writer.md
 .kiro/steering/illustrator.md

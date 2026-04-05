@@ -37,6 +37,12 @@ impl MessageDispatcher {
             conversation_id,
             sender_id,
             content: request.content,
+            msg_type: request.r#type as i16,
+            extra: if request.extra.is_empty() {
+                None
+            } else {
+                serde_json::from_slice(&request.extra).ok()
+            },
         };
 
         let message = match self.msg_service.send(new_msg).await {

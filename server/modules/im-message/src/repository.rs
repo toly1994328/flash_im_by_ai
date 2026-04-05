@@ -14,13 +14,15 @@ impl MessageRepository {
 
     pub async fn create(&self, msg: &NewMessage, seq: i64) -> Result<Message, sqlx::Error> {
         sqlx::query_as(
-            "INSERT INTO messages (conversation_id, sender_id, seq, content) \
-             VALUES ($1, $2, $3, $4) RETURNING *",
+            "INSERT INTO messages (conversation_id, sender_id, seq, type, content, extra) \
+             VALUES ($1, $2, $3, $4, $5, $6) RETURNING *",
         )
         .bind(msg.conversation_id)
         .bind(msg.sender_id)
         .bind(seq)
+        .bind(msg.msg_type)
         .bind(&msg.content)
+        .bind(&msg.extra)
         .fetch_one(&self.pool)
         .await
     }

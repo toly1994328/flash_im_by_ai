@@ -3,6 +3,9 @@ package im;
 
 enum MessageType {
   TEXT = 0;
+  IMAGE = 1;
+  VIDEO = 2;
+  FILE = 3;
 }
 
 enum MessageStatus {

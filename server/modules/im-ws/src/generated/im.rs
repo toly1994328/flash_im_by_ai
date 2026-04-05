@@ -121,6 +121,9 @@ pub struct ConversationUpdate {
 #[repr(i32)]
 pub enum MessageType {
     Text = 0,
+    Image = 1,
+    Video = 2,
+    File = 3,
 }
 impl MessageType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -130,12 +133,18 @@ impl MessageType {
     pub fn as_str_name(&self) -> &'static str {
         match self {
             Self::Text => "TEXT",
+            Self::Image => "IMAGE",
+            Self::Video => "VIDEO",
+            Self::File => "FILE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
     pub fn from_str_name(value: &str) -> ::core::option::Option<Self> {
         match value {
             "TEXT" => Some(Self::Text),
+            "IMAGE" => Some(Self::Image),
+            "VIDEO" => Some(Self::Video),
+            "FILE" => Some(Self::File),
             _ => None,
         }
     }

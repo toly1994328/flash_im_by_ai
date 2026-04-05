@@ -8,10 +8,11 @@ members = [
     "modules/im-ws",
     "modules/im-conversation",
     "modules/im-message",
+    "modules/app-storage",
 ]
 
 [workspace.dependencies]
-axum = { version = "0.8", features = ["ws"] }
+axum = { version = "0.8", features = ["ws", "multipart"] }
 tokio = { version = "1", features = ["full"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
@@ -27,6 +28,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
+app-storage = { path = "modules/app-storage" }
 flash-core = { path = "modules/flash-core" }
 flash-auth = { path = "modules/flash-auth" }
 flash-user = { path = "modules/flash-user" }

@@ -39,6 +39,24 @@ pub struct NewMessage {
     pub conversation_id: Uuid,
     pub sender_id: i64,
     pub content: String,
+    pub msg_type: i16,
+    pub extra: Option<serde_json::Value>,
+}
+
+/// 根据消息类型生成会话预览文本
+pub fn generate_preview(content: &str, msg_type: i16) -> String {
+    match msg_type {
+        1 => "[图片]".to_string(),
+        2 => "[视频]".to_string(),
+        3 => "[文件]".to_string(),
+        _ => {
+            if content.chars().count() > 50 {
+                format!("{}...", content.chars().take(50).collect::<String>())
+            } else {
+                content.to_string()
+            }
+        }
+    }
 }
 
 /// 查询参数

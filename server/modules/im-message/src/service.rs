@@ -56,11 +56,7 @@ impl MessageService {
             .map_err(|e| { println!("❌ [msg] create message failed: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
         // 生成预览
-        let preview = if msg.content.chars().count() > 50 {
-            format!("{}...", msg.content.chars().take(50).collect::<String>())
-        } else {
-            msg.content.clone()
-        };
+        let preview = crate::models::generate_preview(&msg.content, msg.msg_type);
 
         // 更新会话最后消息
         let _ = sqlx::query(

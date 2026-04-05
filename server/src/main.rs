@@ -11,6 +11,8 @@ use im_ws::broadcaster::WsBroadcaster;
 use im_ws::dispatcher::MessageDispatcher;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
+use app_storage::{StorageConfig, StorageService};
+use app_storage::api::storage_routes;
 
 #[tokio::main]
 async fn main() {
@@ -52,6 +54,9 @@ async fn main() {
         dispatcher,
     });
 
+    // 文件存储服务
+    let storage = Arc::new(StorageService::new(StorageConfig::from_env()));
+
     let app = Router::new()
         .merge(flash_auth::router())
         .merge(flash_user::router())
@@ -59,7 +64,9 @@ async fn main() {
         .merge(im_conversation::router())
         .with_state(state)
         .merge(im_message::router(msg_service))
+        .merge(storage_routes(storage))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
+        .nest_service("/uploads", ServeDir::new("uploads"))
         .nest_service("/static", ServeDir::new("static"));
 
     println!("🚀 Flash IM server listening on:");
