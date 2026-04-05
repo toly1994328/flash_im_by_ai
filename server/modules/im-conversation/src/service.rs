@@ -3,7 +3,7 @@ use sqlx::PgPool;
 use uuid::Uuid;
 
 use super::models::{
-    ConversationListResponse, CreateConversationResponse,
+    ConversationListItem, ConversationListResponse, CreateConversationResponse,
 };
 use super::repository::ConversationRepository;
 
@@ -181,7 +181,71 @@ impl ConversationService {
         Ok(rows.into_iter().map(|(id,)| id).collect())
     }
 
-    /// 检查用户是否是会话成员
+    /// 获取单个会话详情
+    pub async fn get_by_id(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<ConversationListResponse, StatusCode> {
+        // 验证成员身份
+        if !self.is_member(conversation_id, user_id).await? {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        let item: ConversationListItem = sqlx::query_as(
+            "SELECT c.id, c.type AS conv_type, c.name, c.avatar, c.owner_id,
+                    c.last_message_at, c.last_message_preview,
+                    c.created_at, c.updated_at,
+                    cm.unread_count, cm.last_read_seq, cm.is_pinned, cm.is_muted,
+                    peer.user_id AS peer_user_id
+             FROM conversations c
+             JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = $2
+             LEFT JOIN conversation_members peer ON peer.conversation_id = c.id
+                       AND peer.user_id != $2 AND c.type = 0
+             WHERE c.id = $1 AND cm.is_deleted = false"
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .fetch_optional(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        .ok_or(StatusCode::NOT_FOUND)?;
+
+        let (peer_nickname, peer_avatar) = if item.conv_type == 0 {
+            if let Some(peer_id) = item.peer_user_id {
+                let profile: Option<(String, Option<String>)> = sqlx::query_as(
+                    "SELECT nickname, avatar FROM user_profiles WHERE account_id = $1"
+                )
+                .bind(peer_id)
+                .fetch_optional(&self.db)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                profile.unwrap_or(("未知用户".to_string(), None))
+            } else {
+                ("未知用户".to_string(), None)
+            }
+        } else {
+            (String::new(), None)
+        };
+
+        Ok(ConversationListResponse {
+            id: item.id,
+            conv_type: item.conv_type,
+            name: if item.conv_type == 0 { Some(peer_nickname.clone()) } else { item.name },
+            avatar: if item.conv_type == 0 { peer_avatar.clone() } else { item.avatar },
+            peer_user_id: item.peer_user_id.map(|id: i64| id.to_string()),
+            peer_nickname: if item.conv_type == 0 { Some(peer_nickname) } else { None },
+            peer_avatar,
+            last_message_at: item.last_message_at,
+            last_message_preview: item.last_message_preview,
+            unread_count: item.unread_count,
+            is_pinned: item.is_pinned,
+            is_muted: item.is_muted,
+            created_at: item.created_at,
+        })
+    }
+
+    /// 检查用户是否是会話成員
     pub async fn is_member(
         &self,
         conversation_id: Uuid,

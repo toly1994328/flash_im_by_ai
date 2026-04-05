@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 发送一条消息
-用法: python send_message.py --from 2 --to 1 --msg "你好"
+用法: python send_message.py --from 6 --to 1 --msg "来自 python 脚本的消息"
 
 参数:
   --from  发送者用户 ID

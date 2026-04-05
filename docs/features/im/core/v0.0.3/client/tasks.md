@@ -112,6 +112,16 @@ export 'src/identicon_avatar.dart';
 export 'src/avatar_widget.dart';
 ```
 
+### 2.5 flash_im_conversation 依赖迁移 `✅`
+
+文件：`client/modules/flash_im_conversation/pubspec.yaml`（修改）
+文件：`client/modules/flash_im_conversation/lib/src/view/conversation_tile.dart`（修改）
+
+将 flash_im_conversation 对 flash_session 的依赖替换为 flash_shared：
+- pubspec.yaml：`flash_session` → `flash_shared`
+- conversation_tile.dart：`UserAvatar(user: tempUser)` → `AvatarWidget(avatar: conversation.peerAvatar)`
+- 消除了会话列表模块对登录会话模块的不合理依赖
+
 ---
 
 ## 任务 3：创建 flash_im_chat 模块骨架 `✅`
@@ -240,6 +250,13 @@ ConversationListLoaded 新增 totalUnread，从 CONVERSATION_UPDATE 帧取值
 本地置 0 + totalUnread 减少 + 后端 POST /conversations/:id/read
 
 ### 12.5 dispose 取消订阅 `✅`
+
+### 12.6 处理未知会话的 CONVERSATION_UPDATE `✅`
+
+当 conversationId 不在当前列表中时：
+- 用帧数据创建骨架会话（Conversation.skeleton），立刻插入列表顶部
+- 异步调用 GET /conversations/:id 拉取完整信息，替换骨架
+- Conversation 新增 isSkeleton 字段，ConversationTile 骨架时头像和名称显示灰色占位
 
 ---
 

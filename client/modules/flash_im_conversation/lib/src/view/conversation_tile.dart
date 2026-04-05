@@ -1,4 +1,4 @@
-import 'package:flash_session/flash_session.dart';
+import 'package:flash_shared/flash_shared.dart';
 import 'package:flutter/material.dart';
 import '../data/conversation.dart';
 
@@ -65,27 +65,19 @@ class ConversationTile extends StatelessWidget {
   }
 
   Widget _buildAvatarImage() {
-    final peerId = conversation.peerUserId;
-    if (conversation.type == 0 && peerId != null) {
-      // 单聊：用对方信息构建临时 User 给 UserAvatar
-      final tempUser = User(
-        userId: int.tryParse(peerId) ?? 0,
-        phone: '',
-        nickname: conversation.peerNickname ?? '',
-        avatar: conversation.peerAvatar ?? '',
-        signature: '',
+    if (conversation.isSkeleton) {
+      return Container(
+        width: 44, height: 44,
+        decoration: BoxDecoration(
+          color: Colors.grey[200],
+          borderRadius: BorderRadius.circular(6),
+        ),
       );
-      return UserAvatar(user: tempUser, size: 44, borderRadius: 6);
     }
-    // 群聊或无对方信息：占位头像
-    return Container(
-      width: 44,
-      height: 44,
-      decoration: BoxDecoration(
-        color: Colors.grey[300],
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: const Icon(Icons.group, color: Colors.white, size: 28),
+    return AvatarWidget(
+      avatar: conversation.peerAvatar,
+      size: 44,
+      borderRadius: 6,
     );
   }
 
@@ -93,16 +85,19 @@ class ConversationTile extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: Text(
-            conversation.displayName,
-            style: const TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w600,
-              color: Colors.black,
-            ),
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-          ),
+          child: conversation.isSkeleton
+            ? Container(height: 14, width: 80, decoration: BoxDecoration(
+                color: Colors.grey[200], borderRadius: BorderRadius.circular(4)))
+            : Text(
+                conversation.displayName,
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.black,
+                ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
         ),
         if (conversation.lastMessageAt != null)
           Text(

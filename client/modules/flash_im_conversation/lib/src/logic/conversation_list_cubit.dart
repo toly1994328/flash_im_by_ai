@@ -25,6 +25,35 @@ class ConversationListCubit extends Cubit<ConversationListState> {
       final current = state;
       if (current is! ConversationListLoaded) return;
 
+      final found = current.conversations.any((c) => c.id == update.conversationId);
+
+      if (!found) {
+        // 未知会话：先插入骨架，再异步补全
+        final skeleton = Conversation.skeleton(
+          id: update.conversationId,
+          lastMessagePreview: update.lastMessagePreview,
+          lastMessageAt: DateTime.fromMillisecondsSinceEpoch(update.lastMessageAt.toInt()),
+          unreadCount: update.unreadCount,
+        );
+        final updated = [skeleton, ...current.conversations];
+        emit(ConversationListLoaded(
+          updated,
+          hasMore: current.hasMore,
+          totalUnread: update.totalUnread,
+        ));
+        // 异步拉取完整信息替换骨架
+        _repository.getById(update.conversationId).then((full) {
+          final s = state;
+          if (s is! ConversationListLoaded) return;
+          final replaced = s.conversations.map((c) {
+            if (c.id == full.id) return full.copyWith(unreadCount: c.unreadCount);
+            return c;
+          }).toList();
+          emit(ConversationListLoaded(replaced, hasMore: s.hasMore, totalUnread: s.totalUnread));
+        }).catchError((_) {});
+        return;
+      }
+
       final updated = current.conversations.map((c) {
         if (c.id == update.conversationId) {
           return Conversation(
@@ -45,7 +74,6 @@ class ConversationListCubit extends Cubit<ConversationListState> {
         return c;
       }).toList();
 
-      // 按 lastMessageAt 倒序排列
       updated.sort((a, b) {
         final aTime = a.lastMessageAt ?? a.createdAt;
         final bTime = b.lastMessageAt ?? b.createdAt;

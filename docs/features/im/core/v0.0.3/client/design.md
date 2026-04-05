@@ -21,6 +21,7 @@ tags: [聊天页, chat, message, flutter]
 - 消息乐观更新（先显示再确认）
 - 从会话列表点击进入聊天页
 - 进入聊天页后，将该会话的未读数置 0，并通知 ConversationListCubit 更新（减少 totalUnread）
+- 处理未加载到内存的会话收到 CONVERSATION_UPDATE 的情况（骨架插入 + 异步补全）
 
 本版本只支持文本消息，不涉及图片/文件/语音。
 
@@ -191,7 +192,9 @@ client/modules/flash_im_core/             # 修改
 
 ### flash_shared 模块
 
-跨模块共享的 UI 组件，从 flash_session 中提取，避免 flash_im_chat 强依赖 flash_session。
+跨模块共享的 UI 组件，从 flash_session 中提取，避免业务模块强依赖 flash_session。
+
+flash_im_chat 和 flash_im_conversation 都通过 flash_shared 获取头像组件，而不是直接依赖 flash_session。
 
 | 组件 | 说明 |
 |------|------|
@@ -199,7 +202,7 @@ client/modules/flash_im_core/             # 修改
 | IdenticonAvatar | 包装 IdenticonPainter 的 Widget，支持 size/borderRadius |
 | AvatarWidget | 统一头像入口：`identicon:xxx` → IdenticonAvatar，`http(s)://` → 网络图片，空 → 占位图标 |
 
-依赖关系：`flash_im_chat → flash_shared`，`flash_session` 也可迁移到依赖 flash_shared（暂未改动）。
+依赖关系：`flash_im_chat → flash_shared`，`flash_im_conversation → flash_shared`。两个业务模块都不直接依赖 flash_session。
 
 ### WsClient 帧分发扩展
 

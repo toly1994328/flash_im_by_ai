@@ -38,6 +38,18 @@ async fn list_conversations(
     Ok(Json(serde_json::to_value(list).unwrap()))
 }
 
+async fn get_conversation(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let service = ConversationService::new(state.db.clone());
+    let resp = service.get_by_id(conversation_id, user_id).await?;
+    Ok(Json(serde_json::to_value(resp).unwrap()))
+}
+
 async fn delete_conversation(
     State(state): State<Arc<AppState>>,
     headers: HeaderMap,
@@ -72,6 +84,6 @@ async fn mark_read(
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/conversations", post(create_conversation).get(list_conversations))
-        .route("/conversations/{id}", delete(delete_conversation))
+        .route("/conversations/{id}", delete(delete_conversation).get(get_conversation))
         .route("/conversations/{id}/read", post(mark_read))
 }

@@ -13,6 +13,7 @@ class Conversation {
   final bool isPinned;
   final bool isMuted;
   final DateTime createdAt;
+  final bool isSkeleton;
 
   const Conversation({
     required this.id,
@@ -28,7 +29,26 @@ class Conversation {
     this.isPinned = false,
     this.isMuted = false,
     required this.createdAt,
+    this.isSkeleton = false,
   });
+
+  /// 骨架会话：用 ConversationUpdate 帧的有限数据创建，等待 HTTP 补全
+  factory Conversation.skeleton({
+    required String id,
+    String? lastMessagePreview,
+    DateTime? lastMessageAt,
+    int unreadCount = 0,
+  }) {
+    return Conversation(
+      id: id,
+      type: 0,
+      lastMessagePreview: lastMessagePreview,
+      lastMessageAt: lastMessageAt,
+      unreadCount: unreadCount,
+      createdAt: lastMessageAt ?? DateTime.now(),
+      isSkeleton: true,
+    );
+  }
 
   /// 显示名称：单聊用对方昵称，群聊用群名
   String get displayName =>

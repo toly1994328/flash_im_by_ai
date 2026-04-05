@@ -86,3 +86,28 @@ POST /conversations/:id/read
 ### 影响文件
 
 - `server/modules/im-conversation/src/routes.rs`（新增 mark_read handler + 路由注册）
+
+---
+
+## 4. 新增 GET /conversations/:id 接口
+
+### 问题
+
+前端会话列表分页加载，未加载到的会话收到 CONVERSATION_UPDATE 时无法更新。前端需要先用帧数据创建骨架会话（preview/time/unread 有值，nickname/avatar 为空），再通过 HTTP 拉取完整信息补全。
+
+### 改动
+
+im-conversation 新增路由：
+
+```
+GET /conversations/:id
+```
+
+逻辑：验证当前用户是会话成员，返回单个会话的完整信息（关联 user_profiles 补充对方昵称和头像），格式与列表接口中的单条一致。
+
+### 影响文件
+
+- `server/modules/im-conversation/src/routes.rs`（新增 get_conversation handler + 路由注册）
+- `server/modules/im-conversation/src/service.rs`（新增 get_by_id 方法）
+- `client/modules/flash_im_conversation/lib/src/data/conversation_repository.dart`（新增 getById 方法）
+- `client/modules/flash_im_conversation/lib/src/logic/conversation_list_cubit.dart`（_handleUpdate 处理未知会话）

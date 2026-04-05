@@ -36,4 +36,10 @@ class ConversationRepository {
   Future<void> markRead(String conversationId) async {
     await _dio.post('/conversations/$conversationId/read');
   }
+
+  /// 获取单个会话详情
+  Future<Conversation> getById(String conversationId) async {
+    final res = await _dio.get('/conversations/$conversationId');
+    return Conversation.fromJson(res.data as Map<String, dynamic>);
+  }
 }
