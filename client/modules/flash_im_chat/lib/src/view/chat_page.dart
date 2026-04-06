@@ -5,7 +5,7 @@ import 'package:shimmer/shimmer.dart';
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
-import 'message_bubble.dart';
+import 'bubble/message_bubble.dart';
 import 'chat_input.dart';
 import 'image_preview_page.dart';
 import 'video_player_page.dart';

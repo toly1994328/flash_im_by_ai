@@ -19,36 +19,54 @@ class FilePreviewPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('文件详情')),
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        scrolledUnderElevation: 0,
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back_ios, size: 20),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
       body: BlocBuilder<ChatCubit, ChatState>(
         builder: (context, state) {
           final dlInfo = (state is ChatLoaded)
               ? state.fileDownloads[messageId]
               : null;
-
-          return Center(
-            child: Padding(
-              padding: const EdgeInsets.all(32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  _buildFileIcon(fileExtra.fileType),
-                  const SizedBox(height: 16),
-                  Text(fileExtra.fileName,
-                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
-                    textAlign: TextAlign.center, maxLines: 2,
-                    overflow: TextOverflow.ellipsis),
-                  const SizedBox(height: 8),
-                  Text(fileExtra.formattedSize,
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF999999))),
-                  const SizedBox(height: 4),
-                  Text(fileExtra.fileType.toUpperCase(),
-                    style: const TextStyle(fontSize: 14, color: Color(0xFF999999))),
-                  const SizedBox(height: 32),
-                  _buildAction(context, dlInfo),
-                ],
+          return Column(
+            children: [
+              // 文件信息区（偏上，约屏幕 1/4 处）
+              Expanded(
+                child: SizedBox(
+                  width: double.infinity,
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 40),
+                    child: Column(
+                      children: [
+                        SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+                        _buildFileIcon(fileExtra.fileType),
+                        const SizedBox(height: 20),
+                        Text(fileExtra.fileName,
+                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w500),
+                          textAlign: TextAlign.center, maxLines: 2,
+                          overflow: TextOverflow.ellipsis),
+                        const SizedBox(height: 8),
+                        Text('文件大小: ${fileExtra.formattedSize}',
+                          style: const TextStyle(fontSize: 14, color: Color(0xFF999999))),
+                      ],
+                    ),
+                  ),
+                ),
               ),
-            ),
+              // 底部操作区
+              SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.only(bottom: 60),
+                  child: _buildAction(context, dlInfo),
+                ),
+              ),
+            ],
           );
         },
       ),
@@ -59,51 +77,87 @@ class FilePreviewPage extends StatelessWidget {
     final status = dlInfo?.status ?? FileDownloadStatus.idle;
 
     return switch (status) {
-      FileDownloadStatus.idle => SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => _startDownload(context),
-          icon: const Icon(Icons.download),
-          label: const Text('下载'),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3B82F6),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-          ),
-        ),
-      ),
-      FileDownloadStatus.downloading => Column(
+      FileDownloadStatus.idle => Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          LinearProgressIndicator(
-            value: dlInfo!.progress,
-            backgroundColor: Colors.grey[200],
-            valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFF3B82F6)),
+          GestureDetector(
+            onTap: () => _startDownload(context),
+            child: Container(
+              width: 200,
+              height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: const Text('下载',
+                style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
+            ),
           ),
           const SizedBox(height: 8),
-          Text('${(dlInfo.progress * 100).toInt()}%',
-            style: const TextStyle(fontSize: 14, color: Color(0xFF666666))),
+          const Text('点击下载到本地',
+            style: TextStyle(fontSize: 12, color: Color(0xFFBBBBBB))),
+        ],
+      ),
+      FileDownloadStatus.downloading => Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Text('正在下载文件',
+            style: TextStyle(fontSize: 14, color: Color(0xFF999999))),
+          const SizedBox(height: 12),
+          SizedBox(
+            width: 48, height: 48,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                CircularProgressIndicator(
+                  value: dlInfo!.progress > 0 ? dlInfo.progress : null,
+                  strokeWidth: 3,
+                  color: const Color(0xFF999999),
+                  backgroundColor: const Color(0xFFE8E8E8),
+                ),
+                const Icon(Icons.pause, size: 20, color: Color(0xFF999999)),
+              ],
+            ),
+          ),
         ],
       ),
       FileDownloadStatus.done => Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.check_circle, color: Colors.green, size: 32),
+          const Icon(Icons.check_circle, color: Colors.green, size: 36),
           const SizedBox(height: 8),
-          const Text('下载完成', style: TextStyle(color: Colors.green, fontSize: 14)),
+          const Text('下载完成',
+            style: TextStyle(fontSize: 14, color: Colors.green)),
           if (dlInfo?.localPath != null)
             Padding(
               padding: const EdgeInsets.only(top: 4),
               child: Text(dlInfo!.localPath!,
-                style: const TextStyle(fontSize: 12, color: Color(0xFF999999)),
+                style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
                 textAlign: TextAlign.center),
             ),
         ],
       ),
       FileDownloadStatus.error => Column(
+        mainAxisSize: MainAxisSize.min,
         children: [
           Text(dlInfo?.error ?? '下载失败',
-            style: const TextStyle(color: Colors.red, fontSize: 14)),
-          const SizedBox(height: 8),
-          TextButton(onPressed: () => _startDownload(context), child: const Text('重试')),
+            style: const TextStyle(color: Colors.red, fontSize: 14),
+            textAlign: TextAlign.center),
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => _startDownload(context),
+            child: Container(
+              width: 200, height: 44,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF5F5F5),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              alignment: Alignment.center,
+              child: const Text('重试',
+                style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
+            ),
+          ),
         ],
       ),
     };

@@ -236,18 +236,18 @@ flowchart TB
 | I-10 | 文件存储服务 (app-storage) | 基础设施 | 本地磁盘存储 + 图片处理(image crate) + 缩略图生成(webp)，StorageService + StorageConfig |
 | I-11 | 文件上传 API | 基础设施 | POST /api/upload/image、/api/upload/video、/api/upload/file，multipart 解析 + 鉴权 |
 | I-12 | 静态文件服务 | 基础设施 | tower-http ServeDir 挂载 uploads/ 目录，GET /uploads/{path} 访问已上传文件 |
-| D-11 | 富媒体消息存储 | 领域 | 扩展 NewMessage 支持 msg_type + extra，存储媒体元数据到 messages.extra(JSONB) |
-| D-12 | 消息预览生成 | 领域 | generate_preview() 根据 msg_type 返回 "[图片]"/"[视频]"/"[文件]"，更新会话列表预览 |
+| D-12 | 富媒体消息存储 | 领域 | 扩展 NewMessage 支持 msg_type + extra，存储媒体元数据到 messages.extra(JSONB) |
+| D-13 | 消息预览生成 | 领域 | generate_preview() 根据 msg_type 返回 "[图片]"/"[视频]"/"[文件]"，更新会话列表预览 |
 | F-08 | 视频信息提取 | 前端基础 | VideoThumbnailService：fc_native_video_thumbnail 提取首帧 + video_player 提取时长 |
-| P-10 | 功能面板 (MorePanel) | 前端业务 | 输入框"+"按钮，弹出 2×2 网格面板：照片/拍照/视频/文件 |
-| P-11 | 图片消息气泡 | 前端业务 | 薄边框+圆角裁剪，max 250×300，点击全屏预览 |
-| P-12 | 视频消息气泡 | 前端业务 | 缩略图 + 半透明播放按钮 + 底部渐变遮罩时长，点击跳转播放页 |
-| P-13 | 文件消息气泡 | 前端业务 | 白底边框卡片 237px，文件名+大小+类型图标(按扩展名着色) |
-| P-14 | 图片发送流程 | 前端业务 | ImagePicker → 占位消息 → HTTP上传 → WS发送 → ACK确认 |
-| P-15 | 视频发送流程 | 前端业务 | ImagePicker → 提取缩略图+时长 → 占位消息 → HTTP上传(视频+缩略图) → WS发送 → ACK确认 |
-| P-16 | 文件发送流程 | 前端业务 | FilePicker → 占位消息 → HTTP上传 → WS发送 → ACK确认 |
-| P-17 | 视频播放页 | 前端业务 | 全屏视频播放器，支持暂停/拖动进度 |
-| P-18 | 图片全屏预览 | 前端业务 | 全屏图片查看，支持缩放/滑动 |
+| P-11 | 功能面板 (MorePanel) | 前端业务 | 输入框"+"按钮，弹出 2×2 网格面板：照片/拍照/视频/文件 |
+| P-12 | 图片消息气泡 | 前端业务 | 薄边框+圆角裁剪，max 250×300，点击全屏预览 |
+| P-13 | 视频消息气泡 | 前端业务 | 缩略图 + 半透明播放按钮 + 底部渐变遮罩时长，点击跳转播放页 |
+| P-14 | 文件消息气泡 | 前端业务 | 白底边框卡片 237px，文件名+大小+类型图标(按扩展名着色) |
+| P-15 | 图片发送流程 | 前端业务 | ImagePicker → 占位消息 → HTTP上传 → WS发送 → ACK确认 |
+| P-16 | 视频发送流程 | 前端业务 | ImagePicker → 提取缩略图+时长 → 占位消息 → HTTP上传(视频+缩略图) → WS发送 → ACK确认 |
+| P-17 | 文件发送流程 | 前端业务 | FilePicker → 占位消息 → HTTP上传 → WS发送 → ACK确认 |
+| P-18 | 视频播放页 | 前端业务 | 全屏视频播放器，支持暂停/拖动进度 |
+| P-19 | 图片全屏预览 | 前端业务 | 全屏图片查看，支持缩放/滑动 |
 
 ### 前置依赖
 

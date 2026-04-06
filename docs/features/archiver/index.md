@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.3（消息收发）
+最后更新：v0.0.4_media（富媒体消息）
 
 ---
 
@@ -24,6 +24,9 @@
 | I-07 | 心跳保活 | im-ws | 后端 | v0.0.1 | ✅ |
 | I-08 | 在线用户管理 | im-ws (WsState) | 后端 | v0.0.3 | ✅ |
 | I-09 | 帧分发器 | im-ws (dispatcher) | 后端 | v0.0.3 | ✅ |
+| I-10 | 文件存储服务 | app-storage (service) | 后端 | v0.0.4_media | ✅ |
+| I-11 | 文件上传 API | app-storage (api) | 后端 | v0.0.4_media | ✅ |
+| I-12 | 静态文件服务 | main.rs (tower-http) | 后端 | v0.0.4_media | ✅ |
 
 ### 领域层（D）
 
@@ -40,6 +43,8 @@
 | D-09 | 历史消息查询 | im-message | 后端 | v0.0.3 | ✅ |
 | D-10 | 会话更新推送 | im-message (broadcaster) | 后端 | v0.0.3 | ✅ |
 | D-11 | 获取单个会话详情 | im-conversation | 后端 | v0.0.3-p1 | ✅ |
+| D-12 | 富媒体消息存储 | im-message (models/repository) | 后端 | v0.0.4_media | ✅ |
+| D-13 | 消息预览生成 | im-message (models) | 后端 | v0.0.4_media | ✅ |
 
 ### 前端基础层（F）
 
@@ -52,6 +57,7 @@
 | F-05 | WsClient 心跳与重连 | flash_im_core | v0.0.1 | ✅ |
 | F-06 | WsClient 帧分发 | flash_im_core | v0.0.3 | ✅ |
 | F-07 | 共享头像组件 | flash_shared | v0.0.3 | ✅ |
+| F-08 | 视频信息提取 | flash_im_chat (video_thumbnail_service) | v0.0.4_media | ✅ |
 
 ### 前端业务层（P）
 
@@ -67,6 +73,15 @@
 | P-08 | 实时消息接收 | flash_im_chat | v0.0.3 | ✅ |
 | P-09 | 消息状态流转 | flash_im_chat | v0.0.3 | ✅ |
 | P-10 | 未知会话骨架处理 | flash_im_conversation | v0.0.3-p1 | ✅ |
+| P-11 | 功能面板 | flash_im_chat (chat_input) | v0.0.4_media | ✅ |
+| P-12 | 图片消息气泡 | flash_im_chat (message_bubble) | v0.0.4_media | ✅ |
+| P-13 | 视频消息气泡 | flash_im_chat (message_bubble) | v0.0.4_media | ✅ |
+| P-14 | 文件消息气泡 | flash_im_chat (message_bubble) | v0.0.4_media | ✅ |
+| P-15 | 图片发送流程 | flash_im_chat (chat_cubit) | v0.0.4_media | ✅ |
+| P-16 | 视频发送流程 | flash_im_chat (chat_cubit) | v0.0.4_media | ✅ |
+| P-17 | 文件发送流程 | flash_im_chat (chat_cubit) | v0.0.4_media | ✅ |
+| P-18 | 视频播放页 | flash_im_chat (video_player_page) | v0.0.4_media | ✅ |
+| P-19 | 图片全屏预览 | flash_im_chat (image_preview_page) | v0.0.4_media | ✅ |
 
 
 ---
@@ -77,8 +92,8 @@
 
 ```
 Level 0: flash-core (I-01)
-Level 1: flash-auth (I-02,I-03) | flash-user (I-04) | im-conversation (D-01~D-05)
-Level 2: im-message (D-06~D-10) → 依赖 im-conversation
+Level 1: flash-auth (I-02,I-03) | flash-user (I-04) | im-conversation (D-01~D-05,D-11) | app-storage (I-10~I-12)
+Level 2: im-message (D-06~D-10,D-12~D-13) → 依赖 im-conversation
 Level 3: im-ws (I-05~I-09) → 依赖 im-message
 Level 4: main.rs → 组装所有模块
 ```
@@ -88,8 +103,8 @@ Level 4: main.rs → 组装所有模块
 ```
 Level 0: flash_shared (F-07) | flash_starter (F-03)
 Level 1: flash_auth (F-01) | flash_session (F-02) | flash_im_core (F-04~F-06)
-Level 2: flash_im_conversation (P-01~P-05) → 依赖 flash_session + flash_im_core
-         flash_im_chat (P-06~P-09) → 依赖 flash_im_core + flash_shared
+Level 2: flash_im_conversation (P-01~P-05,P-10) → 依赖 flash_session + flash_im_core
+         flash_im_chat (F-08,P-06~P-09,P-11~P-19) → 依赖 flash_im_core + flash_shared
 Level 3: main.dart → 组装所有模块
 ```
 
@@ -105,6 +120,9 @@ graph TB
         I05[I-05 WS连接]
         I08[I-08 在线用户]
         I09[I-09 帧分发器]
+        I10[I-10 文件存储]
+        I11[I-11 上传API]
+        I12[I-12 静态文件服务]
     end
     subgraph 后端领域层
         D01[D-01 会话创建]
@@ -118,6 +136,8 @@ graph TB
         D09[D-09 历史消息]
         D10[D-10 会话更新推送]
         D11[D-11 会话详情查询]
+        D12[D-12 富媒体消息存储]
+        D13[D-13 消息预览生成]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -127,6 +147,7 @@ graph TB
         F05[F-05 心跳重连]
         F06[F-06 帧分发]
         F07[F-07 共享头像]
+        F08[F-08 视频信息提取]
     end
     subgraph 前端业务层
         P01[P-01 会话列表]
@@ -139,6 +160,15 @@ graph TB
         P08[P-08 实时接收]
         P09[P-09 状态流转]
         P10[P-10 未知会话骨架]
+        P11[P-11 功能面板]
+        P12[P-12 图片气泡]
+        P13[P-13 视频气泡]
+        P14[P-14 文件气泡]
+        P15[P-15 图片发送]
+        P16[P-16 视频发送]
+        P17[P-17 文件发送]
+        P18[P-18 视频播放页]
+        P19[P-19 图片预览页]
     end
 
     %% 后端：模块间依赖
@@ -149,6 +179,7 @@ graph TB
     I05 --> I03
     I08 --> I05
     I09 --> I05
+    I11 --> I10
     D01 --> I01
     D02 --> I01
     D03 --> I01
@@ -159,6 +190,8 @@ graph TB
     D08 --> D04
     D10 --> D04
     D11 --> I01
+    D12 --> D06
+    D13 --> D06
     I09 -->|调用 service.send| D06
 
     %% 前端：模块间依赖
@@ -179,6 +212,20 @@ graph TB
     P09 --> P08
     P10 --> P03
     P10 -.->|HTTP| D11
+    P11 --> P07
+    P12 --> P08
+    P13 --> P08
+    P13 --> F08
+    P14 --> P08
+    P15 --> P11
+    P15 --> P12
+    P16 --> P11
+    P16 --> P13
+    P16 --> F08
+    P17 --> P11
+    P17 --> P14
+    P18 --> P13
+    P19 --> P12
 
     %% 跨端：协议连接（虚线）
     F01 -.->|HTTP| I02
@@ -187,6 +234,13 @@ graph TB
     P01 -.->|HTTP| D02
     P05 -.->|HTTP| D05
     P06 -.->|HTTP| D09
+    P15 -.->|HTTP 上传| I11
+    P16 -.->|HTTP 上传| I11
+    P17 -.->|HTTP 上传| I11
+    P12 -.->|HTTP 静态| I12
+    P13 -.->|HTTP 静态| I12
+    P18 -.->|HTTP 静态| I12
+    P19 -.->|HTTP 静态| I12
 ```
 
 ---
@@ -206,6 +260,8 @@ graph TB
 | v0.9.0 | 2026-04-02 | 29 | [trace/v0.9.0_2026-04-02.md](trace/v0.9.0_2026-04-02.md) |
 | v0.10.0 | 2026-04-04 | 35 | [trace/v0.10.0_2026-04-04.md](trace/v0.10.0_2026-04-04.md) |
 | v0.10.1 | 2026-04-06 | 37 | [trace/v0.10.1_2026-04-06.md](trace/v0.10.1_2026-04-06.md) |
+| v0.10.5 | 2026-04-06 | 42 | [trace/v0.10.5_2026-04-06.md](trace/v0.10.5_2026-04-06.md) |
+| v0.10.6 | 2026-04-06 | 49 | [trace/v0.10.6_2026-04-06.md](trace/v0.10.6_2026-04-06.md) |
 
 ---
 
@@ -218,4 +274,5 @@ graph TB
 | 认证与用户 | [auth.md](modules/auth.md) | I-01~I-04, F-01~F-03 |
 | WebSocket 通信 | [ws.md](modules/ws.md) | I-05~I-09, F-04~F-06 |
 | 会话 | [conversation.md](modules/conversation.md) | D-01~D-05, P-01~P-05 |
-| 消息 | [message.md](modules/message.md) | D-06~D-10, P-06~P-09, F-07 |
+| 消息 | [message/server.md](modules/message/server.md) | I-10~I-12, D-06~D-10, D-12~D-13 |
+| 消息（客户端） | [message/client.md](modules/message/client.md) | F-06~F-08, P-06~P-09, P-11~P-19 |

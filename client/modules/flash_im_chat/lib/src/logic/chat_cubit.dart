@@ -113,6 +113,7 @@ class ChatCubit extends Cubit<ChatState> {
     if (current is! ChatLoaded) return;
 
     final localId = 'local_${++_localIdCounter}';
+    final localFileSize = await File(filePath).length();
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
@@ -121,6 +122,7 @@ class ChatCubit extends Cubit<ChatState> {
       senderAvatar: currentUserAvatar,
       content: filePath,
       type: MessageType.image,
+      extra: {'size': localFileSize},
     );
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 

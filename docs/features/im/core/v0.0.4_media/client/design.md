@@ -307,7 +307,12 @@ client/modules/flash_im_chat/lib/src/
 └── view/
     ├── chat_page.dart            # 修改：传递 baseUrl 给 MessageBubble
     ├── chat_input.dart           # 修改：新增 + 按钮 + 功能面板
-    ├── message_bubble.dart       # 修改：按 type 分发渲染
+    ├── bubble/
+    │   ├── message_bubble.dart   # 修改：外壳+分发，按 type 委托给独立气泡组件
+    │   ├── text_bubble.dart      # 新增：文本气泡
+    │   ├── image_bubble.dart     # 新增：图片气泡
+    │   ├── video_bubble.dart     # 新增：视频气泡
+    │   └── file_bubble.dart      # 新增：文件气泡
     ├── image_preview_page.dart   # 新增：图片全屏预览（InteractiveViewer）
     ├── video_player_page.dart    # 新增：视频播放页（video_player）
     └── file_preview_page.dart    # 新增：文件预览页（文件信息 + 下载进度 + 下载按钮）
@@ -343,10 +348,10 @@ MessageRepository（数据层）
 └── uploadFile(filePath)                 新增
 
 MessageBubble（视图层）
-├── isText → 文本气泡（已有）
-├── isImage → 图片气泡（新增）→ 点击进入 ImagePreviewPage
-├── isVideo → 视频气泡（新增）→ 点击进入 VideoPlayerPage
-└── isFile → 文件卡片（新增）→ 点击进入 FilePreviewPage（文件信息 + 下载）
+├── isText → TextBubble（已有逻辑提取为独立组件）
+├── isImage → ImageBubble（新增独立组件）→ 点击进入 ImagePreviewPage
+├── isVideo → VideoBubble（新增独立组件）→ 点击进入 VideoPlayerPage
+└── isFile → FileBubble（新增独立组件）→ 点击进入 FilePreviewPage（文件信息 + 下载）
 ```
 
 ### 技术决策
