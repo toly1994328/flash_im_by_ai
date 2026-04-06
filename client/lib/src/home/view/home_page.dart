@@ -5,6 +5,7 @@ import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
+import '../../application/config.dart';
 import '../profile/profile_page.dart';
 
 const _kPrimary = Color(0xFF3B82F6);
@@ -256,6 +257,7 @@ class _HomePageState extends State<HomePage> {
                     conversationId: conversation.id,
                     peerName: conversation.displayName,
                     peerAvatar: conversation.displayAvatar,
+                    baseUrl: AppConfig.baseUrl,
                   ),
                 ),
               ),

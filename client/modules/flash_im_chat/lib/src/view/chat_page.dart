@@ -7,17 +7,23 @@ import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
 import 'message_bubble.dart';
 import 'chat_input.dart';
+import 'image_preview_page.dart';
+import 'video_player_page.dart';
+import 'file_preview_page.dart';
+import '../data/video_thumbnail_service.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationId;
   final String peerName;
   final String? peerAvatar;
+  final String? baseUrl;
 
   const ChatPage({
     super.key,
     required this.conversationId,
     required this.peerName,
     this.peerAvatar,
+    this.baseUrl,
   });
 
   @override
@@ -93,6 +99,17 @@ class _ChatPageState extends State<ChatPage> {
               ),
               ChatInput(
                 onSend: (content) => context.read<ChatCubit>().sendMessage(content),
+                onSendImage: (path) => context.read<ChatCubit>().sendImageFromFile(path),
+                onSendVideo: (path) async {
+                  final info = await VideoThumbnailService().extractVideoInfo(path);
+                  if (context.mounted) {
+                    context.read<ChatCubit>().sendVideoFromFile(
+                      path, info.thumbnailPath, info.durationMs,
+                      width: info.width, height: info.height,
+                    );
+                  }
+                },
+                onSendFile: (path) => context.read<ChatCubit>().sendFileFromPicker(path),
               ),
             ],
           ),
@@ -125,7 +142,43 @@ class _ChatPageState extends State<ChatPage> {
         }
         final msg = messages[messages.length - 1 - index];
         final isMe = msg.senderId == context.read<ChatCubit>().currentUserId;
-        return MessageBubble(message: msg, isMe: isMe);
+        final chatState = context.read<ChatCubit>().state;
+        final progress = (chatState is ChatLoaded) ? chatState.uploadProgress : null;
+
+        String fullUrl(String url) =>
+            (widget.baseUrl != null && url.startsWith('/')) ? '${widget.baseUrl}$url' : url;
+
+        return MessageBubble(
+          message: msg,
+          isMe: isMe,
+          baseUrl: widget.baseUrl,
+          uploadProgress: (msg.status == MessageStatus.sending) ? progress : null,
+          fileDownloadInfo: (chatState is ChatLoaded) ? chatState.fileDownloads[msg.id] : null,
+          onImageTap: () => Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => ImagePreviewPage(imageUrl: fullUrl(msg.content)),
+          )),
+          onVideoTap: () {
+            final videoUrl = fullUrl(msg.content);
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => VideoPlayerPage(videoUrl: videoUrl),
+            ));
+          },
+          onFileTap: () {
+            final fileExtra = msg.fileExtra;
+            if (fileExtra != null) {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => BlocProvider.value(
+                  value: context.read<ChatCubit>(),
+                  child: FilePreviewPage(
+                    messageId: msg.id,
+                    fileExtra: fileExtra,
+                    baseUrl: widget.baseUrl ?? '',
+                  ),
+                ),
+              ));
+            }
+          },
+        );
       },
     );
 

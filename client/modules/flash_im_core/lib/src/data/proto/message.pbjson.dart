@@ -20,12 +20,16 @@ const MessageType$json = {
   '1': 'MessageType',
   '2': [
     {'1': 'TEXT', '2': 0},
+    {'1': 'IMAGE', '2': 1},
+    {'1': 'VIDEO', '2': 2},
+    {'1': 'FILE', '2': 3},
   ],
 };
 
 /// Descriptor for `MessageType`. Decode as a `google.protobuf.EnumDescriptorProto`.
-final $typed_data.Uint8List messageTypeDescriptor =
-    $convert.base64Decode('CgtNZXNzYWdlVHlwZRIICgRURVhUEAA=');
+final $typed_data.Uint8List messageTypeDescriptor = $convert.base64Decode(
+    'CgtNZXNzYWdlVHlwZRIICgRURVhUEAASCQoFSU1BR0UQARIJCgVWSURFTxACEggKBEZJTEUQAw'
+    '==');
 
 @$core.Deprecated('Use messageStatusDescriptor instead')
 const MessageStatus$json = {

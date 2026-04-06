@@ -209,13 +209,16 @@ class WsClient {
   void sendMessage({
     required String conversationId,
     required String content,
+    msg.MessageType type = msg.MessageType.TEXT,
+    List<int>? extra,
     String? clientId,
   }) {
     final req = msg.SendMessageRequest()
       ..conversationId = conversationId
-      ..type = msg.MessageType.TEXT
+      ..type = type
       ..content = content
       ..clientId = clientId ?? '';
+    if (extra != null) req.extra = extra;
     final frame = WsFrame()
       ..type = WsFrameType.CHAT_MESSAGE
       ..payload = req.writeToBuffer();

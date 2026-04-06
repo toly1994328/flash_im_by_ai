@@ -1,6 +1,10 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus;
+import 'package:path_provider/path_provider.dart';
+import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
+import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
 import '../data/message.dart';
 import '../data/message_repository.dart';
 import 'chat_state.dart';
@@ -89,7 +93,6 @@ class ChatCubit extends Cubit<ChatState> {
     _pendingMessages[clientId] = localId;
     _wsClient.sendMessage(conversationId: conversationId, content: content, clientId: clientId);
 
-    // 10s 超时
     Future.delayed(const Duration(seconds: 10), () {
       if (_pendingMessages.containsKey(clientId)) {
         _pendingMessages.remove(clientId);
@@ -104,6 +107,208 @@ class ChatCubit extends Cubit<ChatState> {
     });
   }
 
+  /// 从本地文件发送图片消�?
+  Future<void> sendImageFromFile(String filePath) async {
+    final current = state;
+    if (current is! ChatLoaded) return;
+
+    final localId = 'local_${++_localIdCounter}';
+    final localMessage = Message.sending(
+      localId: localId,
+      conversationId: conversationId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatar: currentUserAvatar,
+      content: filePath,
+      type: MessageType.image,
+    );
+    emit(current.copyWith(messages: [...current.messages, localMessage]));
+
+    try {
+      final result = await _repository.uploadImage(filePath, onProgress: (p) {
+        print('📤 [upload] image progress: ${(p * 100).toInt()}%');
+        final s = state;
+        if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+      });
+
+      final afterUpload = state;
+      if (afterUpload is ChatLoaded) {
+        emit(afterUpload.copyWith(clearUploadProgress: true));
+      }
+
+      // 不更新 content（保持本地路径，UI 始终显示本地图片）
+      // 只记录 extra 供 ACK 后使用
+      final imageExtra = {
+        'width': result.width,
+        'height': result.height,
+        'size': result.size,
+        'format': result.format,
+        'thumbnail_url': result.thumbnailUrl,
+      };
+
+      final latest = state;
+      if (latest is ChatLoaded) {
+        final updated = latest.messages.map((m) {
+          if (m.id == localId) {
+            return m.copyWith(extra: imageExtra);
+          }
+          return m;
+        }).toList();
+        emit(latest.copyWith(messages: updated));
+      }
+
+      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      _pendingMessages[clientId] = localId;
+      _wsClient.sendMessage(
+        conversationId: conversationId,
+        content: result.originalUrl,
+        type: proto.MessageType.IMAGE,
+        extra: utf8.encode(jsonEncode(imageExtra)),
+        clientId: clientId,
+      );
+
+      _setupTimeout(clientId, localId, const Duration(seconds: 10));
+    } catch (e) {
+      _markFailed(localId);
+    }
+  }
+
+  /// 从本地文件发送视频消�?
+  Future<void> sendVideoFromFile(String filePath, String thumbnailPath, int durationMs, {int width = 0, int height = 0}) async {
+    final current = state;
+    if (current is! ChatLoaded) return;
+
+    final localId = 'local_${++_localIdCounter}';
+    final localMessage = Message.sending(
+      localId: localId,
+      conversationId: conversationId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatar: currentUserAvatar,
+      content: thumbnailPath,
+      type: MessageType.video,
+      extra: {'width': width, 'height': height, 'duration_ms': durationMs},
+    );
+    emit(current.copyWith(messages: [...current.messages, localMessage]));
+
+    try {
+      final result = await _repository.uploadVideo(
+        filePath, thumbnailPath, durationMs,
+        width: width, height: height,
+        onProgress: (p) {
+          print('📤 [upload] video progress: ${(p * 100).toInt()}%');
+          final s = state;
+          if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+        },
+      );
+
+      final afterUpload = state;
+      if (afterUpload is ChatLoaded) {
+        emit(afterUpload.copyWith(clearUploadProgress: true));
+      }
+
+      final videoExtra = VideoExtra(
+        thumbnailUrl: result.thumbnailUrl,
+        durationMs: result.durationMs,
+        width: result.width,
+        height: result.height,
+        fileSize: result.fileSize,
+      );
+
+      final latest = state;
+      if (latest is ChatLoaded) {
+        final updated = latest.messages.map((m) {
+          if (m.id == localId) {
+            return m.copyWith(extra: videoExtra.toJson());
+          }
+          return m;
+        }).toList();
+        emit(latest.copyWith(messages: updated));
+      }
+
+      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      _pendingMessages[clientId] = localId;
+      _wsClient.sendMessage(
+        conversationId: conversationId,
+        content: result.videoUrl,
+        type: proto.MessageType.VIDEO,
+        extra: utf8.encode(jsonEncode(videoExtra.toJson())),
+        clientId: clientId,
+      );
+
+      _setupTimeout(clientId, localId, const Duration(seconds: 30));
+    } catch (e) {
+      _markFailed(localId);
+    }
+  }
+
+  /// 从文件选择器发送文件消�?
+  Future<void> sendFileFromPicker(String filePath) async {
+    final current = state;
+    if (current is! ChatLoaded) return;
+
+    final localId = 'local_${++_localIdCounter}';
+    final fileName = filePath.split('/').last.split('\\').last;
+    final fileSize = await File(filePath).length();
+
+    final localMessage = Message.sending(
+      localId: localId,
+      conversationId: conversationId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatar: currentUserAvatar,
+      content: fileName,
+      type: MessageType.file,
+      extra: {'file_name': fileName, 'file_type': fileName.split('.').last, 'file_size': fileSize},
+    );
+    emit(current.copyWith(messages: [...current.messages, localMessage]));
+
+    try {
+      final result = await _repository.uploadFile(filePath, onProgress: (p) {
+        print('📤 [upload] file progress: ${(p * 100).toInt()}%');
+        final s = state;
+        if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+      });
+
+      final afterUpload = state;
+      if (afterUpload is ChatLoaded) {
+        emit(afterUpload.copyWith(clearUploadProgress: true));
+      }
+
+      final fileExtra = FileExtra(
+        fileName: result.fileName,
+        fileSize: result.fileSize,
+        fileUrl: result.fileUrl,
+        fileType: result.fileType,
+      );
+
+      final latest = state;
+      if (latest is ChatLoaded) {
+        final updated = latest.messages.map((m) {
+          if (m.id == localId) {
+            return m.copyWith(content: result.fileUrl, extra: fileExtra.toJson());
+          }
+          return m;
+        }).toList();
+        emit(latest.copyWith(messages: updated));
+      }
+
+      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      _pendingMessages[clientId] = localId;
+      _wsClient.sendMessage(
+        conversationId: conversationId,
+        content: result.fileUrl,
+        type: proto.MessageType.FILE,
+        extra: utf8.encode(jsonEncode(fileExtra.toJson())),
+        clientId: clientId,
+      );
+
+      _setupTimeout(clientId, localId, const Duration(seconds: 30));
+    } catch (e) {
+      _markFailed(localId);
+    }
+  }
+
   void _handleIncomingMessage(WsFrame frame) {
     try {
       final chatMsg = ChatMessage.fromBuffer(frame.payload);
@@ -112,6 +317,18 @@ class ChatCubit extends Cubit<ChatState> {
 
       final current = state;
       if (current is! ChatLoaded) return;
+
+      final msgType = switch (chatMsg.type.value) {
+        1 => MessageType.image,
+        2 => MessageType.video,
+        3 => MessageType.file,
+        _ => MessageType.text,
+      };
+
+      Map<String, dynamic>? extra;
+      if (chatMsg.extra.isNotEmpty) {
+        try { extra = jsonDecode(utf8.decode(chatMsg.extra)) as Map<String, dynamic>?; } catch (_) {}
+      }
 
       final message = Message(
         id: chatMsg.id,
@@ -122,6 +339,8 @@ class ChatCubit extends Cubit<ChatState> {
         seq: chatMsg.seq.toInt(),
         content: chatMsg.content,
         createdAt: DateTime.fromMillisecondsSinceEpoch(chatMsg.createdAt.toInt()),
+        type: msgType,
+        extra: extra,
       );
 
       if (current.messages.any((m) => m.id == message.id)) return;
@@ -153,6 +372,71 @@ class ChatCubit extends Cubit<ChatState> {
       updated.sort((a, b) => a.seq.compareTo(b.seq));
       emit(current.copyWith(messages: updated));
     } catch (_) {}
+  }
+
+  void _setupTimeout(String clientId, String localId, Duration timeout) {
+    Future.delayed(timeout, () {
+      if (_pendingMessages.containsKey(clientId)) {
+        _pendingMessages.remove(clientId);
+        _markFailed(localId);
+      }
+    });
+  }
+
+  void _markFailed(String localId) {
+    final s = state;
+    if (s is ChatLoaded) {
+      final updated = s.messages.map((m) =>
+        m.id == localId ? m.copyWith(status: MessageStatus.failed) : m
+      ).toList();
+      emit(s.copyWith(messages: updated, clearUploadProgress: true));
+    }
+  }
+
+  /// 下载文件
+  /// [fullUrl] 完整的文件 URL（调用方负责拼接 baseUrl）
+  Future<void> downloadFile(String messageId, String fullUrl, String fileName) async {
+    final current = state;
+    if (current is! ChatLoaded) return;
+
+    final existing = current.fileDownloads[messageId];
+    if (existing != null && (existing.status == FileDownloadStatus.downloading || existing.status == FileDownloadStatus.done)) {
+      return;
+    }
+
+    _emitDownloadUpdate(messageId, const FileDownloadInfo(status: FileDownloadStatus.downloading));
+
+    try {
+      final dir = await _getDownloadDir();
+      final savePath = '$dir/$fileName';
+
+      await _repository.downloadFile(fullUrl, savePath, onProgress: (p) {
+        _emitDownloadUpdate(messageId, FileDownloadInfo(
+          status: FileDownloadStatus.downloading, progress: p,
+        ));
+      });
+
+      _emitDownloadUpdate(messageId, FileDownloadInfo(
+        status: FileDownloadStatus.done, progress: 1.0, localPath: savePath,
+      ));
+    } catch (e) {
+      _emitDownloadUpdate(messageId, FileDownloadInfo(
+        status: FileDownloadStatus.error, error: e.toString(),
+      ));
+    }
+  }
+
+  void _emitDownloadUpdate(String messageId, FileDownloadInfo info) {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final updated = Map<String, FileDownloadInfo>.from(s.fileDownloads);
+    updated[messageId] = info;
+    emit(s.copyWith(fileDownloads: updated));
+  }
+
+  Future<String> _getDownloadDir() async {
+    final dir = await getTemporaryDirectory();
+    return dir.path;
   }
 
   @override

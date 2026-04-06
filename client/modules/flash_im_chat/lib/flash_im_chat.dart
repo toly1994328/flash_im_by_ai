@@ -5,3 +5,7 @@ export 'src/logic/chat_state.dart';
 export 'src/view/chat_page.dart';
 export 'src/view/message_bubble.dart';
 export 'src/view/chat_input.dart';
+export 'src/view/image_preview_page.dart';
+export 'src/view/video_player_page.dart';
+export 'src/view/file_preview_page.dart';
+export 'src/data/video_thumbnail_service.dart';

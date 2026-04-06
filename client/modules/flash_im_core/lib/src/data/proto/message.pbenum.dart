@@ -17,13 +17,22 @@ import 'package:protobuf/protobuf.dart' as $pb;
 class MessageType extends $pb.ProtobufEnum {
   static const MessageType TEXT =
       MessageType._(0, _omitEnumNames ? '' : 'TEXT');
+  static const MessageType IMAGE =
+      MessageType._(1, _omitEnumNames ? '' : 'IMAGE');
+  static const MessageType VIDEO =
+      MessageType._(2, _omitEnumNames ? '' : 'VIDEO');
+  static const MessageType FILE =
+      MessageType._(3, _omitEnumNames ? '' : 'FILE');
 
   static const $core.List<MessageType> values = <MessageType>[
     TEXT,
+    IMAGE,
+    VIDEO,
+    FILE,
   ];
 
   static final $core.List<MessageType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 0);
+      $pb.ProtobufEnum.$_initByValueList(values, 3);
   static MessageType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 
