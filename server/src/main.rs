@@ -9,6 +9,7 @@ use im_ws::handler::{ws_handler, WsHandlerState};
 use im_ws::state::WsState;
 use im_ws::broadcaster::WsBroadcaster;
 use im_ws::dispatcher::MessageDispatcher;
+use im_friend::{FriendRepository, FriendService, FriendApiState, friend_routes};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 use app_storage::{StorageConfig, StorageService};
@@ -51,11 +52,22 @@ async fn main() {
     // WS handler 状态
     let ws_handler_state = Arc::new(WsHandlerState {
         ws_state,
-        dispatcher,
+        dispatcher: dispatcher.clone(),
     });
 
     // 文件存储服务
     let storage = Arc::new(StorageService::new(StorageConfig::from_env()));
+
+    // 好友服务
+    let friend_repo = Arc::new(FriendRepository::new(db.clone()));
+    let friend_service = Arc::new(FriendService::new(friend_repo));
+    let conv_service_for_friend = Arc::new(im_conversation::ConversationService::new(db.clone()));
+    let friend_state = FriendApiState {
+        service: friend_service,
+        dispatcher: Some(dispatcher.clone()),
+        conv_service: Some(conv_service_for_friend),
+        msg_service: Some(msg_service.clone()),
+    };
 
     let app = Router::new()
         .merge(flash_auth::router())
@@ -65,6 +77,7 @@ async fn main() {
         .with_state(state)
         .merge(im_message::router(msg_service))
         .merge(storage_routes(storage))
+        .merge(friend_routes(friend_state))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/uploads", ServeDir::new("uploads"))
         .nest_service("/static", ServeDir::new("static"));

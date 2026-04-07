@@ -6,7 +6,10 @@ use uuid::Uuid;
 
 use im_message::{MessageService, models::NewMessage};
 
-use crate::proto::{MessageAck, SendMessageRequest, WsFrame, WsFrameType};
+use crate::proto::{
+    MessageAck, SendMessageRequest, WsFrame, WsFrameType,
+    FriendRequestNotification, FriendAcceptedNotification, FriendRemovedNotification,
+};
 use crate::state::WsState;
 
 pub struct MessageDispatcher {
@@ -66,5 +69,68 @@ impl MessageDispatcher {
 
         println!("📨 [dispatcher] message sent: conv={}, seq={}, from={}",
             message.conversation_id, message.seq, sender_id);
+    }
+
+    /// 推送好友申请通知
+    pub async fn notify_friend_request(
+        &self,
+        to_user_id: i64,
+        request_id: &str,
+        from_user_id: i64,
+        nickname: &str,
+        avatar: Option<&str>,
+        message: Option<&str>,
+        created_at: i64,
+    ) {
+        let notification = FriendRequestNotification {
+            request_id: request_id.to_string(),
+            from_user_id: from_user_id.to_string(),
+            nickname: nickname.to_string(),
+            avatar: avatar.unwrap_or_default().to_string(),
+            message: message.unwrap_or_default().to_string(),
+            created_at,
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::FriendRequest as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(to_user_id, frame.encode_to_vec()).await;
+        println!("📨 [dispatcher] friend_request notification sent to user {}", to_user_id);
+    }
+
+    /// 推送好友接受通知
+    pub async fn notify_friend_accepted(
+        &self,
+        to_user_id: i64,
+        friend_id: i64,
+        nickname: &str,
+        avatar: Option<&str>,
+        created_at: i64,
+    ) {
+        let notification = FriendAcceptedNotification {
+            friend_id: friend_id.to_string(),
+            nickname: nickname.to_string(),
+            avatar: avatar.unwrap_or_default().to_string(),
+            created_at,
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::FriendAccepted as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(to_user_id, frame.encode_to_vec()).await;
+        println!("📨 [dispatcher] friend_accepted notification sent to user {}", to_user_id);
+    }
+
+    /// 推送好友删除通知
+    pub async fn notify_friend_removed(&self, to_user_id: i64, friend_id: i64) {
+        let notification = FriendRemovedNotification {
+            friend_id: friend_id.to_string(),
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::FriendRemoved as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(to_user_id, frame.encode_to_vec()).await;
+        println!("📨 [dispatcher] friend_removed notification sent to user {}", to_user_id);
     }
 }

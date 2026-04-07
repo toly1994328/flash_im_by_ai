@@ -8,5 +8,6 @@ flash-core = { path = "../flash-core" }
 axum.workspace = true
 tokio.workspace = true
 serde.workspace = true
+serde_json.workspace = true
 sqlx.workspace = true
 argon2 = "0.5"

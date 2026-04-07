@@ -9,6 +9,9 @@ enum WsFrameType {
   CHAT_MESSAGE = 4;
   MESSAGE_ACK = 5;
   CONVERSATION_UPDATE = 6;
+  FRIEND_REQUEST = 7;
+  FRIEND_ACCEPTED = 8;
+  FRIEND_REMOVED = 9;
 }
 
 message WsFrame {
@@ -23,4 +26,24 @@ message AuthRequest {
 message AuthResult {
   bool success = 1;
   string message = 2;
+}
+
+message FriendRequestNotification {
+  string request_id = 1;
+  string from_user_id = 2;
+  string nickname = 3;
+  string avatar = 4;
+  string message = 5;
+  int64 created_at = 6;
+}
+
+message FriendAcceptedNotification {
+  string friend_id = 1;
+  string nickname = 2;
+  string avatar = 3;
+  int64 created_at = 4;
+}
+
+message FriendRemovedNotification {
+  string friend_id = 1;
 }

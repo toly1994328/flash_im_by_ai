@@ -18,6 +18,37 @@ pub struct AuthResult {
     #[prost(string, tag = "2")]
     pub message: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FriendRequestNotification {
+    #[prost(string, tag = "1")]
+    pub request_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub from_user_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub nickname: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub avatar: ::prost::alloc::string::String,
+    #[prost(string, tag = "5")]
+    pub message: ::prost::alloc::string::String,
+    #[prost(int64, tag = "6")]
+    pub created_at: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FriendAcceptedNotification {
+    #[prost(string, tag = "1")]
+    pub friend_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub nickname: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub avatar: ::prost::alloc::string::String,
+    #[prost(int64, tag = "4")]
+    pub created_at: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct FriendRemovedNotification {
+    #[prost(string, tag = "1")]
+    pub friend_id: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum WsFrameType {
@@ -28,6 +59,9 @@ pub enum WsFrameType {
     ChatMessage = 4,
     MessageAck = 5,
     ConversationUpdate = 6,
+    FriendRequest = 7,
+    FriendAccepted = 8,
+    FriendRemoved = 9,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -43,6 +77,9 @@ impl WsFrameType {
             Self::ChatMessage => "CHAT_MESSAGE",
             Self::MessageAck => "MESSAGE_ACK",
             Self::ConversationUpdate => "CONVERSATION_UPDATE",
+            Self::FriendRequest => "FRIEND_REQUEST",
+            Self::FriendAccepted => "FRIEND_ACCEPTED",
+            Self::FriendRemoved => "FRIEND_REMOVED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -55,6 +92,9 @@ impl WsFrameType {
             "CHAT_MESSAGE" => Some(Self::ChatMessage),
             "MESSAGE_ACK" => Some(Self::MessageAck),
             "CONVERSATION_UPDATE" => Some(Self::ConversationUpdate),
+            "FRIEND_REQUEST" => Some(Self::FriendRequest),
+            "FRIEND_ACCEPTED" => Some(Self::FriendAccepted),
+            "FRIEND_REMOVED" => Some(Self::FriendRemoved),
             _ => None,
         }
     }

@@ -718,6 +718,7 @@ dependencies = [
  "flash-user",
  "futures",
  "im-conversation",
+ "im-friend",
  "im-message",
  "im-ws",
  "serde",
@@ -735,6 +736,7 @@ dependencies = [
  "axum",
  "flash-core",
  "serde",
+ "serde_json",
  "sqlx",
  "tokio",
 ]
@@ -1237,6 +1239,24 @@ dependencies = [
  "serde",
  "serde_json",
  "sqlx",
+ "tokio",
+ "uuid",
+]
+
+[[package]]
+name = "im-friend"
+version = "0.1.0"
+dependencies = [
+ "axum",
+ "chrono",
+ "flash-core",
+ "im-conversation",
+ "im-message",
+ "im-ws",
+ "serde",
+ "serde_json",
+ "sqlx",
+ "thiserror",
  "tokio",
  "uuid",
 ]

@@ -1,10 +1,11 @@
 use argon2::{Argon2, PasswordHash, PasswordHasher, PasswordVerifier};
 use argon2::password_hash::SaltString;
 use axum::{
-    extract::State,
+    extract::{Query, State},
     http::{HeaderMap, StatusCode},
     Json,
 };
+use serde::Deserialize;
 use std::sync::Arc;
 
 use flash_core::jwt::extract_user_id;
@@ -219,4 +220,52 @@ async fn find_user_by_id(
         avatar: avatar.unwrap_or_default(),
         signature: signature.unwrap_or_default(),
     }))
+}
+
+// ─── 用户搜索 ───
+
+#[derive(Deserialize)]
+pub struct SearchQuery {
+    pub keyword: String,
+    #[serde(default = "default_search_limit")]
+    pub limit: i32,
+}
+
+fn default_search_limit() -> i32 { 20 }
+
+/// GET /api/users/search
+pub async fn search_users(
+    State(state): State<Arc<AppState>>,
+    Query(query): Query<SearchQuery>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let keyword = query.keyword.replace('%', "\\%").replace('_', "\\_");
+    let pattern = format!("%{}%", keyword);
+    let limit = query.limit.min(50).max(1);
+
+    let rows: Vec<(i64, String, Option<String>)> = sqlx::query_as(
+        "SELECT p.account_id, p.nickname, p.avatar \
+         FROM user_profiles p \
+         JOIN accounts a ON a.id = p.account_id \
+         WHERE a.status = 0 AND p.nickname ILIKE $1 \
+         ORDER BY p.nickname \
+         LIMIT $2",
+    )
+    .bind(&pattern)
+    .bind(limit)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let data: Vec<serde_json::Value> = rows
+        .into_iter()
+        .map(|(id, nickname, avatar)| {
+            serde_json::json!({
+                "id": id.to_string(),
+                "nickname": nickname,
+                "avatar": avatar,
+            })
+        })
+        .collect();
+
+    Ok(Json(serde_json::json!({ "data": data })))
 }
