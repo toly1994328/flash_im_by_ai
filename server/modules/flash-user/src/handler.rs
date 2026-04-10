@@ -242,15 +242,21 @@ pub async fn search_users(
     let pattern = format!("%{}%", keyword);
     let limit = query.limit.min(50).max(1);
 
+    // 尝试解析为数字（闪讯号 = account_id）
+    let id_match: i64 = keyword.parse().unwrap_or(0);
+
     let rows: Vec<(i64, String, Option<String>)> = sqlx::query_as(
         "SELECT p.account_id, p.nickname, p.avatar \
          FROM user_profiles p \
          JOIN accounts a ON a.id = p.account_id \
-         WHERE a.status = 0 AND p.nickname ILIKE $1 \
+         LEFT JOIN auth_credentials c ON c.account_id = a.id AND c.auth_type = 'phone' \
+         WHERE a.status = 0 AND (p.nickname ILIKE $1 OR c.identifier = $2 OR a.id = $3) \
          ORDER BY p.nickname \
-         LIMIT $2",
+         LIMIT $4",
     )
     .bind(&pattern)
+    .bind(&keyword)
+    .bind(id_match)
     .bind(limit)
     .fetch_all(&state.db)
     .await

@@ -26,6 +26,9 @@ const WsFrameType$json = {
     {'1': 'CHAT_MESSAGE', '2': 4},
     {'1': 'MESSAGE_ACK', '2': 5},
     {'1': 'CONVERSATION_UPDATE', '2': 6},
+    {'1': 'FRIEND_REQUEST', '2': 7},
+    {'1': 'FRIEND_ACCEPTED', '2': 8},
+    {'1': 'FRIEND_REMOVED', '2': 9},
   ],
 };
 
@@ -33,7 +36,8 @@ const WsFrameType$json = {
 final $typed_data.Uint8List wsFrameTypeDescriptor = $convert.base64Decode(
     'CgtXc0ZyYW1lVHlwZRIICgRQSU5HEAASCAoEUE9ORxABEggKBEFVVEgQAhIPCgtBVVRIX1JFU1'
     'VMVBADEhAKDENIQVRfTUVTU0FHRRAEEg8KC01FU1NBR0VfQUNLEAUSFwoTQ09OVkVSU0FUSU9O'
-    'X1VQREFURRAG');
+    'X1VQREFURRAGEhIKDkZSSUVORF9SRVFVRVNUEAcSEwoPRlJJRU5EX0FDQ0VQVEVEEAgSEgoORl'
+    'JJRU5EX1JFTU9WRUQQCQ==');
 
 @$core.Deprecated('Use wsFrameDescriptor instead')
 const WsFrame$json = {
@@ -81,3 +85,55 @@ const AuthResult$json = {
 final $typed_data.Uint8List authResultDescriptor = $convert.base64Decode(
     'CgpBdXRoUmVzdWx0EhgKB3N1Y2Nlc3MYASABKAhSB3N1Y2Nlc3MSGAoHbWVzc2FnZRgCIAEoCV'
     'IHbWVzc2FnZQ==');
+
+@$core.Deprecated('Use friendRequestNotificationDescriptor instead')
+const FriendRequestNotification$json = {
+  '1': 'FriendRequestNotification',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {'1': 'from_user_id', '3': 2, '4': 1, '5': 9, '10': 'fromUserId'},
+    {'1': 'nickname', '3': 3, '4': 1, '5': 9, '10': 'nickname'},
+    {'1': 'avatar', '3': 4, '4': 1, '5': 9, '10': 'avatar'},
+    {'1': 'message', '3': 5, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'created_at', '3': 6, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `FriendRequestNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List friendRequestNotificationDescriptor = $convert.base64Decode(
+    'ChlGcmllbmRSZXF1ZXN0Tm90aWZpY2F0aW9uEh0KCnJlcXVlc3RfaWQYASABKAlSCXJlcXVlc3'
+    'RJZBIgCgxmcm9tX3VzZXJfaWQYAiABKAlSCmZyb21Vc2VySWQSGgoIbmlja25hbWUYAyABKAlS'
+    'CG5pY2tuYW1lEhYKBmF2YXRhchgEIAEoCVIGYXZhdGFyEhgKB21lc3NhZ2UYBSABKAlSB21lc3'
+    'NhZ2USHQoKY3JlYXRlZF9hdBgGIAEoA1IJY3JlYXRlZEF0');
+
+@$core.Deprecated('Use friendAcceptedNotificationDescriptor instead')
+const FriendAcceptedNotification$json = {
+  '1': 'FriendAcceptedNotification',
+  '2': [
+    {'1': 'friend_id', '3': 1, '4': 1, '5': 9, '10': 'friendId'},
+    {'1': 'nickname', '3': 2, '4': 1, '5': 9, '10': 'nickname'},
+    {'1': 'avatar', '3': 3, '4': 1, '5': 9, '10': 'avatar'},
+    {'1': 'created_at', '3': 4, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `FriendAcceptedNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List friendAcceptedNotificationDescriptor =
+    $convert.base64Decode(
+        'ChpGcmllbmRBY2NlcHRlZE5vdGlmaWNhdGlvbhIbCglmcmllbmRfaWQYASABKAlSCGZyaWVuZE'
+        'lkEhoKCG5pY2tuYW1lGAIgASgJUghuaWNrbmFtZRIWCgZhdmF0YXIYAyABKAlSBmF2YXRhchId'
+        'CgpjcmVhdGVkX2F0GAQgASgDUgljcmVhdGVkQXQ=');
+
+@$core.Deprecated('Use friendRemovedNotificationDescriptor instead')
+const FriendRemovedNotification$json = {
+  '1': 'FriendRemovedNotification',
+  '2': [
+    {'1': 'friend_id', '3': 1, '4': 1, '5': 9, '10': 'friendId'},
+  ],
+};
+
+/// Descriptor for `FriendRemovedNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List friendRemovedNotificationDescriptor =
+    $convert.base64Decode(
+        'ChlGcmllbmRSZW1vdmVkTm90aWZpY2F0aW9uEhsKCWZyaWVuZF9pZBgBIAEoCVIIZnJpZW5kSW'
+        'Q=');

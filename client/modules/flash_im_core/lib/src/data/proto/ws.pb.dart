@@ -12,6 +12,7 @@
 
 import 'dart:core' as $core;
 
+import 'package:fixnum/fixnum.dart' as $fixnum;
 import 'package:protobuf/protobuf.dart' as $pb;
 
 import 'ws.pbenum.dart';
@@ -204,6 +205,268 @@ class AuthResult extends $pb.GeneratedMessage {
   $core.bool hasMessage() => $_has(1);
   @$pb.TagNumber(2)
   void clearMessage() => $_clearField(2);
+}
+
+class FriendRequestNotification extends $pb.GeneratedMessage {
+  factory FriendRequestNotification({
+    $core.String? requestId,
+    $core.String? fromUserId,
+    $core.String? nickname,
+    $core.String? avatar,
+    $core.String? message,
+    $fixnum.Int64? createdAt,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (fromUserId != null) result.fromUserId = fromUserId;
+    if (nickname != null) result.nickname = nickname;
+    if (avatar != null) result.avatar = avatar;
+    if (message != null) result.message = message;
+    if (createdAt != null) result.createdAt = createdAt;
+    return result;
+  }
+
+  FriendRequestNotification._();
+
+  factory FriendRequestNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FriendRequestNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FriendRequestNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOS(2, _omitFieldNames ? '' : 'fromUserId')
+    ..aOS(3, _omitFieldNames ? '' : 'nickname')
+    ..aOS(4, _omitFieldNames ? '' : 'avatar')
+    ..aOS(5, _omitFieldNames ? '' : 'message')
+    ..aInt64(6, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FriendRequestNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FriendRequestNotification copyWith(
+          void Function(FriendRequestNotification) updates) =>
+      super.copyWith((message) => updates(message as FriendRequestNotification))
+          as FriendRequestNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FriendRequestNotification create() => FriendRequestNotification._();
+  @$core.override
+  FriendRequestNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static FriendRequestNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FriendRequestNotification>(create);
+  static FriendRequestNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fromUserId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fromUserId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFromUserId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFromUserId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get nickname => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set nickname($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNickname() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNickname() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get avatar => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set avatar($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAvatar() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAvatar() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get message => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set message($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMessage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMessage() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $fixnum.Int64 get createdAt => $_getI64(5);
+  @$pb.TagNumber(6)
+  set createdAt($fixnum.Int64 value) => $_setInt64(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasCreatedAt() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearCreatedAt() => $_clearField(6);
+}
+
+class FriendAcceptedNotification extends $pb.GeneratedMessage {
+  factory FriendAcceptedNotification({
+    $core.String? friendId,
+    $core.String? nickname,
+    $core.String? avatar,
+    $fixnum.Int64? createdAt,
+  }) {
+    final result = create();
+    if (friendId != null) result.friendId = friendId;
+    if (nickname != null) result.nickname = nickname;
+    if (avatar != null) result.avatar = avatar;
+    if (createdAt != null) result.createdAt = createdAt;
+    return result;
+  }
+
+  FriendAcceptedNotification._();
+
+  factory FriendAcceptedNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FriendAcceptedNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FriendAcceptedNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'friendId')
+    ..aOS(2, _omitFieldNames ? '' : 'nickname')
+    ..aOS(3, _omitFieldNames ? '' : 'avatar')
+    ..aInt64(4, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FriendAcceptedNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FriendAcceptedNotification copyWith(
+          void Function(FriendAcceptedNotification) updates) =>
+      super.copyWith(
+              (message) => updates(message as FriendAcceptedNotification))
+          as FriendAcceptedNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FriendAcceptedNotification create() => FriendAcceptedNotification._();
+  @$core.override
+  FriendAcceptedNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static FriendAcceptedNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FriendAcceptedNotification>(create);
+  static FriendAcceptedNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get friendId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set friendId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFriendId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFriendId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get nickname => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set nickname($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasNickname() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearNickname() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get avatar => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set avatar($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAvatar() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAvatar() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $fixnum.Int64 get createdAt => $_getI64(3);
+  @$pb.TagNumber(4)
+  set createdAt($fixnum.Int64 value) => $_setInt64(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasCreatedAt() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearCreatedAt() => $_clearField(4);
+}
+
+class FriendRemovedNotification extends $pb.GeneratedMessage {
+  factory FriendRemovedNotification({
+    $core.String? friendId,
+  }) {
+    final result = create();
+    if (friendId != null) result.friendId = friendId;
+    return result;
+  }
+
+  FriendRemovedNotification._();
+
+  factory FriendRemovedNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory FriendRemovedNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'FriendRemovedNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'friendId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FriendRemovedNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  FriendRemovedNotification copyWith(
+          void Function(FriendRemovedNotification) updates) =>
+      super.copyWith((message) => updates(message as FriendRemovedNotification))
+          as FriendRemovedNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static FriendRemovedNotification create() => FriendRemovedNotification._();
+  @$core.override
+  FriendRemovedNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static FriendRemovedNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<FriendRemovedNotification>(create);
+  static FriendRemovedNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get friendId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set friendId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasFriendId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearFriendId() => $_clearField(1);
 }
 
 const $core.bool _omitFieldNames =

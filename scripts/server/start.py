@@ -54,11 +54,11 @@ def ensure_postgres():
     r = run([PG_CTL, "-D", PG_DATA, "status"])
     if r.returncode != 0:
         print("[PG] Starting PostgreSQL...")
-        r = run([PG_CTL, "-D", PG_DATA, "-l", PG_LOG, "-o", "-p 5432", "start"])
-        if r.returncode != 0:
-            print(f"[PG] Failed to start. Check log: {PG_LOG}")
-            print(r.stderr or r.stdout)
-            sys.exit(1)
+        # 不捕获输出，避免 pg_ctl 阻塞
+        subprocess.run(
+            [PG_CTL, "-D", PG_DATA, "-l", PG_LOG, "-o", "-p 5432", "start"],
+            timeout=15,
+        )
         time.sleep(2)
         print("[PG] PostgreSQL started.")
     else:

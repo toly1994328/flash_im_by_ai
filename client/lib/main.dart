@@ -5,6 +5,7 @@ import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
+import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:go_router/go_router.dart';
 import 'src/application/app.dart';
 import 'src/application/config.dart';
@@ -27,6 +28,7 @@ void main() async {
 
   final conversationRepo = ConversationRepository(dio: httpClient.dio);
   final messageRepo = MessageRepository(dio: httpClient.dio);
+  final friendRepo = FriendRepository(dio: httpClient.dio);
 
   final wsClient = WsClient(
     config: ImConfig(wsUrl: 'ws://${AppConfig.host}:${AppConfig.port}/ws/im'),
@@ -60,9 +62,18 @@ void main() async {
         RepositoryProvider.value(value: wsClient),
         RepositoryProvider.value(value: conversationRepo),
         RepositoryProvider.value(value: messageRepo),
+        RepositoryProvider.value(value: friendRepo),
       ],
-      child: BlocProvider.value(
-        value: sessionCubit,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider.value(value: sessionCubit),
+          BlocProvider(
+            create: (_) => FriendCubit(
+              repository: friendRepo,
+              wsClient: wsClient,
+            ),
+          ),
+        ],
         child: FlashApp(router: router),
       ),
     ),

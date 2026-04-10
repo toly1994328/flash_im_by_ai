@@ -33,13 +33,7 @@ impl FriendService {
         if self.repo.is_friend(from_user_id, to_user_id).await? {
             return Err(FriendError::AlreadyFriends);
         }
-        // 双向检查待处理申请
-        if self.repo.find_pending_request(from_user_id, to_user_id).await?.is_some() {
-            return Err(FriendError::AlreadyRequested);
-        }
-        if self.repo.find_pending_request(to_user_id, from_user_id).await?.is_some() {
-            return Err(FriendError::AlreadyRequested);
-        }
+        // 允许重复发送（upsert），覆盖旧申请的留言和状态
         let request = self.repo.create_request(from_user_id, to_user_id, message).await?;
         Ok(request)
     }
@@ -78,6 +72,19 @@ impl FriendService {
             return Err(FriendError::Forbidden);
         }
         self.repo.update_request_status(request_id, FriendRequestStatus::Rejected as i16).await?;
+        Ok(())
+    }
+
+    /// 删除申请记录
+    pub async fn delete_request(
+        &self,
+        request_id: Uuid,
+        user_id: i64,
+    ) -> Result<(), FriendError> {
+        let deleted = self.repo.delete_request(request_id, user_id).await?;
+        if !deleted {
+            return Err(FriendError::RequestNotFound);
+        }
         Ok(())
     }
 

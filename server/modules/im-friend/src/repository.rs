@@ -182,7 +182,19 @@ impl FriendRepository {
         })
     }
 
-    /// 删除双向好友关系（事务）
+    /// 删除申请记录（只有申请的发送方或接收方可以删除）
+    pub async fn delete_request(&self, id: Uuid, user_id: i64) -> Result<bool, sqlx::Error> {
+        let result = sqlx::query(
+            "DELETE FROM friend_requests WHERE id = $1 AND (from_user_id = $2 OR to_user_id = $2)",
+        )
+        .bind(id)
+        .bind(user_id)
+        .execute(&self.pool)
+        .await?;
+        Ok(result.rows_affected() > 0)
+    }
+
+    /// 删除好友关系
     pub async fn delete_relation(
         &self,
         user_id: i64,

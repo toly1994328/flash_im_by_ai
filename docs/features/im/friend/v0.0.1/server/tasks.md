@@ -199,7 +199,7 @@ pub struct FriendListQuery {
 #[derive(Error)]
 pub enum FriendError {
     UserNotFound, RequestNotFound, RelationNotFound,
-    AlreadyRequested, AlreadyFriends, CannotAddSelf, Forbidden,
+    AlreadyFriends, CannotAddSelf, Forbidden,
     Database(#[from] sqlx::Error),
 }
 ```
@@ -219,7 +219,7 @@ pub struct FriendRepository { pool: PgPool }
 - `pub fn new(pool: PgPool) -> Self`
 - `pub fn pool(&self) -> &PgPool`
 - `pub async fn create_request(&self, from_user_id: i64, to_user_id: i64, message: Option<&str>) -> Result<FriendRequest, sqlx::Error>`
-  1. INSERT INTO friend_requests ... RETURNING *
+  1. INSERT INTO friend_requests ... ON CONFLICT(from_user_id, to_user_id) DO UPDATE SET message=$3, status=0, updated_at=NOW() RETURNING *
 - `pub async fn find_request_by_id(&self, id: Uuid) -> Result<Option<FriendRequest>, sqlx::Error>`
 - `pub async fn find_pending_request(&self, from_user_id: i64, to_user_id: i64) -> Result<Option<FriendRequest>, sqlx::Error>`
   1. WHERE from_user_id=$1 AND to_user_id=$2 AND status=0
@@ -240,6 +240,8 @@ pub struct FriendRepository { pool: PgPool }
   1. SELECT id FROM accounts WHERE id=$1
 - `pub async fn get_user_profile(&self, user_id: i64) -> Result<Option<(String, Option<String>)>, sqlx::Error>`
   1. SELECT nickname, avatar FROM user_profiles WHERE account_id=$1
+- `pub async fn delete_request(&self, id: Uuid) -> Result<(), sqlx::Error>`
+  1. DELETE FROM friend_requests WHERE id=$1
 
 ### 3.4 service.rs `⬜`
 
@@ -257,8 +259,7 @@ pub struct FriendService { repo: Arc<FriendRepository> }
   1. 校验 from != to → CannotAddSelf
   2. 校验 user_exists(to) → UserNotFound
   3. 校验 !is_friend → AlreadyFriends
-  4. 校验无 pending 申请（双向检查）→ AlreadyRequested
-  5. create_request
+  4. upsert_request（INSERT ... ON CONFLICT DO UPDATE，覆盖旧申请）
 - `pub async fn accept_request(&self, request_id: Uuid, user_id: i64) -> Result<FriendRelation, FriendError>`
   1. find_request_by_id → RequestNotFound
   2. 校验 to_user_id == user_id → Forbidden
@@ -274,6 +275,10 @@ pub struct FriendService { repo: Arc<FriendRepository> }
   2. delete_relation
 - `pub async fn get_received_requests(&self, ...) -> Result<Vec<FriendRequestWithProfile>, FriendError>`
 - `pub async fn get_sent_requests(&self, ...) -> Result<Vec<FriendRequestWithProfile>, FriendError>`
+- `pub async fn delete_request(&self, request_id: Uuid, user_id: i64) -> Result<(), FriendError>`
+  1. find_request_by_id → RequestNotFound
+  2. 校验 from_user_id == user_id 或 to_user_id == user_id → Forbidden
+  3. repo.delete_request(request_id)
 
 ### 3.5 api.rs `⬜`
 
@@ -293,7 +298,7 @@ pub struct FriendApiState {
 
 实现 `From<FriendError> for StatusCode`（或自定义 AppError 映射）。
 
-路由处理函数（7 个）：
+路由处理函数（8 个）：
 
 - `async fn send_request(State, Extension<CurrentUser>, Json<SendFriendRequestRequest>)`
   1. service.send_request()
@@ -318,6 +323,11 @@ pub struct FriendApiState {
   1. service.delete_friend()
   2. dispatcher.notify_friend_removed() 推送给双方
 
+- `async fn delete_request(State, Extension<CurrentUser>, Path<Uuid>)`
+  1. 校验申请存在且当前用户是申请的发送方或接收方
+  2. 删除申请记录
+  3. 返回 200
+
 路由注册：
 
 ```rust
@@ -328,6 +338,7 @@ pub fn friend_routes(state: FriendApiState) -> Router {
         .route("/api/friends/requests/sent", get(get_sent_requests))
         .route("/api/friends/requests/{id}/accept", post(accept_request))
         .route("/api/friends/requests/{id}/reject", post(reject_request))
+        .route("/api/friends/requests/{id}", delete(delete_request))
         .route("/api/friends", get(get_friends))
         .route("/api/friends/{id}", delete(delete_friend))
         .with_state(state)
@@ -498,7 +509,7 @@ cargo build
 |---|------|------|------|-----------|
 | 1 | /api/users/search?keyword=... | GET | 搜索用户 | 200 |
 | 2 | /api/friends/requests | POST | 发送好友申请（附留言） | 200 |
-| 3 | /api/friends/requests | POST | 重复申请（同一对用户） | 400 |
+| 3 | /api/friends/requests | POST | 重复申请（upsert 覆盖旧申请） | 200 |
 | 4 | /api/friends/requests | POST | 不能加自己 | 400 |
 | 5 | /api/friends/requests | POST | 目标用户不存在 | 404 |
 | 6 | /api/friends/requests/received | GET | B 查询收到的申请 | 200 |
@@ -527,17 +538,17 @@ step 2: POST /api/friends/requests — 发送好友申请
   预期: status=200, data.status=0, data.from_user_id=uid_a, data.to_user_id=uid_b
   断言: data.id 非空（UUID），data.message="你好，我是测试用户A"
 
-step 3: POST /api/friends/requests — 重复申请
+step 3: POST /api/friends/requests — 重复申请（upsert 覆盖）
   请求体: {"to_user_id": "{uid_b}"}
-  预期: status=400
+  预期: status=200（upsert 覆盖旧申请，不再返回 400）
 
 step 4: POST /api/friends/requests — 不能加自己
   请求体: {"to_user_id": "{uid_a}"}
-  预期: status=400
+  预期: status=400, body 包含 {"error": "..."}
 
 step 5: POST /api/friends/requests — 目标用户不存在
   请求体: {"to_user_id": "999999"}
-  预期: status=404
+  预期: status=404, body 包含 {"error": "..."}
 
 step 6: GET /api/friends/requests/received（B 的 token）
   预期: status=200, data 数组包含 step2 的申请, nickname 非空
@@ -576,6 +587,12 @@ step 16: POST /api/friends/requests/{new_request_id}/reject（B 的 token）
 
 step 17: GET /api/friends/requests/received（B 的 token）
   预期: status=200, data 中无 pending 状态的申请（被拒绝的不显示）
+
+step 18: DELETE /api/friends/requests/{request_id}（A 的 token）
+  预期: status=200, 申请记录被删除
+
+step 19: DELETE /api/friends/requests/{不存在的id}（A 的 token）
+  预期: status=404, body 包含 {"error": "..."}
 ```
 
 AI 执行时：按 link-test-writer 规范生成 `friend.py`，运行脚本验证全部 PASS，确认 `doc/` 下文档正确生成。

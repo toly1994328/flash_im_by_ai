@@ -52,6 +52,14 @@ class WsClient {
   Stream<WsFrame> get messageAckStream => _messageAckController.stream;
   Stream<WsFrame> get conversationUpdateStream => _conversationUpdateController.stream;
 
+  final _friendRequestController = StreamController<WsFrame>.broadcast();
+  final _friendAcceptedController = StreamController<WsFrame>.broadcast();
+  final _friendRemovedController = StreamController<WsFrame>.broadcast();
+
+  Stream<WsFrame> get friendRequestStream => _friendRequestController.stream;
+  Stream<WsFrame> get friendAcceptedStream => _friendAcceptedController.stream;
+  Stream<WsFrame> get friendRemovedStream => _friendRemovedController.stream;
+
   WsClient({
     required ImConfig config,
     required TokenProvider tokenProvider,
@@ -148,6 +156,12 @@ class WsClient {
         _messageAckController.add(frame);
       case WsFrameType.CONVERSATION_UPDATE:
         _conversationUpdateController.add(frame);
+      case WsFrameType.FRIEND_REQUEST:
+        _friendRequestController.add(frame);
+      case WsFrameType.FRIEND_ACCEPTED:
+        _friendAcceptedController.add(frame);
+      case WsFrameType.FRIEND_REMOVED:
+        _friendRemovedController.add(frame);
       default:
         break;
     }
@@ -242,5 +256,8 @@ class WsClient {
     _chatMessageController.close();
     _messageAckController.close();
     _conversationUpdateController.close();
+    _friendRequestController.close();
+    _friendAcceptedController.close();
+    _friendRemovedController.close();
   }
 }

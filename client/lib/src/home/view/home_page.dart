@@ -5,6 +5,7 @@ import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
+import 'package:flash_im_friend/flash_im_friend.dart';
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
 
@@ -29,6 +30,7 @@ class _HomePageState extends State<HomePage> {
       context.read<ConversationRepository>(),
       wsClient: context.read<WsClient>(),
     )..loadConversations();
+    context.read<FriendCubit>().loadFriends();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPasswordGuide();
     });
@@ -82,9 +84,7 @@ class _HomePageState extends State<HomePage> {
 
     final pages = [
       _buildMessageTab(),
-      const Center(
-          child: Text('暂无联系人',
-              style: TextStyle(fontSize: 16, color: Colors.grey))),
+      _buildContactsTab(),
       const ProfilePage(),
     ];
 
@@ -131,6 +131,7 @@ class _HomePageState extends State<HomePage> {
                     icon: Icons.people_outline,
                     activeIcon: Icons.people,
                     label: '通讯录',
+                    badge: _buildPendingBadge(),
                   ),
                   _buildNavItem(
                     index: 2,
@@ -268,6 +269,86 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  Widget _buildContactsTab() {
+    return FriendListPage(
+      onFriendTap: (friend) => _openFriendDetail(context, friend),
+      onAddFriendTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => AddFriendPage(
+            repository: context.read<FriendRepository>(),
+          ),
+        ));
+      },
+      onRequestsTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => BlocProvider.value(
+            value: context.read<FriendCubit>(),
+            child: FriendRequestPage(
+              onAddFriendTap: () {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => AddFriendPage(
+                    repository: context.read<FriendRepository>(),
+                  ),
+                ));
+              },
+            ),
+          ),
+        ));
+      },
+    );
+  }
+
+  void _openFriendDetail(BuildContext context, Friend friend) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => FriendDetailPage(
+        friend: friend,
+        onSendMessage: () {
+          Navigator.of(context).pop(); // 关闭详情页
+          _startChatWithFriend(context, friend);
+        },
+        onDeleteFriend: () {
+          context.read<FriendCubit>().deleteFriend(friend.friendId);
+          Navigator.of(context).pop(); // 关闭详情页
+        },
+      ),
+    ));
+  }
+
+  Future<void> _startChatWithFriend(BuildContext context, Friend friend) async {
+    final session = context.read<SessionCubit>().state;
+    final user = session.user;
+    if (user == null) return;
+    try {
+      final conv = await context.read<ConversationRepository>()
+          .createPrivate(int.parse(friend.friendId));
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => MultiRepositoryProvider(
+          providers: [
+            RepositoryProvider.value(value: context.read<MessageRepository>()),
+            RepositoryProvider.value(value: context.read<WsClient>()),
+          ],
+          child: BlocProvider(
+            create: (_) => ChatCubit(
+              repository: context.read<MessageRepository>(),
+              wsClient: context.read<WsClient>(),
+              conversationId: conv.id,
+              currentUserId: user.userId.toString(),
+              currentUserName: user.nickname,
+              currentUserAvatar: user.avatar,
+            )..loadMessages(),
+            child: ChatPage(
+              conversationId: conv.id,
+              peerName: friend.nickname,
+              peerAvatar: friend.avatar,
+              baseUrl: AppConfig.baseUrl,
+            ),
+          ),
+        ),
+      ));
+    } catch (_) {}
+  }
+
   Widget _buildNavItem({
     required int index,
     required IconData icon,
@@ -313,6 +394,23 @@ class _HomePageState extends State<HomePage> {
         final total = state is ConversationListLoaded ? state.totalUnread : 0;
         if (total <= 0) return const SizedBox.shrink();
         final text = total > 99 ? '99+' : total.toString();
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+          decoration: BoxDecoration(
+            color: Colors.red,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
+        );
+      },
+    );
+  }
+
+  Widget? _buildPendingBadge() {
+    return BlocBuilder<FriendCubit, FriendState>(
+      builder: (context, state) {
+        if (state.pendingCount <= 0) return const SizedBox.shrink();
+        final text = state.pendingCount > 99 ? '99+' : '${state.pendingCount}';
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
           decoration: BoxDecoration(

@@ -84,13 +84,14 @@ flowchart LR
 | 时刻 | 事件 | 处理 | 产生的新事件 |
 |------|------|------|-------------|
 | T0 | A 点击"添加好友" | 前端调用 POST /api/friends/requests | — |
-| T1 | 服务端收到请求 | 校验：不能加自己、目标用户存在、不是已有好友、没有待处理申请 | — |
-| T2 | 校验通过 | INSERT friend_requests(status=pending) | 触发 WS 通知 |
+| T1 | 服务端收到请求 | 校验：不能加自己、目标用户存在、不是已有好友 | — |
+| T2 | 校验通过 | UPSERT friend_requests(status=pending)，覆盖旧申请 | 触发 WS 通知 |
 | T3 | WS 推送 | FRIEND_REQUEST 帧推送给 B（含申请者昵称/头像/留言） | B 端收到通知 |
 | T4 | B 端收到 | FriendRequestCubit 更新申请列表，通讯录 Tab 显示红点 | — |
 
 异常流：
-- T1 校验失败 → 返回 400（已发送过/已是好友/不能加自己）
+- T1 校验失败 → 返回 400/404 + JSON body `{"error": "具体原因"}`（已是好友/不能加自己/用户不存在）
+- 重复申请 → upsert 覆盖旧申请，不再返回错误
 - B 不在线 → WS 通知丢失，B 下次打开申请页时通过 HTTP 拉取
 
 ### 事件流：接受好友申请
@@ -114,6 +115,37 @@ flowchart LR
 | T1 | 服务端处理 | 校验好友关系存在 | — |
 | T2 | 删除关系 | DELETE friend_relations 双向（A→B 和 B→A），事务保证 | — |
 | T3 | WS 通知双方 | FRIEND_REMOVED 帧分别推送给 A 和 B | 双方更新好友列表 |
+
+### 前端事件流：WS 好友通知处理
+
+WsClient 当前按帧类型分发到独立 StreamController（chatMessageStream、messageAckStream、conversationUpdateStream）。好友功能需要新增三条 Stream，前端 Cubit 订阅消费。
+
+| 时刻 | WS 帧类型 | 前端处理 | UI 变化 |
+|------|----------|---------|---------|
+| T0 | FRIEND_REQUEST | WsClient → friendRequestStream → FriendCubit._handleRequest | 通讯录 Tab 红点 +1，申请列表新增条目 |
+| T1 | FRIEND_ACCEPTED | WsClient → friendAcceptedStream → FriendCubit._handleAccepted | 好友列表新增条目，申请列表移除 |
+| T2 | FRIEND_REMOVED | WsClient → friendRemovedStream → FriendCubit._handleRemoved | 好友列表移除条目 |
+| T3 | CONVERSATION_UPDATE | 已有链路 → ConversationListCubit._handleUpdate | 会话列表新增/更新（接受好友后触发） |
+
+前端数据流向：
+
+```
+WsClient.frameStream
+  ├── FRIEND_REQUEST    → friendRequestStream    → FriendCubit
+  ├── FRIEND_ACCEPTED   → friendAcceptedStream   → FriendCubit
+  ├── FRIEND_REMOVED    → friendRemovedStream    → FriendCubit
+  ├── CHAT_MESSAGE      → chatMessageStream      → ChatCubit（已有）
+  ├── MESSAGE_ACK       → messageAckStream       → ChatCubit（已有）
+  └── CONVERSATION_UPDATE → conversationUpdateStream → ConversationListCubit（已有）
+```
+
+### 前端事件流：好友列表点击进入聊天
+
+| 时刻 | 事件 | 处理 | 产生的新事件 |
+|------|------|------|-------------|
+| T0 | 用户点击好友 | FriendListPage 获取 friend_id | — |
+| T1 | 创建/获取会话 | POST /conversations {peer_user_id: friend_id}（幂等） | 返回 conversation |
+| T2 | 跳转聊天页 | Navigator.push → ChatPage(conversationId, peerName, peerAvatar) | 进入聊天 |
 
 ### 状态流转
 
@@ -167,6 +199,7 @@ flowchart LR
 | POST /api/friends/requests/:id/reject | D-14 | P-21 (拒绝) | 中 |
 | GET /api/friends | D-15 | P-20 (好友列表) | 中 |
 | DELETE /api/friends/:id | D-15 | P-20 (删除好友) | 高 |
+| DELETE /api/friends/requests/:id | D-14 | P-21 (删除申请记录) | 中 |
 | GET /api/users/search | D-17 | P-22 (搜索用户) | 中 |
 | WS FRIEND_REQUEST 帧 | D-16 | F-09 → P-23 | 高 |
 | WS FRIEND_ACCEPTED 帧 | D-16 | F-09 → P-20 | 高 |

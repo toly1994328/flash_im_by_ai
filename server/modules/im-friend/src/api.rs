@@ -16,6 +16,16 @@ use im_ws::dispatcher::MessageDispatcher;
 use crate::models::*;
 use crate::service::FriendService;
 
+/// 统一错误响应：返回 JSON body + 对应状态码
+fn err_response(e: FriendError) -> (StatusCode, Json<serde_json::Value>) {
+    let msg = e.to_string();
+    let status = StatusCode::from(e);
+    let body = Json(serde_json::json!({ "error": msg }));
+    (status, body)
+}
+
+type ApiResult = Result<Json<serde_json::Value>, (StatusCode, Json<serde_json::Value>)>;
+
 #[derive(Clone)]
 pub struct FriendApiState {
     pub service: Arc<FriendService>,
@@ -29,12 +39,12 @@ async fn send_request(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Json(req): Json<SendFriendRequestInput>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
     let request = state.service
         .send_request(user_id, req.to_user_id, req.message.as_deref())
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
 
     // WS 通知被申请者
     if let Some(ref dispatcher) = state.dispatcher {
@@ -59,12 +69,12 @@ async fn get_received_requests(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Query(query): Query<FriendListQuery>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
     let list = state.service
         .get_received_requests(user_id, query.limit, query.offset)
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
     Ok(Json(serde_json::json!({ "data": list })))
 }
 
@@ -73,12 +83,12 @@ async fn get_sent_requests(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Query(query): Query<FriendListQuery>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
     let list = state.service
         .get_sent_requests(user_id, query.limit, query.offset)
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
     Ok(Json(serde_json::json!({ "data": list })))
 }
 
@@ -87,20 +97,19 @@ async fn accept_request(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Path(id): Path<String>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
-    let request_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
+    let request_id = Uuid::parse_str(&id).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error":"无效的请求ID"}))))?;
 
-    // 先获取申请信息（用于后续连锁操作）
     let req_info = state.service.repo()
         .find_request_by_id(request_id).await
-        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
-        .ok_or(StatusCode::NOT_FOUND)?;
+        .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?
+        .ok_or_else(|| (StatusCode::NOT_FOUND, Json(serde_json::json!({"error":"申请不存在"}))))?;
 
     let relation = state.service
         .accept_request(request_id, user_id)
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
 
     let from_user_id = req_info.from_user_id;
     let greeting = req_info.message.clone()
@@ -149,13 +158,13 @@ async fn reject_request(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Path(id): Path<String>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
-    let request_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
+    let request_id = Uuid::parse_str(&id).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error":"无效的请求ID"}))))?;
     state.service
         .reject_request(request_id, user_id)
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
     Ok(Json(serde_json::json!({ "data": null })))
 }
 
@@ -164,13 +173,28 @@ async fn get_friends(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Query(query): Query<FriendListQuery>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
     let list = state.service
         .get_friends(user_id, query.limit, query.offset)
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
     Ok(Json(serde_json::json!({ "data": list })))
+}
+
+/// DELETE /api/friends/requests/:id — 删除申请记录
+async fn delete_request(
+    State(state): State<FriendApiState>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
+    let request_id = Uuid::parse_str(&id).map_err(|_| (StatusCode::BAD_REQUEST, Json(serde_json::json!({"error":"无效的请求ID"}))))?;
+    state.service
+        .delete_request(request_id, user_id)
+        .await
+        .map_err(err_response)?;
+    Ok(Json(serde_json::json!({ "data": null })))
 }
 
 /// DELETE /api/friends/:id
@@ -178,12 +202,12 @@ async fn delete_friend(
     State(state): State<FriendApiState>,
     headers: HeaderMap,
     Path(id): Path<i64>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
     state.service
         .delete_friend(user_id, id)
         .await
-        .map_err(StatusCode::from)?;
+        .map_err(err_response)?;
 
     // WS 通知双方
     if let Some(ref dispatcher) = state.dispatcher {
@@ -201,6 +225,7 @@ pub fn friend_routes(state: FriendApiState) -> Router {
         .route("/api/friends/requests/sent", get(get_sent_requests))
         .route("/api/friends/requests/{id}/accept", post(accept_request))
         .route("/api/friends/requests/{id}/reject", post(reject_request))
+        .route("/api/friends/requests/{id}", delete(delete_request))
         .route("/api/friends", get(get_friends))
         .route("/api/friends/{id}", delete(delete_friend))
         .with_state(state)
