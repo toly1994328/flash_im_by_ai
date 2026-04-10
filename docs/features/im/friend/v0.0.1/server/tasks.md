@@ -26,6 +26,7 @@
 6. ✅ 任务 6 — flash-user 用户搜索接口（无依赖）
 7. ✅ 任务 7 — main.rs 集成（依赖任务 3~6）
 8. 🔧 任务 8 — 编译验证 + link-test-writer 测试脚本
+9. ✅ 任务 9 — flash-user 用户资料接口 GET /api/users/:id（无依赖）
 
 ---
 
@@ -596,3 +597,30 @@ step 19: DELETE /api/friends/requests/{不存在的id}（A 的 token）
 ```
 
 AI 执行时：按 link-test-writer 规范生成 `friend.py`，运行脚本验证全部 PASS，确认 `doc/` 下文档正确生成。
+
+
+---
+
+## 任务 9：flash-user 用户资料接口 `✅ 已完成`
+
+文件：`server/modules/flash-user/src/handler.rs` + `routes.rs`（修改）
+
+### 9.1 新增 get_user_public handler `✅`
+
+```rust
+async fn get_user_public(State, Path<i64>) -> Result<Json<Value>, StatusCode>
+```
+
+SQL：
+```sql
+SELECT p.account_id, p.nickname, p.avatar, p.signature
+FROM user_profiles p
+JOIN accounts a ON a.id = p.account_id
+WHERE p.account_id = $1 AND a.status = 0
+```
+
+返回 `{ "data": { "id", "nickname", "avatar", "signature" } }`，用户不存在返回 404。
+
+### 9.2 注册路由 `✅`
+
+`.route("/api/users/{id}", get(get_user_public))`

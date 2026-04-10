@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flash_shared/flash_shared.dart';
 import '../data/friend.dart';
 import '../data/friend_repository.dart';
+import 'user_profile_page.dart';
 
 /// 用户搜索页（独立页面，从 AddFriendPage 跳转进入）
 class UserSearchPage extends StatefulWidget {
@@ -20,7 +21,6 @@ class _UserSearchPageState extends State<UserSearchPage> {
   List<SearchUser> _results = [];
   bool _isLoading = false;
   bool _hasSearched = false;
-  final Set<String> _sentIds = {};
   Timer? _debounce;
 
   @override
@@ -57,44 +57,29 @@ class _UserSearchPageState extends State<UserSearchPage> {
   }
 
   Future<void> _sendRequest(SearchUser user) async {
-    final message = await _showMessageDialog();
-    if (message == null) return;
-    try {
-      await widget.repository.sendRequest(user.id, message: message.isEmpty ? null : message);
-      if (mounted) {
-        setState(() => _sentIds.add(user.id));
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('申请已发送'), duration: Duration(seconds: 2)),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        final msg = e.toString().contains('400') ? '已是好友' : '发送失败';
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(msg), duration: const Duration(seconds: 2)),
-        );
-      }
-    }
-  }
-
-  Future<String?> _showMessageDialog() async {
-    final msgController = TextEditingController();
-    return showDialog<String>(
+    // 全屏 loading
+    showDialog(
       context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('发送好友申请'),
-        content: TextField(
-          controller: msgController,
-          decoration: const InputDecoration(hintText: '添加留言（可选）'),
-          maxLength: 200,
-          maxLines: 2,
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.of(ctx).pop(null), child: const Text('取消')),
-          TextButton(onPressed: () => Navigator.of(ctx).pop(msgController.text), child: const Text('发送')),
-        ],
-      ),
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
     );
+    try {
+      final profile = await widget.repository.getUserProfile(user.id);
+      if (!mounted) return;
+      Navigator.pop(context); // 关闭 loading
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => UserProfilePage(
+          profile: profile,
+          repository: widget.repository,
+        ),
+      ));
+    } catch (e) {
+      if (!mounted) return;
+      Navigator.pop(context); // 关闭 loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('获取用户信息失败: $e'), duration: const Duration(seconds: 2)),
+      );
+    }
   }
 
   @override
@@ -162,9 +147,8 @@ class _UserSearchPageState extends State<UserSearchPage> {
       ),
       itemBuilder: (_, index) {
         final user = _results[index];
-        final sent = _sentIds.contains(user.id);
         return InkWell(
-          onTap: sent ? null : () => _sendRequest(user),
+          onTap: () => _sendRequest(user),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
@@ -174,10 +158,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
                 Expanded(
                   child: Text(user.nickname, style: const TextStyle(fontSize: 15)),
                 ),
-                if (sent)
-                  const Text('已发送', style: TextStyle(color: Color(0xFF999999), fontSize: 13))
-                else
-                  const Icon(Icons.chevron_right, size: 20, color: Color(0xFFCCCCCC)),
+                const Icon(Icons.chevron_right, size: 20, color: Color(0xFFCCCCCC)),
               ],
             ),
           ),

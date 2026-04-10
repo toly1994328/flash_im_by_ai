@@ -16,6 +16,7 @@ tags: [好友, 好友申请, 好友列表, 用户搜索, WS通知, flutter]
 - 重新生成 Dart proto 文件（ws.proto 新增帧类型和通知消息）
 - 改造 HomePage 底部导航"通讯录"Tab：从占位文本变为真实的好友列表
 - 通讯录 Tab 红点：收到好友申请时显示未读数
+- 扫码添加好友：扫描对方个人二维码，跳转资料页添加
 
 ## 2. 现状分析
 
@@ -66,6 +67,7 @@ class SearchUser {
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | /api/users/search?keyword=&limit= | 搜索用户 |
+| GET | /api/users/:id | 获取用户公开资料 |
 | POST | /api/friends/requests | 发送好友申请 |
 | GET | /api/friends/requests/received?limit=&offset= | 收到的申请 |
 | GET | /api/friends/requests/sent?limit=&offset= | 发送的申请 |
@@ -165,6 +167,9 @@ client/modules/flash_im_friend/
 │           ├── friend_detail_page.dart    # 好友详情页（微信风格）
 │           ├── add_friend_page.dart      # 添加朋友主页（搜索入口+功能入口+二维码）
 │           ├── user_search_page.dart      # 用户搜索（独立搜索页，从 AddFriendPage 跳转进入）
+│           ├── user_profile_page.dart     # 陌生人资料页（搜索结果点击进入）
+│           ├── send_request_page.dart     # 申请表单页（留言+发送）
+│           ├── scan_page.dart             # 扫码页（摄像头扫描二维码）
 │           ├── indexed_contact_list.dart  # 带字母索引的联系人列表
 │           └── friend_tile.dart           # 好友列表项组件
 ├── pubspec.yaml
@@ -208,6 +213,7 @@ FriendRepository（HTTP 调用）    WsClient（WS 帧分发）
 | dio | HTTP 请求 | ✅ 已有 |
 | lpinyin | 中文拼音转换（字母索引） | 🆕 新增 ^2.0.3 |
 | qr_flutter | 二维码生成（个人名片） | 🆕 新增 ^4.1.0 |
+| mobile_scanner | 摄像头扫码（扫一扫） | 🆕 新增 |
 | flash_im_core | WsClient、proto 类型 | ✅ 已有，需扩展 |
 | flash_shared | AvatarWidget、FlashSearchBar、FlashSearchInput | ✅ 已有 |
 | qr_flutter | 二维码生成（AddFriendPage 底部个人二维码） | 🆕 新增 ^4.1.0 |
@@ -238,21 +244,3 @@ FriendRepository（HTTP 调用）    WsClient（WS 帧分发）
 | 好友搜索（在好友中搜索） | 后续版本，列表量小时不需要 |
 | 申请消息推送（系统通知栏） | 后续版本，当前仅 WS 在线推送 |
 | 好友在线状态 | 后续版本 |
-
-## 8. 实现变更记录
-
-| 变更 | 原设计 | 实际实现 | 理由 |
-|------|--------|---------|------|
-| 通讯录布局 | 简单 ListView | IndexedContactList（拼音字母索引 + 吸顶标题 + 右侧索引栏） | 对齐微信风格，新增 lpinyin 依赖 |
-| 点击好友交互 | 直接进入聊天页 | 先进好友详情页（FriendDetailPage），再从详情页发消息 | 对齐微信交互流程 |
-| 好友申请页 | 单列表显示收到的申请 | TabBar 双 Tab（好友申请 / 我的申请） | 对齐微信，展示发送的申请状态 |
-| 通讯录顶部入口 | 仅"好友申请"一个入口 | 三个入口：新的朋友 + 群通知 + 我的群聊（后两个占位） | 对齐微信布局，为后续群聊预留 |
-| 新增好友详情页 | 未规划 | FriendDetailPage（头像+昵称+签名 + 发消息/删除好友） | 微信风格必备页面 |
-| 新增删除申请接口 | 未规划 | DELETE /api/friends/requests/:id + 侧滑删除 | 清理申请历史 |
-| FriendState 新增 sentRequests | 未规划 | FriendState 新增 sentRequests 字段，FriendCubit 新增 loadSentRequests() 和 deleteRequest() | 支持"我的申请"Tab 和侧滑删除 |
-| 新增 AddFriendPage | 未规划 | 新增 add_friend_page.dart（微信风格添加朋友主页：搜索入口 + 扫一扫占位 + 创建群聊占位 + 底部个人二维码） | 对齐微信"添加朋友"页面，统一添加好友入口 |
-| UserSearchPage 入口变更 | 通讯录"+"按钮直接跳转 UserSearchPage | 通讯录"+"按钮跳转 AddFriendPage，再从 AddFriendPage 进入 UserSearchPage | AddFriendPage 作为中间页，承载更多功能入口 |
-| 新增共享搜索组件 | 未规划 | flash_shared 新增 FlashSearchBar + FlashSearchInput 共享组件 | 搜索栏样式统一复用 |
-| FriendRequestPage AppBar | 仅标题"好友申请" | AppBar 新增"添加朋友"文字按钮（onAddFriendTap 回调） | 方便从申请页快速跳转添加朋友 |
-| 搜索 hint 文字 | 默认搜索提示 | 改为"闪讯号 / 手机号 / 昵称" | 对齐服务端三种匹配方式，引导用户输入 |
-| 新增 qr_flutter 依赖 | 未规划 | 新增 qr_flutter ^4.1.0 | AddFriendPage 底部展示个人二维码 |

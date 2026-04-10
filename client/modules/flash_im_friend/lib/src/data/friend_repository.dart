@@ -15,12 +15,11 @@ class FriendRepository {
     return data.map((e) => SearchUser.fromJson(e as Map<String, dynamic>)).toList();
   }
 
-  Future<FriendRequest> sendRequest(String toUserId, {String? message}) async {
-    final res = await _dio.post('/api/friends/requests', data: {
+  Future<void> sendRequest(String toUserId, {String? message}) async {
+    await _dio.post('/api/friends/requests', data: {
       'to_user_id': int.parse(toUserId),
       if (message != null) 'message': message,
     });
-    return FriendRequest.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 
   Future<List<FriendRequest>> getReceivedRequests({int limit = 20, int offset = 0}) async {
@@ -64,5 +63,11 @@ class FriendRepository {
 
   Future<void> deleteRequest(String requestId) async {
     await _dio.delete('/api/friends/requests/$requestId');
+  }
+
+  /// 获取用户公开资料
+  Future<UserProfile> getUserProfile(String userId) async {
+    final res = await _dio.get('/api/users/$userId');
+    return UserProfile.fromJson(res.data['data'] as Map<String, dynamic>);
   }
 }

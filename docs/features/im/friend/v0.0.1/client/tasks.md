@@ -38,6 +38,8 @@
 13. ✅ 任务 13 — FlashSearchBar / FlashSearchInput 共享组件
 14. ✅ 任务 14 — qr_flutter 依赖 + AddFriendPage 个人二维码
 15. ✅ 任务 15 — FriendRequestPage AppBar 添加朋友按钮 + 搜索 hint 更新 + 导航调整
+16. ✅ 任务 16 — UserProfilePage + SendRequestPage + 搜索流程
+17. ✅ 任务 17 — ScanPage 扫码添加好友（依赖任务 12）重构
 
 ---
 
@@ -645,3 +647,88 @@ class AddFriendPage extends StatelessWidget
 文件：`client/lib/src/home/view/home_page.dart`（修改）
 
 - 通讯录"+"按钮 onAddFriendTap 改为跳转 AddFriendPage（不再直接跳 UserSearchPage）
+
+
+---
+
+## 任务 16：UserProfilePage + SendRequestPage + 搜索流程 `✅ 已完成`
+
+### 16.1 UserProfile 数据模型 `✅`
+
+文件：`client/modules/flash_im_friend/lib/src/data/friend.dart`（修改）
+
+新增 `UserProfile` 类（id/nickname/avatar/signature），用于资料页展示完整用户信息。
+
+### 16.2 FriendRepository.getUserProfile + sendRequest `✅`
+
+文件：`client/modules/flash_im_friend/lib/src/data/friend_repository.dart`（修改）
+
+新增方法：
+- `Future<UserProfile> getUserProfile(String userId)` → GET /api/users/:id
+- `Future<void> sendRequest(String toUserId, {String? message})` → POST /api/friends/requests
+
+### 16.3 UserProfilePage `✅`
+
+文件：`client/modules/flash_im_friend/lib/src/view/user_profile_page.dart`（新建）
+
+陌生人资料页：大头像 64px + 昵称 + 闪讯号 + 个性签名 + "添加到通讯录"蓝色文字按钮。点击按钮跳转 SendRequestPage。
+
+### 16.4 SendRequestPage `✅`
+
+文件：`client/modules/flash_im_friend/lib/src/view/send_request_page.dart`（新建）
+
+申请表单页：打招呼内容输入框（最多 200 字）+ 蓝色"发送"按钮。发送成功后回调 `FriendCubit.loadSentRequests()` 刷新"我的申请"Tab，然后 pop 两层返回搜索页。
+
+### 16.5 UserSearchPage 搜索结果跳转 `✅`
+
+文件：`client/modules/flash_im_friend/lib/src/view/user_search_page.dart`（修改）
+
+搜索结果点击流程：全屏 loading → GET /api/users/:id 获取完整资料 → push UserProfilePage。
+
+
+---
+
+## 任务 17：ScanPage 扫码添加好友 `⬜ 待处理`
+
+### 17.1 新增 mobile_scanner 依赖 `⬜`
+
+文件：`client/modules/flash_im_friend/pubspec.yaml`（修改）
+
+```yaml
+mobile_scanner: ^6.0.0
+```
+
+### 17.2 Android 摄像头权限 `⬜`
+
+文件：`client/android/app/src/main/AndroidManifest.xml`（修改）
+
+```xml
+<uses-permission android:name="android.permission.CAMERA" />
+```
+
+### 17.3 ScanPage `⬜`
+
+文件：`client/modules/flash_im_friend/lib/src/view/scan_page.dart`（新建）
+
+```dart
+class ScanPage extends StatefulWidget
+```
+
+功能：
+- 全屏摄像头预览（MobileScanner widget）
+- 扫到二维码后解析内容，匹配 `flashim://user/{id}` 格式
+- 提取 userId → 全屏 loading → GET /api/users/:id → push UserProfilePage
+- 非闪讯二维码提示"无法识别"
+- AppBar 标题"扫一扫"
+
+### 17.4 AddFriendPage 扫一扫入口 `⬜`
+
+文件：`client/modules/flash_im_friend/lib/src/view/add_friend_page.dart`（修改）
+
+"扫一扫"入口的 onTap 从空函数改为跳转 ScanPage。
+
+### 17.5 平台适配 `⬜`
+
+Windows 桌面端不支持摄像头，需要在 AddFriendPage 中判断平台：
+- Android/iOS：显示"扫一扫"入口
+- Windows/Linux/macOS：隐藏或置灰"扫一扫"入口

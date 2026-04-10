@@ -84,3 +84,27 @@ class SearchUser {
     );
   }
 }
+
+/// 用户公开资料（详情页用）
+class UserProfile {
+  final String id;
+  final String nickname;
+  final String? avatar;
+  final String? signature;
+
+  const UserProfile({
+    required this.id,
+    required this.nickname,
+    this.avatar,
+    this.signature,
+  });
+
+  factory UserProfile.fromJson(Map<String, dynamic> json) {
+    return UserProfile(
+      id: json['id'] as String,
+      nickname: json['nickname'] as String,
+      avatar: json['avatar'] as String?,
+      signature: json['signature'] as String?,
+    );
+  }
+}

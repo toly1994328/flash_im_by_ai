@@ -275,3 +275,31 @@ pub async fn search_users(
 
     Ok(Json(serde_json::json!({ "data": data })))
 }
+
+/// GET /api/users/:id — 获取用户公开资料
+pub async fn get_user_public(
+    State(state): State<Arc<AppState>>,
+    axum::extract::Path(id): axum::extract::Path<i64>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let row: Option<(i64, String, Option<String>, Option<String>)> = sqlx::query_as(
+        "SELECT p.account_id, p.nickname, p.avatar, p.signature \
+         FROM user_profiles p \
+         JOIN accounts a ON a.id = p.account_id \
+         WHERE p.account_id = $1 AND a.status = 0",
+    )
+    .bind(id)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let (account_id, nickname, avatar, signature) = row.ok_or(StatusCode::NOT_FOUND)?;
+
+    Ok(Json(serde_json::json!({
+        "data": {
+            "id": account_id.to_string(),
+            "nickname": nickname,
+            "avatar": avatar,
+            "signature": signature,
+        }
+    })))
+}
