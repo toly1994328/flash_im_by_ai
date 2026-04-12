@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.4_media（富媒体消息）
+最后更新：v0.0.1_friend（好友关系）
 
 ---
 
@@ -45,6 +45,10 @@
 | D-11 | 获取单个会话详情 | im-conversation | 后端 | v0.0.3-p1 | ✅ |
 | D-12 | 富媒体消息存储 | im-message (models/repository) | 后端 | v0.0.4_media | ✅ |
 | D-13 | 消息预览生成 | im-message (models) | 后端 | v0.0.4_media | ✅ |
+| D-14 | 好友申请管理 | im-friend | 后端 | v0.0.1_friend | ✅ |
+| D-15 | 好友关系管理 | im-friend | 后端 | v0.0.1_friend | ✅ |
+| D-16 | 好友实时通知 | im-friend + im-ws (dispatcher) | 后端 | v0.0.1_friend | ✅ |
+| D-17 | 用户搜索/资料 | flash-user | 后端 | v0.0.1_friend | ✅ |
 
 ### 前端基础层（F）
 
@@ -58,6 +62,7 @@
 | F-06 | WsClient 帧分发 | flash_im_core | v0.0.3 | ✅ |
 | F-07 | 共享头像组件 | flash_shared | v0.0.3 | ✅ |
 | F-08 | 视频信息提取 | flash_im_chat (video_thumbnail_service) | v0.0.4_media | ✅ |
+| F-09 | 好友WS流分发 | flash_im_core | v0.0.1_friend | ✅ |
 
 ### 前端业务层（P）
 
@@ -82,6 +87,14 @@
 | P-17 | 文件发送流程 | flash_im_chat (chat_cubit) | v0.0.4_media | ✅ |
 | P-18 | 视频播放页 | flash_im_chat (video_player_page) | v0.0.4_media | ✅ |
 | P-19 | 图片全屏预览 | flash_im_chat (image_preview_page) | v0.0.4_media | ✅ |
+| P-20 | 好友列表页 | flash_im_friend (friend_list_page) | v0.0.1_friend | ✅ |
+| P-21 | 好友申请页 | flash_im_friend (friend_request_page) | v0.0.1_friend | ✅ |
+| P-22 | 用户搜索页 | flash_im_friend (user_search_page) | v0.0.1_friend | ✅ |
+| P-23 | 好友申请通知 | flash_im_friend (friend_cubit) | v0.0.1_friend | ✅ |
+| P-24 | 好友详情页 | flash_im_friend (friend_detail_page) | v0.0.1_friend | ✅ |
+| P-25 | 添加朋友页 | flash_im_friend (add_friend_page) | v0.0.1_friend | ✅ |
+| P-26 | 陌生人资料页 | flash_im_friend (user_profile_page) | v0.0.1_friend | ✅ |
+| P-27 | 扫码页 | flash_im_friend (scan_page) | v0.0.1_friend | ✅ |
 
 
 ---
@@ -92,7 +105,8 @@
 
 ```
 Level 0: flash-core (I-01)
-Level 1: flash-auth (I-02,I-03) | flash-user (I-04) | im-conversation (D-01~D-05,D-11) | app-storage (I-10~I-12)
+Level 1: flash-auth (I-02,I-03) | flash-user (I-04,D-17) | im-conversation (D-01~D-05,D-11) | app-storage (I-10~I-12)
+         im-friend (D-14~D-17) → 依赖 flash-core + im-ws + im-conversation(Option) + im-message(Option)
 Level 2: im-message (D-06~D-10,D-12~D-13) → 依赖 im-conversation
 Level 3: im-ws (I-05~I-09) → 依赖 im-message
 Level 4: main.rs → 组装所有模块
@@ -105,6 +119,7 @@ Level 0: flash_shared (F-07) | flash_starter (F-03)
 Level 1: flash_auth (F-01) | flash_session (F-02) | flash_im_core (F-04~F-06)
 Level 2: flash_im_conversation (P-01~P-05,P-10) → 依赖 flash_session + flash_im_core
          flash_im_chat (F-08,P-06~P-09,P-11~P-19) → 依赖 flash_im_core + flash_shared
+         flash_im_friend (F-09,P-20~P-27) → 依赖 flash_im_core + flash_shared + flash_session
 Level 3: main.dart → 组装所有模块
 ```
 
@@ -138,6 +153,10 @@ graph TB
         D11[D-11 会话详情查询]
         D12[D-12 富媒体消息存储]
         D13[D-13 消息预览生成]
+        D14[D-14 好友申请管理]
+        D15[D-15 好友关系管理]
+        D16[D-16 好友实时通知]
+        D17[D-17 用户搜索/资料]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -148,6 +167,7 @@ graph TB
         F06[F-06 帧分发]
         F07[F-07 共享头像]
         F08[F-08 视频信息提取]
+        F09[F-09 好友WS流分发]
     end
     subgraph 前端业务层
         P01[P-01 会话列表]
@@ -169,6 +189,14 @@ graph TB
         P17[P-17 文件发送]
         P18[P-18 视频播放页]
         P19[P-19 图片预览页]
+        P20[P-20 好友列表页]
+        P21[P-21 好友申请页]
+        P22[P-22 用户搜索页]
+        P23[P-23 好友申请通知]
+        P24[P-24 好友详情页]
+        P25[P-25 添加朋友页]
+        P26[P-26 陌生人资料页]
+        P27[P-27 扫码页]
     end
 
     %% 后端：模块间依赖
@@ -241,6 +269,29 @@ graph TB
     P13 -.->|HTTP 静态| I12
     P18 -.->|HTTP 静态| I12
     P19 -.->|HTTP 静态| I12
+    P22 -.-> D17
+    P27 -.-> D17
+    P21 -.-> D14
+    P26 -.-> D14
+    P20 -.-> D15
+    P24 -.-> D01
+
+    %% 好友：后端依赖
+    D14 -.-> D01
+    D14 -.-> D06
+    D14 --> D16
+    D15 --> D16
+    D16 --> I08
+
+    %% 好友：前端依赖
+    F09 --> F06
+    P20 --> F09
+    P21 --> F09
+    P23 --> F09
+    P25 --> P22
+    P25 --> P27
+    P22 --> P26
+    P27 --> P26
 ```
 
 ---
@@ -262,6 +313,7 @@ graph TB
 | v0.10.1 | 2026-04-06 | 37 | [trace/v0.10.1_2026-04-06.md](trace/v0.10.1_2026-04-06.md) |
 | v0.10.5 | 2026-04-06 | 42 | [trace/v0.10.5_2026-04-06.md](trace/v0.10.5_2026-04-06.md) |
 | v0.11.0 | 2026-04-06 | 49 | [trace/v0.11.0_2026-04-06.md](trace/v0.11.0_2026-04-06.md) |
+| v0.12.0 | 2026-04-12 | 62 | [trace/v0.12.0_2026-04-12.md](trace/v0.12.0_2026-04-12.md) |
 
 ---
 
@@ -276,3 +328,4 @@ graph TB
 | 会话 | [conversation.md](modules/conversation.md) | D-01~D-05, P-01~P-05 |
 | 消息 | [message/server.md](modules/message/server.md) | I-10~I-12, D-06~D-10, D-12~D-13 |
 | 消息（客户端） | [message/client.md](modules/message/client.md) | F-06~F-08, P-06~P-09, P-11~P-19 |
+| 好友 | [friend/server.md](modules/friend/server.md) [friend/client.md](modules/friend/client.md) | D-14~D-17, F-09, P-20~P-27 |

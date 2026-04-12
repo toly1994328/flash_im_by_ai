@@ -28,7 +28,7 @@ class FriendDetailPage extends StatelessWidget {
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
-      body: Column(
+      body: ListView(
         children: [
           _buildProfileCard(),
           const SizedBox(height: 10),
@@ -37,11 +37,9 @@ class FriendDetailPage extends StatelessWidget {
           _buildSettingItem(title: '朋友圈', onTap: () {}),
           _buildDivider(),
           _buildSettingItem(title: '更多信息', onTap: () {}),
-          const Spacer(),
+          const SizedBox(height: 10),
           _buildSendMessageButton(context),
-          const SizedBox(height: 12),
           _buildDeleteButton(context),
-          SizedBox(height: MediaQuery.of(context).padding.bottom + 20),
         ],
       ),
     );
@@ -107,20 +105,26 @@ class FriendDetailPage extends StatelessWidget {
   }
 
   Widget _buildSendMessageButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: ElevatedButton.icon(
-          onPressed: onSendMessage,
-          icon: const Icon(Icons.chat_bubble_outline, size: 20),
-          label: const Text('发消息', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF3B82F6),
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            elevation: 0,
+    return Container(
+      color: Colors.white,
+      child: InkWell(
+        onTap: onSendMessage,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: const BoxDecoration(
+            border: Border(
+              top: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+              bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+            ),
+          ),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.chat_bubble_outline, size: 18, color: Color(0xFF576B95)),
+              SizedBox(width: 6),
+              Text('发消息',
+                  style: TextStyle(fontSize: 16, color: Color(0xFF576B95), fontWeight: FontWeight.w600)),
+            ],
           ),
         ),
       ),
@@ -128,19 +132,24 @@ class FriendDetailPage extends StatelessWidget {
   }
 
   Widget _buildDeleteButton(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: SizedBox(
-        width: double.infinity,
-        height: 48,
-        child: OutlinedButton(
-          onPressed: () => _confirmDelete(context),
-          style: OutlinedButton.styleFrom(
-            foregroundColor: Colors.red,
-            side: const BorderSide(color: Colors.red, width: 0.5),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+    return Container(
+      color: Colors.white,
+      child: InkWell(
+        onTap: () => _confirmDelete(context),
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          decoration: const BoxDecoration(
+            border: Border(
+              bottom: BorderSide(color: Color(0xFFE5E5E5), width: 0.5),
+            ),
           ),
-          child: const Text('删除好友', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+          child: const Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('删除好友',
+                  style: TextStyle(fontSize: 16, color: Colors.red, fontWeight: FontWeight.w600)),
+            ],
+          ),
         ),
       ),
     );

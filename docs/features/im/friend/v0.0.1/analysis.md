@@ -64,7 +64,8 @@ flowchart LR
 flowchart LR
     D1[通讯录 Tab] --> D2[好友列表]
     D2 --> D3[点击好友]
-    D3 --> D4[进入聊天页]
+    D3 --> D4[好友详情页]
+    D4 --> D5[发消息 → 聊天页]
 ```
 
 ### 场景 5：删除好友
@@ -148,8 +149,8 @@ WsClient.frameStream
 
 | 时刻 | 事件 | 处理 | 产生的新事件 |
 |------|------|------|-------------|
-| T0 | 用户点击好友 | FriendListPage 获取 friend_id | — |
-| T1 | 创建/获取会话 | POST /conversations {peer_user_id: friend_id}（幂等） | 返回 conversation |
+| T0 | 用户点击好友 | FriendListPage → push FriendDetailPage | — |
+| T1 | 点击"发消息" | pop 详情页，调用 ConversationRepository.createPrivate(friendId) | 返回 conversation |
 | T2 | 跳转聊天页 | Navigator.push → ChatPage(conversationId, peerName, peerAvatar) | 进入聊天 |
 
 ### 状态流转
@@ -174,12 +175,16 @@ WsClient.frameStream
 | D-14 | 好友申请管理 | 领域 | 发送/接受/拒绝好友申请，friend_requests 表，状态流转 |
 | D-15 | 好友关系管理 | 领域 | 双向好友关系 CRUD，friend_relations 表，事务保证原子性 |
 | D-16 | 好友实时通知 | 领域 | WS 推送 FRIEND_REQUEST/FRIEND_ACCEPTED/FRIEND_REMOVED 帧 |
-| D-17 | 用户搜索 | 领域 | 按昵称/手机号搜索用户（非好友搜索，是全局用户搜索） |
+| D-17 | 用户搜索 | 领域 | 按昵称/手机号/闪讯号搜索用户 + 获取用户公开资料 |
 | F-09 | 好友 WS 流分发 | 前端基础 | WsClient 新增 friendRequestStream/friendAcceptedStream/friendRemovedStream |
 | P-20 | 好友列表页 | 前端业务 | 通讯录 Tab，显示好友列表，点击进入聊天页 |
 | P-21 | 好友申请页 | 前端业务 | 收到的/发送的申请列表，接受/拒绝操作 |
-| P-22 | 用户搜索页 | 前端业务 | 搜索用户 + 发送好友申请入口 |
+| P-22 | 用户搜索页 | 前端业务 | 搜索用户 + 扫码 + 用户资料页 + 发送好友申请 |
 | P-23 | 好友申请通知 | 前端业务 | 收到申请时通讯录 Tab 红点提示 |
+| P-24 | 好友详情页 | 前端业务 | 好友资料展示 + 发消息 + 删除好友 |
+| P-25 | 添加朋友页 | 前端业务 | 搜索入口 + 扫码入口 + 个人二维码 |
+| P-26 | 陌生人资料页 | 前端业务 | 搜索/扫码结果展示 + 添加到通讯录 |
+| P-27 | 扫码页 | 前端业务 | 摄像头扫描二维码，识别 flashim://user/{id} |
 
 ### 前置依赖
 
