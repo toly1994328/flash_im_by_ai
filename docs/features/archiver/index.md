@@ -106,7 +106,7 @@
 ```
 Level 0: flash-core (I-01)
 Level 1: flash-auth (I-02,I-03) | flash-user (I-04,D-17) | im-conversation (D-01~D-05,D-11) | app-storage (I-10~I-12)
-         im-friend (D-14~D-17) → 依赖 flash-core + im-ws + im-conversation(Option) + im-message(Option)
+         im-friend (D-14~D-16) → 依赖 flash-core + im-ws + im-conversation(Option) + im-message(Option)
 Level 2: im-message (D-06~D-10,D-12~D-13) → 依赖 im-conversation
 Level 3: im-ws (I-05~I-09) → 依赖 im-message
 Level 4: main.rs → 组装所有模块
@@ -133,6 +133,8 @@ graph TB
         I03[I-03 Token验证]
         I04[I-04 用户资料]
         I05[I-05 WS连接]
+        I06[I-06 帧编解码]
+        I07[I-07 心跳保活]
         I08[I-08 在线用户]
         I09[I-09 帧分发器]
         I10[I-10 文件存储]
@@ -205,6 +207,8 @@ graph TB
     I04 --> I01
     I05 --> I01
     I05 --> I03
+    I06 --> I05
+    I07 --> I05
     I08 --> I05
     I09 --> I05
     I11 --> I10
@@ -220,6 +224,7 @@ graph TB
     D11 --> I01
     D12 --> D06
     D13 --> D06
+    D17 --> I01
     I09 -->|调用 service.send| D06
 
     %% 前端：模块间依赖
@@ -275,8 +280,11 @@ graph TB
     P26 -.-> D14
     P20 -.-> D15
     P24 -.-> D01
+    P24 -.-> D15
 
     %% 好友：后端依赖
+    D14 --> I01
+    D15 --> I01
     D14 -.-> D01
     D14 -.-> D06
     D14 --> D16
@@ -313,7 +321,7 @@ graph TB
 | v0.10.1 | 2026-04-06 | 37 | [trace/v0.10.1_2026-04-06.md](trace/v0.10.1_2026-04-06.md) |
 | v0.10.5 | 2026-04-06 | 42 | [trace/v0.10.5_2026-04-06.md](trace/v0.10.5_2026-04-06.md) |
 | v0.11.0 | 2026-04-06 | 49 | [trace/v0.11.0_2026-04-06.md](trace/v0.11.0_2026-04-06.md) |
-| v0.12.0 | 2026-04-12 | 62 | [trace/v0.12.0_2026-04-12.md](trace/v0.12.0_2026-04-12.md) |
+| v0.12.0 | 2026-04-12 | 65 | [trace/v0.12.0_2026-04-12.md](trace/v0.12.0_2026-04-12.md) |
 
 ---
 

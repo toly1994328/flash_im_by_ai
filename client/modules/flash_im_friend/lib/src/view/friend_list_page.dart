@@ -41,46 +41,54 @@ class FriendListPage extends StatelessWidget {
           if (state.isLoading && state.friends.isEmpty) {
             return const Center(child: CircularProgressIndicator());
           }
+
+          final headerItems = [
+            _ContactHeaderItem(
+              icon: Icons.person_add,
+              iconColor: const Color(0xFFF97D1C),
+              title: '新的朋友',
+              badge: state.pendingCount,
+              onTap: () => onRequestsTap?.call(),
+            ),
+            _ContactHeaderItem(
+              icon: Icons.group,
+              iconColor: const Color(0xFF2196F3),
+              title: '群通知',
+              onTap: () {},
+            ),
+            _ContactHeaderItem(
+              icon: Icons.chat_bubble,
+              iconColor: const Color(0xFF4CAF50),
+              title: '我的群聊',
+              onTap: () {},
+            ),
+          ];
+
           if (state.friends.isEmpty) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.people_outline, size: 64, color: Colors.grey),
-                  const SizedBox(height: 16),
-                  const Text('暂无好友', style: TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 16),
-                  ElevatedButton(
-                    onPressed: onAddFriendTap,
-                    child: const Text('添加好友'),
+            return Column(
+              children: [
+                ...headerItems,
+                Expanded(
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.people_outline, size: 56, color: Colors.grey[300]),
+                        const SizedBox(height: 12),
+                        const Text('暂无好友', style: TextStyle(color: Color(0xFFBBBBBB), fontSize: 14)),
+                        const SizedBox(height: 4),
+                        const Text('点击右上角 + 添加好友', style: TextStyle(color: Color(0xFFCCCCCC), fontSize: 12)),
+                      ],
+                    ),
                   ),
-                ],
-              ),
+                ),
+              ],
             );
           }
+
           return IndexedContactList(
             friends: state.friends,
-            headerItems: [
-              _ContactHeaderItem(
-                icon: Icons.person_add,
-                iconColor: const Color(0xFFF97D1C),
-                title: '新的朋友',
-                badge: state.pendingCount,
-                onTap: () => onRequestsTap?.call(),
-              ),
-              _ContactHeaderItem(
-                icon: Icons.group,
-                iconColor: const Color(0xFF2196F3),
-                title: '群通知',
-                onTap: () {},
-              ),
-              _ContactHeaderItem(
-                icon: Icons.chat_bubble,
-                iconColor: const Color(0xFF4CAF50),
-                title: '我的群聊',
-                onTap: () {},
-              ),
-            ],
+            headerItems: headerItems,
             onFriendTap: onFriendTap,
             onFriendLongPress: (friend) => _confirmDelete(context, friend),
             onRefresh: () => context.read<FriendCubit>().loadFriends(),

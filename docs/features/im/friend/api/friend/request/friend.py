@@ -162,9 +162,9 @@ if r["status"] != 200: fail(f"search failed: {r['status']}")
 print(f"results: {len(r['data']['data'])} users")
 ok()
 write_doc("01_search_users.md", "GET", "/api/users/search?keyword=橘",
-    "按昵称模糊搜索用户。", None, r["status"], r["body"], token_a,
+    "搜索用户（支持昵称模糊、手机号精确、闪讯号精确三种匹配）。", None, r["status"], r["body"], token_a,
     params_desc=[
-        {"name": "keyword", "type": "string", "required": "是", "desc": "搜索关键词（昵称模糊匹配）"},
+        {"name": "keyword", "type": "string", "required": "是", "desc": "搜索关键词（昵称模糊 / 手机号精确 / 闪讯号精确）"},
         {"name": "limit", "type": "int", "required": "否", "desc": "返回条数，默认 20，最大 50"},
     ])
 
@@ -185,16 +185,16 @@ write_doc("02_send_request.md", "POST", "/api/friends/requests",
         {"name": "message", "type": "string", "required": "否", "desc": "申请留言，最长 200 字"},
     ])
 
-# === 3: 重复申请 ===
-step(3, "POST /api/friends/requests - duplicate request")
-j3 = json.dumps({"to_user_id": uid_b})
+# === 3: 重复申请（upsert 覆盖） ===
+step(3, "POST /api/friends/requests - duplicate request (upsert)")
+j3 = json.dumps({"to_user_id": uid_b, "message": "再发一次"})
 r = Curl.post(f"{BASE}/api/friends/requests", j3, token_a)
-if r["status"] != 400: fail(f"expected 400, got {r['status']}")
-print(f"HTTP {r['status']}")
+if r["status"] != 200: fail(f"expected 200 (upsert), got {r['status']}")
+print(f"upsert OK, message updated")
 ok()
 write_doc("03_duplicate_request.md", "POST", "/api/friends/requests",
-    "重复发送好友申请（已有待处理申请）。", j3, r["status"], r["body"] or "(empty body)", token_a,
-    "同一对用户存在待处理申请时返回 400。")
+    "重复发送好友申请（upsert 覆盖旧申请，更新留言）。", j3, r["status"], r["body"], token_a,
+    "同一对用户重复发送时，覆盖旧申请的留言和状态，返回 200。")
 
 # === 4: 不能加自己 ===
 step(4, "POST /api/friends/requests - cannot add self")
@@ -378,10 +378,33 @@ write_doc("17_no_pending_after_reject.md", "GET", "/api/friends/requests/receive
     "拒绝后查询收到的申请，被拒绝的不再显示（仅返回 pending）。",
     None, r["status"], r["body"], token_b)
 
+# === 18: 获取用户公开资料 ===
+step(18, f"GET /api/users/{uid_b} - get user profile")
+r = Curl.get(f"{BASE}/api/users/{uid_b}", token_a)
+if r["status"] != 200: fail(f"get profile failed: {r['status']}")
+profile = r["data"]["data"]
+print(f"nickname: {profile.get('nickname')}, signature: {profile.get('signature')}")
+ok()
+write_doc("18_get_user_profile.md", "GET", f"/api/users/{uid_b}",
+    "获取用户公开资料（昵称、头像、签名）。", None, r["status"], r["body"], token_a,
+    params_desc=[
+        {"name": "id", "type": "int", "required": "是", "desc": "用户 ID（路径参数）"},
+    ])
+
+# === 19: 删除申请记录 ===
+step(19, f"DELETE /api/friends/requests/{new_request_id} - delete request")
+r = Curl.delete(f"{BASE}/api/friends/requests/{new_request_id}", token_a)
+if r["status"] != 200: fail(f"delete request failed: {r['status']}")
+print("request deleted")
+ok()
+write_doc("19_delete_request.md", "DELETE", f"/api/friends/requests/{new_request_id}",
+    "删除申请记录（侧滑删除）。", None, r["status"], r["body"], token_a,
+    "只有申请的发送方或接收方可以删除。")
+
 # === 生成 00_link.md ===
 write_link()
 
 print(f"\n{YELLOW}Generated: 00_link.md + {total} api docs{RESET}")
 print(f"\n{GREEN}{'=' * 40}")
-print(f"  ALL {passed} STEPS PASSED")
+print(f"  ALL {passed}/{passed} STEPS PASSED")
 print(f"{'=' * 40}{RESET}")

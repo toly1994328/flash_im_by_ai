@@ -5,12 +5,12 @@
 ## Response `200`
 
 ```json
-{"data":[{"avatar":"identicon:1","bio":null,"created_at":"2026-04-07T00:40:48.646451Z","friend_id":"1","nickname":"用户0001"}]}
+{"data":[{"avatar":"identicon:朱红:ed5126","bio":null,"created_at":"2026-04-12T10:19:31.398854Z","friend_id":"1","nickname":"朱红"}]}
 ```
 
 ## curl
 
 ```bash
 curl -s -X GET "http://127.0.0.1:9600/api/friends"
-  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzc2MTI3MjQ4LCJpYXQiOjE3NzU1MjI0NDh9.nkv_NMiXfF_Qy_C3J5nM2zbXlGGMWNO7_DQFEz89Z24"
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzc2NTkzOTcxLCJpYXQiOjE3NzU5ODkxNzF9.uTKpnAs-iQXqTwHrUv3vxuifdbjtQNXG_K04CIgMuNg"
 ```

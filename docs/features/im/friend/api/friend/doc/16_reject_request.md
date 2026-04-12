@@ -1,4 +1,4 @@
-# POST /api/friends/requests/47932555-560d-45d0-9c83-06681781cde6/reject
+# POST /api/friends/requests/2b341702-4c15-4a4d-b01a-d0b02a868b23/reject
 
 拒绝好友申请。
 
@@ -11,8 +11,8 @@
 ## curl
 
 ```bash
-curl -s -X POST "http://127.0.0.1:9600/api/friends/requests/47932555-560d-45d0-9c83-06681781cde6/reject"
-  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzc2MTI3MjQ4LCJpYXQiOjE3NzU1MjI0NDh9.nkv_NMiXfF_Qy_C3J5nM2zbXlGGMWNO7_DQFEz89Z24"
+curl -s -X POST "http://127.0.0.1:9600/api/friends/requests/2b341702-4c15-4a4d-b01a-d0b02a868b23/reject"
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzc2NTkzOTcxLCJpYXQiOjE3NzU5ODkxNzF9.uTKpnAs-iQXqTwHrUv3vxuifdbjtQNXG_K04CIgMuNg"
 ```
 
 > 拒绝后申请状态变为 rejected，不通知申请者。
