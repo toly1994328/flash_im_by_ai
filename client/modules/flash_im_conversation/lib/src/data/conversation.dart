@@ -58,6 +58,9 @@ class Conversation {
   String? get displayAvatar =>
       type == 0 ? peerAvatar : avatar;
 
+  /// 是否群聊
+  bool get isGroup => type == 1;
+
   Conversation copyWith({
     int? unreadCount,
     DateTime? lastMessageAt,

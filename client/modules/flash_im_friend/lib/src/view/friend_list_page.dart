@@ -12,12 +12,18 @@ class FriendListPage extends StatelessWidget {
   final void Function(Friend friend)? onFriendTap;
   final VoidCallback? onAddFriendTap;
   final VoidCallback? onRequestsTap;
+  final VoidCallback? onSearchGroupTap;
+  final VoidCallback? onGroupNotificationsTap;
+  final int groupNotificationCount;
 
   const FriendListPage({
     super.key,
     this.onFriendTap,
     this.onAddFriendTap,
     this.onRequestsTap,
+    this.onSearchGroupTap,
+    this.onGroupNotificationsTap,
+    this.groupNotificationCount = 0,
   });
 
   @override
@@ -54,13 +60,14 @@ class FriendListPage extends StatelessWidget {
               icon: Icons.group,
               iconColor: const Color(0xFF2196F3),
               title: '群通知',
-              onTap: () {},
+              badge: groupNotificationCount,
+              onTap: () => onGroupNotificationsTap?.call(),
             ),
             _ContactHeaderItem(
-              icon: Icons.chat_bubble,
+              icon: Icons.search,
               iconColor: const Color(0xFF4CAF50),
-              title: '我的群聊',
-              onTap: () {},
+              title: '搜索群聊',
+              onTap: () => onSearchGroupTap?.call(),
             ),
           ];
 

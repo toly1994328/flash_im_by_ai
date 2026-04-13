@@ -74,6 +74,23 @@ class ConversationTile extends StatelessWidget {
         ),
       );
     }
+    if (conversation.isGroup) {
+      final avatar = conversation.displayAvatar;
+      if (avatar != null && avatar.startsWith('grid:')) {
+        return _buildGridAvatar(avatar);
+      }
+      if (avatar != null && avatar.isNotEmpty) {
+        return AvatarWidget(avatar: avatar, size: 44, borderRadius: 6);
+      }
+      return Container(
+        width: 44, height: 44,
+        decoration: BoxDecoration(
+          color: const Color(0xFF4CAF50),
+          borderRadius: BorderRadius.circular(6),
+        ),
+        child: const Icon(Icons.group, color: Colors.white, size: 24),
+      );
+    }
     return AvatarWidget(
       avatar: conversation.peerAvatar,
       size: 44,
@@ -142,6 +159,19 @@ class ConversationTile extends StatelessWidget {
         ),
       ),
     );
+  }
+
+  Widget _buildGridAvatar(String gridStr) {
+    final avatarList = gridStr.substring(5).split(',');
+    final members = <GroupAvatarMember>[];
+    for (var i = 0; i < avatarList.length; i++) {
+      final a = avatarList[i].trim();
+      members.add(GroupAvatarMember(
+        id: 'member_$i',
+        avatarUrl: a.isNotEmpty ? a : null,
+      ));
+    }
+    return GroupAvatarWidget(members: members, size: 44, borderRadius: 6);
   }
 
   String _formatTime(DateTime time) {

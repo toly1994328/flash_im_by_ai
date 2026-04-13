@@ -29,6 +29,7 @@ const WsFrameType$json = {
     {'1': 'FRIEND_REQUEST', '2': 7},
     {'1': 'FRIEND_ACCEPTED', '2': 8},
     {'1': 'FRIEND_REMOVED', '2': 9},
+    {'1': 'GROUP_JOIN_REQUEST', '2': 10},
   ],
 };
 
@@ -37,7 +38,7 @@ final $typed_data.Uint8List wsFrameTypeDescriptor = $convert.base64Decode(
     'CgtXc0ZyYW1lVHlwZRIICgRQSU5HEAASCAoEUE9ORxABEggKBEFVVEgQAhIPCgtBVVRIX1JFU1'
     'VMVBADEhAKDENIQVRfTUVTU0FHRRAEEg8KC01FU1NBR0VfQUNLEAUSFwoTQ09OVkVSU0FUSU9O'
     'X1VQREFURRAGEhIKDkZSSUVORF9SRVFVRVNUEAcSEwoPRlJJRU5EX0FDQ0VQVEVEEAgSEgoORl'
-    'JJRU5EX1JFTU9WRUQQCQ==');
+    'JJRU5EX1JFTU9WRUQQCRIWChJHUk9VUF9KT0lOX1JFUVVFU1QQCg==');
 
 @$core.Deprecated('Use wsFrameDescriptor instead')
 const WsFrame$json = {
@@ -137,3 +138,26 @@ final $typed_data.Uint8List friendRemovedNotificationDescriptor =
     $convert.base64Decode(
         'ChlGcmllbmRSZW1vdmVkTm90aWZpY2F0aW9uEhsKCWZyaWVuZF9pZBgBIAEoCVIIZnJpZW5kSW'
         'Q=');
+
+@$core.Deprecated('Use groupJoinRequestNotificationDescriptor instead')
+const GroupJoinRequestNotification$json = {
+  '1': 'GroupJoinRequestNotification',
+  '2': [
+    {'1': 'request_id', '3': 1, '4': 1, '5': 9, '10': 'requestId'},
+    {'1': 'from_user_id', '3': 2, '4': 1, '5': 9, '10': 'fromUserId'},
+    {'1': 'nickname', '3': 3, '4': 1, '5': 9, '10': 'nickname'},
+    {'1': 'avatar', '3': 4, '4': 1, '5': 9, '10': 'avatar'},
+    {'1': 'message', '3': 5, '4': 1, '5': 9, '10': 'message'},
+    {'1': 'conversation_id', '3': 6, '4': 1, '5': 9, '10': 'conversationId'},
+    {'1': 'group_name', '3': 7, '4': 1, '5': 9, '10': 'groupName'},
+    {'1': 'created_at', '3': 8, '4': 1, '5': 3, '10': 'createdAt'},
+  ],
+};
+
+/// Descriptor for `GroupJoinRequestNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List groupJoinRequestNotificationDescriptor = $convert.base64Decode(
+    'ChxHcm91cEpvaW5SZXF1ZXN0Tm90aWZpY2F0aW9uEh0KCnJlcXVlc3RfaWQYASABKAlSCXJlcX'
+    'Vlc3RJZBIgCgxmcm9tX3VzZXJfaWQYAiABKAlSCmZyb21Vc2VySWQSGgoIbmlja25hbWUYAyAB'
+    'KAlSCG5pY2tuYW1lEhYKBmF2YXRhchgEIAEoCVIGYXZhdGFyEhgKB21lc3NhZ2UYBSABKAlSB2'
+    '1lc3NhZ2USJwoPY29udmVyc2F0aW9uX2lkGAYgASgJUg5jb252ZXJzYXRpb25JZBIdCgpncm91'
+    'cF9uYW1lGAcgASgJUglncm91cE5hbWUSHQoKY3JlYXRlZF9hdBgIIAEoA1IJY3JlYXRlZEF0');

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
+import 'package:flash_shared/flash_shared.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
@@ -22,6 +23,7 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _hasShownPasswordGuide = false;
   late final ConversationListCubit _convCubit;
+  late final GroupNotificationCubit _groupNotifCubit;
 
   @override
   void initState() {
@@ -30,6 +32,10 @@ class _HomePageState extends State<HomePage> {
       context.read<ConversationRepository>(),
       wsClient: context.read<WsClient>(),
     )..loadConversations();
+    _groupNotifCubit = GroupNotificationCubit(
+      repository: context.read<ConversationRepository>(),
+      wsClient: context.read<WsClient>(),
+    )..load();
     context.read<FriendCubit>().loadFriends();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPasswordGuide();
@@ -157,6 +163,47 @@ class _HomePageState extends State<HomePage> {
         backgroundColor: const Color(0xFFEDEDED),
         elevation: 0,
         scrolledUnderElevation: 0,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: WxPopupMenuButton(
+              items: [
+                WxMenuItem(
+                  icon: Icons.group_add,
+                  text: '发起群聊',
+                  onTap: () => _openCreateGroup(context),
+                ),
+                WxMenuItem(
+                  icon: Icons.person_add,
+                  text: '添加朋友',
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => AddFriendPage(
+                        repository: context.read<FriendRepository>(),
+                      ),
+                    ));
+                  },
+                ),
+                WxMenuItem(
+                  icon: Icons.qr_code_scanner,
+                  text: '扫一扫',
+                  onTap: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ScanPage(
+                        repository: context.read<FriendRepository>(),
+                      ),
+                    ));
+                  },
+                ),
+              ],
+              child: const Padding(
+                padding: EdgeInsets.all(8),
+                child: Icon(Icons.add_circle_outline, size: 22),
+              ),
+            ),
+          ),
+          const SizedBox(width: 6),
+        ],
         title: BlocBuilder<SessionCubit, SessionState>(
           builder: (context, state) {
             final user = state.user;
@@ -259,6 +306,12 @@ class _HomePageState extends State<HomePage> {
                     peerName: conversation.displayName,
                     peerAvatar: conversation.displayAvatar,
                     baseUrl: AppConfig.baseUrl,
+                    isGroup: conversation.isGroup,
+                    peerUserId: conversation.peerUserId,
+                    onAddMember: conversation.isGroup ? null : () {
+                      Navigator.of(context).pop(); // close ChatPage
+                      _createGroupFromChat(context, conversation);
+                    },
                   ),
                 ),
               ),
@@ -295,6 +348,21 @@ class _HomePageState extends State<HomePage> {
           ),
         ));
       },
+      onSearchGroupTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => SearchGroupPage(
+            repository: context.read<ConversationRepository>(),
+          ),
+        ));
+      },
+      onGroupNotificationsTap: () {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => GroupNotificationsPage(
+            repository: context.read<ConversationRepository>(),
+          ),
+        ));
+      },
+      groupNotificationCount: _groupNotifCubit.state.pendingCount,
     );
   }
 
@@ -342,11 +410,90 @@ class _HomePageState extends State<HomePage> {
               peerName: friend.nickname,
               peerAvatar: friend.avatar,
               baseUrl: AppConfig.baseUrl,
+              isGroup: false,
+              peerUserId: friend.friendId,
+              onAddMember: () {
+                Navigator.of(context).pop();
+                _createGroupFromChat(context, Conversation(
+                  id: conv.id,
+                  type: 0,
+                  peerUserId: friend.friendId,
+                  peerNickname: friend.nickname,
+                  peerAvatar: friend.avatar,
+                  createdAt: DateTime.now(),
+                ));
+              },
             ),
           ),
         ),
       ));
     } catch (_) {}
+  }
+
+  // ==================== 群聊相关方法 ====================
+
+  List<SelectableMember> _friendsToMembers() {
+    return context.read<FriendCubit>().state.friends
+        .map((f) => SelectableMember(id: f.friendId, nickname: f.nickname, avatar: f.avatar))
+        .toList();
+  }
+
+  Future<void> _openCreateGroup(BuildContext context, {Set<String>? initialSelectedIds}) async {
+    final members = _friendsToMembers();
+    final result = await Navigator.of(context).push<CreateGroupResult>(
+      MaterialPageRoute(
+        builder: (_) => CreateGroupPage(
+          members: members,
+          initialSelectedIds: initialSelectedIds ?? const {},
+        ),
+      ),
+    );
+    if (result == null || !mounted) return;
+    try {
+      final conv = await context.read<ConversationRepository>()
+          .createGroup(name: result.name, memberIds: result.memberIds);
+      if (!mounted) return;
+      _convCubit.loadConversations();
+      final session = context.read<SessionCubit>().state;
+      final user = session.user;
+      if (user == null) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => MultiRepositoryProvider(
+          providers: [
+            RepositoryProvider.value(value: context.read<MessageRepository>()),
+            RepositoryProvider.value(value: context.read<WsClient>()),
+          ],
+          child: BlocProvider(
+            create: (_) => ChatCubit(
+              repository: context.read<MessageRepository>(),
+              wsClient: context.read<WsClient>(),
+              conversationId: conv.id,
+              currentUserId: user.userId.toString(),
+              currentUserName: user.nickname,
+              currentUserAvatar: user.avatar,
+            )..loadMessages(),
+            child: ChatPage(
+              conversationId: conv.id,
+              peerName: conv.displayName,
+              peerAvatar: conv.displayAvatar,
+              baseUrl: AppConfig.baseUrl,
+              isGroup: true,
+            ),
+          ),
+        ),
+      ));
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('创建群聊失败：$e')),
+        );
+      }
+    }
+  }
+
+  Future<void> _createGroupFromChat(BuildContext context, Conversation conversation) async {
+    if (conversation.peerUserId == null) return;
+    await _openCreateGroup(context, initialSelectedIds: {conversation.peerUserId!});
   }
 
   Widget _buildNavItem({

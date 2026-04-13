@@ -11,12 +11,16 @@ import 'image_preview_page.dart';
 import 'video_player_page.dart';
 import 'file_preview_page.dart';
 import '../data/video_thumbnail_service.dart';
+import 'private_chat_info_page.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationId;
   final String peerName;
   final String? peerAvatar;
   final String? baseUrl;
+  final bool isGroup;
+  final String? peerUserId;
+  final VoidCallback? onAddMember;
 
   const ChatPage({
     super.key,
@@ -24,6 +28,9 @@ class ChatPage extends StatefulWidget {
     required this.peerName,
     this.peerAvatar,
     this.baseUrl,
+    this.isGroup = false,
+    this.peerUserId,
+    this.onAddMember,
   });
 
   @override
@@ -65,6 +72,31 @@ class _ChatPageState extends State<ChatPage> {
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.peerName),
+          actions: [
+            if (!widget.isGroup)
+              IconButton(
+                icon: const Icon(Icons.more_horiz),
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PrivateChatInfoPage(
+                      peerName: widget.peerName,
+                      peerAvatar: widget.peerAvatar,
+                      peerUserId: widget.peerUserId,
+                      onAddMember: widget.onAddMember,
+                    ),
+                  ),
+                ),
+              ),
+            if (widget.isGroup)
+              IconButton(
+                icon: const Icon(Icons.group),
+                onPressed: () {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('群详情页将在下一版本实现')),
+                  );
+                },
+              ),
+          ],
         ),
         body: Container(
           color: Colors.white,

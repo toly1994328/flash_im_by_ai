@@ -189,6 +189,9 @@ class Message {
   bool get isVideo => type == MessageType.video;
   bool get isFile => type == MessageType.file;
 
+  /// 是否系统消息（sender_id=999999999）
+  bool get isSystem => senderId == '999999999';
+
   VideoExtra? get videoExtra {
     if (extra == null || !isVideo) return null;
     try { return VideoExtra.fromJson(extra!); } catch (_) { return null; }

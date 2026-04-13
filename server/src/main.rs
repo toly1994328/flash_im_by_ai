@@ -1,4 +1,5 @@
 mod mock;
+mod group_routes;
 
 use std::sync::Arc;
 use axum::Router;
@@ -10,6 +11,7 @@ use im_ws::state::WsState;
 use im_ws::broadcaster::WsBroadcaster;
 use im_ws::dispatcher::MessageDispatcher;
 use im_friend::{FriendRepository, FriendService, FriendApiState, friend_routes};
+use group_routes::{GroupApiState, group_routes};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 use app_storage::{StorageConfig, StorageService};
@@ -69,6 +71,13 @@ async fn main() {
         msg_service: Some(msg_service.clone()),
     };
 
+    // 群聊路由状态（需要 dispatcher）
+    let group_api_state = GroupApiState {
+        service: Arc::new(im_conversation::ConversationService::new(db.clone())),
+        dispatcher: dispatcher.clone(),
+        msg_service: msg_service.clone(),
+    };
+
     let app = Router::new()
         .merge(flash_auth::router())
         .merge(flash_user::router())
@@ -78,6 +87,7 @@ async fn main() {
         .merge(im_message::router(msg_service))
         .merge(storage_routes(storage))
         .merge(friend_routes(friend_state))
+        .merge(group_routes(group_api_state))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/uploads", ServeDir::new("uploads"))
         .nest_service("/static", ServeDir::new("static"));

@@ -56,5 +56,53 @@
     { "idx": 50, "phone_suffix": "0050", "name": "玫瑰紫",   "bio": "浪漫热烈，魅力无限",       "color": "ba2f7b" },
     { "idx": 51, "phone_suffix": "0051", "name": "茄皮紫",   "bio": "朴素自然，低调沉稳",       "color": "2d0c13" },
     { "idx": 52, "phone_suffix": "0052", "name": "牵牛紫",   "bio": "攀援向上，不畏艰难",       "color": "681752" }
+  ],
+
+  "groups": [
+    {
+      "name": "七彩虹",
+      "owner": 1,
+      "members": [2, 3, 4, 5, 6, 7],
+      "messages": [
+        { "from": 1, "text": "欢迎来到七彩虹 🌈" },
+        { "from": 2, "text": "橙色报到" },
+        { "from": 3, "text": "黄色到" },
+        { "from": 4, "text": "绿色在此 🌿" },
+        { "from": 5, "text": "蓝色签到 💙" },
+        { "from": 6, "text": "靛色就位" },
+        { "from": 7, "text": "紫色最后一个 💜" }
+      ]
+    },
+    {
+      "name": "暖色系联盟",
+      "owner": 1,
+      "members": [2, 3, 8, 9, 15, 21],
+      "messages": [
+        { "from": 1, "text": "暖色系集合 🔥" },
+        { "from": 2, "text": "暖色系最温暖" },
+        { "from": 3, "text": "黄色也是暖色哦" }
+      ]
+    },
+    {
+      "name": "冷色系空间",
+      "owner": 5,
+      "members": [4, 6, 7, 35, 39, 42, 47],
+      "messages": [
+        { "from": 5, "text": "冷色系的朋友们好 ❄️" },
+        { "from": 6, "text": "冷色系代表宁静和深邃" },
+        { "from": 7, "text": "紫色是最神秘的冷色" }
+      ]
+    },
+    {
+      "name": "红色系家族",
+      "owner": 1,
+      "members": [8, 9, 10, 11, 12, 13, 14],
+      "messages": [
+        { "from": 1,  "text": "红色系家族群建好了 ❤️" },
+        { "from": 8,  "text": "银红到" },
+        { "from": 9,  "text": "胭脂红签到" },
+        { "from": 10, "text": "樱桃红来啦 🍒" }
+      ]
+    }
   ]
 }

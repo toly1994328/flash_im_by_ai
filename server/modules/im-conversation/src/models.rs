@@ -55,19 +55,28 @@ pub struct ConversationListResponse {
     pub created_at: DateTime<Utc>,
 }
 
-/// 创建私聊请求
+/// 创建会话请求（统一单聊/群聊）
 #[derive(Debug, Deserialize)]
-pub struct CreatePrivateRequest {
-    pub peer_user_id: i64,
+pub struct CreateConversationRequest {
+    #[serde(rename = "type", default = "default_conv_type")]
+    pub conv_type: String,
+    pub peer_user_id: Option<i64>,
+    pub name: Option<String>,
+    pub member_ids: Option<Vec<i64>>,
 }
+
+fn default_conv_type() -> String { "private".to_string() }
 
 /// 创建会话响应
 #[derive(Debug, Serialize)]
 pub struct CreateConversationResponse {
     pub id: Uuid,
     pub conv_type: i16,
-    pub peer_user_id: String,
-    pub peer_nickname: String,
+    pub name: Option<String>,
+    pub avatar: Option<String>,
+    pub owner_id: Option<String>,
+    pub peer_user_id: Option<String>,
+    pub peer_nickname: Option<String>,
     pub peer_avatar: Option<String>,
     pub created_at: DateTime<Utc>,
 }
@@ -77,3 +86,67 @@ pub struct CreateConversationResponse {
 pub struct MessageResponse {
     pub message: String,
 }
+
+/// 群搜索结果
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct GroupSearchResult {
+    pub id: Uuid,
+    pub name: Option<String>,
+    pub avatar: Option<String>,
+    pub member_count: i64,
+    pub is_member: bool,
+    pub join_verification: bool,
+}
+
+/// 入群申请
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct GroupJoinRequest {
+    pub id: Uuid,
+    pub user_id: i64,
+    pub conversation_id: Uuid,
+    pub message: Option<String>,
+    pub status: i16,
+    pub handled_by: Option<i64>,
+    pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+/// 入群申请（带用户信息 + 群名）
+#[derive(Debug, Clone, Serialize)]
+pub struct MyJoinRequestItem {
+    #[serde(flatten)]
+    pub request: GroupJoinRequest,
+    pub nickname: String,
+    pub avatar: Option<String>,
+    pub group_name: Option<String>,
+}
+
+/// 申请入群请求体
+#[derive(Debug, Deserialize)]
+pub struct JoinGroupInput {
+    pub message: Option<String>,
+}
+
+/// 处理入群申请请求体
+#[derive(Debug, Deserialize)]
+pub struct HandleJoinInput {
+    pub approved: bool,
+}
+
+/// 申请入群响应
+#[derive(Debug, Serialize)]
+pub struct JoinGroupResponse {
+    pub auto_approved: bool,
+    pub owner_id: Option<String>,
+    pub group_name: Option<String>,
+}
+
+/// 群搜索查询参数
+#[derive(Debug, Deserialize)]
+pub struct SearchQuery {
+    pub keyword: String,
+    #[serde(default = "default_search_limit")]
+    pub limit: i32,
+}
+
+fn default_search_limit() -> i32 { 20 }

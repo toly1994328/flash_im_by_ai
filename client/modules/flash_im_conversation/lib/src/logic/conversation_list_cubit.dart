@@ -60,6 +60,7 @@ class ConversationListCubit extends Cubit<ConversationListState> {
             id: c.id,
             type: c.type,
             name: c.name,
+            avatar: c.avatar,
             peerUserId: c.peerUserId,
             peerNickname: c.peerNickname,
             peerAvatar: c.peerAvatar,

@@ -9,6 +9,7 @@ use im_message::{MessageService, models::NewMessage};
 use crate::proto::{
     MessageAck, SendMessageRequest, WsFrame, WsFrameType,
     FriendRequestNotification, FriendAcceptedNotification, FriendRemovedNotification,
+    GroupJoinRequestNotification,
 };
 use crate::state::WsState;
 
@@ -132,5 +133,36 @@ impl MessageDispatcher {
         };
         self.ws_state.send_to_user(to_user_id, frame.encode_to_vec()).await;
         println!("📨 [dispatcher] friend_removed notification sent to user {}", to_user_id);
+    }
+
+    /// 推送入群申请通知给群主
+    pub async fn notify_group_join_request(
+        &self,
+        to_owner_id: i64,
+        request_id: &str,
+        from_user_id: i64,
+        nickname: &str,
+        avatar: Option<&str>,
+        message: Option<&str>,
+        conversation_id: &str,
+        group_name: Option<&str>,
+        created_at: i64,
+    ) {
+        let notification = GroupJoinRequestNotification {
+            request_id: request_id.to_string(),
+            from_user_id: from_user_id.to_string(),
+            nickname: nickname.to_string(),
+            avatar: avatar.unwrap_or_default().to_string(),
+            message: message.unwrap_or_default().to_string(),
+            conversation_id: conversation_id.to_string(),
+            group_name: group_name.unwrap_or_default().to_string(),
+            created_at,
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::GroupJoinRequest as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(to_owner_id, frame.encode_to_vec()).await;
+        println!("📨 [dispatcher] group_join_request notification sent to owner {}", to_owner_id);
     }
 }

@@ -42,6 +42,8 @@ tokio.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 sqlx.workspace = true
+chrono.workspace = true
+uuid = { version = "1", features = ["v4"] }
 futures = "0.3"
 tower-http = { version = "0.6", features = ["fs"] }
 dotenvy = "0.15"

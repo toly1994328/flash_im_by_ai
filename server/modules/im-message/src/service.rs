@@ -101,6 +101,66 @@ impl MessageService {
         Ok(message)
     }
 
+    /// 发送系统消息（跳过成员校验，sender_id=999999999）
+    ///
+    /// 走完整流程：seq → 存储 → 更新预览 → 广播
+    pub async fn send_system(
+        &self,
+        conversation_id: Uuid,
+        content: String,
+    ) -> Result<Message, StatusCode> {
+        const SYSTEM_USER_ID: i64 = 999999999;
+
+        let msg = NewMessage {
+            conversation_id,
+            sender_id: SYSTEM_USER_ID,
+            content,
+            msg_type: 0,
+            extra: None,
+        };
+
+        // 生成序列号
+        let seq = self.seq_gen.next(conversation_id).await
+            .map_err(|e| { println!("❌ [msg] seq gen failed: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+
+        // 存储消息
+        let message = self.repo.create(&msg, seq).await
+            .map_err(|e| { println!("❌ [msg] create system message failed: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+
+        // 生成预览
+        let preview = crate::models::generate_preview(&msg.content, msg.msg_type);
+
+        // 更新会话最后消息
+        let _ = sqlx::query(
+            "UPDATE conversations SET last_message_preview = $2, \
+             last_message_at = NOW(), updated_at = NOW() WHERE id = $1",
+        )
+        .bind(conversation_id)
+        .bind(&preview)
+        .execute(&self.db)
+        .await;
+
+        // 获取成员列表
+        let member_rows: Vec<(i64,)> = sqlx::query_as(
+            "SELECT user_id FROM conversation_members WHERE conversation_id = $1",
+        )
+        .bind(conversation_id)
+        .fetch_all(&self.db)
+        .await
+        .unwrap_or_default();
+        let member_ids: Vec<i64> = member_rows.into_iter().map(|(id,)| id).collect();
+
+        // 广播消息（不排除发送者，因为系统用户不在线）
+        self.broadcaster.broadcast_message(&message, &member_ids, false).await;
+
+        // 广播会话更新
+        self.broadcaster.broadcast_conversation_update(
+            conversation_id, &preview, &member_ids, SYSTEM_USER_ID,
+        ).await;
+
+        Ok(message)
+    }
+
     /// 查询历史消息
     pub async fn get_history(
         &self,

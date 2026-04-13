@@ -38,9 +38,9 @@ docs/features/{feature}/api/
 ```
 
 命名规则：
-- `{feature}` = 功能域（如 im/core）
-- `{module}` = 具体模块（如 conversation、message）
-- `{name}` = 接口简称（如 create_private、list）
+- `{feature}` = 功能域（如 im/group）
+- `{module}` = 具体模块（如 group、conversation）
+- `{name}` = 接口简称（如 create_group、search）
 - 文档按执行顺序编号：`01_`、`02_`...
 - `00_link.md` 固定为大纲
 - 脚本生成的文档输出到同级的 `doc/` 目录
@@ -186,7 +186,8 @@ Base URL: `{base_url}`
 ## 参考模板
 
 现有模板文件：
-- Python: `docs/features/im/core/api/conversation/request/conversation.py`
+- Python: `docs/features/im/friend/api/friend/request/friend.py`
+- Python: `docs/features/im/group/api/group/request/group.py`
 
 编写新模块时，复制模板的 Curl 类和测试框架函数，只需替换测试步骤。
 

@@ -469,6 +469,147 @@ class FriendRemovedNotification extends $pb.GeneratedMessage {
   void clearFriendId() => $_clearField(1);
 }
 
+class GroupJoinRequestNotification extends $pb.GeneratedMessage {
+  factory GroupJoinRequestNotification({
+    $core.String? requestId,
+    $core.String? fromUserId,
+    $core.String? nickname,
+    $core.String? avatar,
+    $core.String? message,
+    $core.String? conversationId,
+    $core.String? groupName,
+    $fixnum.Int64? createdAt,
+  }) {
+    final result = create();
+    if (requestId != null) result.requestId = requestId;
+    if (fromUserId != null) result.fromUserId = fromUserId;
+    if (nickname != null) result.nickname = nickname;
+    if (avatar != null) result.avatar = avatar;
+    if (message != null) result.message = message;
+    if (conversationId != null) result.conversationId = conversationId;
+    if (groupName != null) result.groupName = groupName;
+    if (createdAt != null) result.createdAt = createdAt;
+    return result;
+  }
+
+  GroupJoinRequestNotification._();
+
+  factory GroupJoinRequestNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory GroupJoinRequestNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GroupJoinRequestNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'requestId')
+    ..aOS(2, _omitFieldNames ? '' : 'fromUserId')
+    ..aOS(3, _omitFieldNames ? '' : 'nickname')
+    ..aOS(4, _omitFieldNames ? '' : 'avatar')
+    ..aOS(5, _omitFieldNames ? '' : 'message')
+    ..aOS(6, _omitFieldNames ? '' : 'conversationId')
+    ..aOS(7, _omitFieldNames ? '' : 'groupName')
+    ..aInt64(8, _omitFieldNames ? '' : 'createdAt')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupJoinRequestNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupJoinRequestNotification copyWith(
+          void Function(GroupJoinRequestNotification) updates) =>
+      super.copyWith(
+              (message) => updates(message as GroupJoinRequestNotification))
+          as GroupJoinRequestNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GroupJoinRequestNotification create() =>
+      GroupJoinRequestNotification._();
+  @$core.override
+  GroupJoinRequestNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GroupJoinRequestNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GroupJoinRequestNotification>(create);
+  static GroupJoinRequestNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get requestId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set requestId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasRequestId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearRequestId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get fromUserId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set fromUserId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasFromUserId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearFromUserId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get nickname => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set nickname($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasNickname() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearNickname() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get avatar => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set avatar($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAvatar() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAvatar() => $_clearField(4);
+
+  @$pb.TagNumber(5)
+  $core.String get message => $_getSZ(4);
+  @$pb.TagNumber(5)
+  set message($core.String value) => $_setString(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasMessage() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearMessage() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get conversationId => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set conversationId($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasConversationId() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearConversationId() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.String get groupName => $_getSZ(6);
+  @$pb.TagNumber(7)
+  set groupName($core.String value) => $_setString(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasGroupName() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearGroupName() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $fixnum.Int64 get createdAt => $_getI64(7);
+  @$pb.TagNumber(8)
+  set createdAt($fixnum.Int64 value) => $_setInt64(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasCreatedAt() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearCreatedAt() => $_clearField(8);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

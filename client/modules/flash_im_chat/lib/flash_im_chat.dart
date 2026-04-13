@@ -13,3 +13,4 @@ export 'src/view/image_preview_page.dart';
 export 'src/view/video_player_page.dart';
 export 'src/view/file_preview_page.dart';
 export 'src/data/video_thumbnail_service.dart';
+export 'src/view/private_chat_info_page.dart';

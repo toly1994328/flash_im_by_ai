@@ -4,6 +4,7 @@ use uuid::Uuid;
 
 use super::models::{
     ConversationListItem, ConversationListResponse, CreateConversationResponse,
+    GroupSearchResult, JoinGroupResponse, MyJoinRequestItem,
 };
 use super::repository::ConversationRepository;
 
@@ -16,6 +17,11 @@ impl ConversationService {
     pub fn new(db: PgPool) -> Self {
         let repo = ConversationRepository::new(db.clone());
         Self { repo, db }
+    }
+
+    /// 获取数据库连接池引用（供 routes 层查询用户信息）
+    pub fn db(&self) -> &PgPool {
+        &self.db
     }
 
     /// 创建私聊（幂等）
@@ -56,8 +62,11 @@ impl ConversationService {
         Ok(CreateConversationResponse {
             id: conv.id,
             conv_type: conv.conv_type,
-            peer_user_id: peer_user_id.to_string(),
-            peer_nickname,
+            name: Some(peer_nickname.clone()),
+            avatar: peer_avatar.clone(),
+            owner_id: None,
+            peer_user_id: Some(peer_user_id.to_string()),
+            peer_nickname: Some(peer_nickname),
             peer_avatar,
             created_at: conv.created_at,
         })
@@ -261,5 +270,215 @@ impl ConversationService {
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         Ok(row.is_some())
+    }
+
+    // ==================== 群聊 ====================
+
+    /// 创建群聊
+    pub async fn create_group(
+        &self,
+        owner_id: i64,
+        name: &str,
+        member_ids: &[i64],
+    ) -> Result<CreateConversationResponse, StatusCode> {
+        let name = name.trim();
+        if name.is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        // 去重，排除群主
+        let unique_members: Vec<i64> = member_ids.iter()
+            .copied()
+            .filter(|&id| id != owner_id)
+            .collect::<std::collections::HashSet<_>>()
+            .into_iter()
+            .collect();
+
+        // 加上群主至少 3 人
+        if unique_members.len() < 2 {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+        if unique_members.len() + 1 > 200 {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        let conv = self.repo.create_group(name, owner_id, &unique_members)
+            .await
+            .map_err(|e| {
+                println!("❌ [conv] create_group failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })?;
+
+        Ok(CreateConversationResponse {
+            id: conv.id,
+            conv_type: conv.conv_type,
+            name: conv.name,
+            avatar: conv.avatar,
+            owner_id: conv.owner_id.map(|id| id.to_string()),
+            peer_user_id: None,
+            peer_nickname: None,
+            peer_avatar: None,
+            created_at: conv.created_at,
+        })
+    }
+
+    /// 搜索群聊
+    pub async fn search_groups(
+        &self,
+        keyword: &str,
+        user_id: i64,
+        limit: i32,
+    ) -> Result<Vec<GroupSearchResult>, StatusCode> {
+        if keyword.trim().is_empty() {
+            return Ok(vec![]);
+        }
+        self.repo.search_groups(keyword, user_id, limit)
+            .await
+            .map_err(|e| {
+                println!("❌ [conv] search_groups failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 申请入群
+    pub async fn request_join(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        message: Option<&str>,
+    ) -> Result<JoinGroupResponse, StatusCode> {
+        // 校验群存在且 type=1
+        let conv = self.repo.find_by_id(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if conv.conv_type != 1 {
+            return Err(StatusCode::NOT_FOUND);
+        }
+
+        // 校验非成员
+        if self.repo.is_member(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+        {
+            return Err(StatusCode::BAD_REQUEST); // 已经是群成员
+        }
+
+        // 校验无待处理申请
+        if self.repo.find_pending_join_request(user_id, conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .is_some()
+        {
+            return Err(StatusCode::BAD_REQUEST); // 已发送过入群申请
+        }
+
+        // 查询是否需要验证
+        let need_verification = self.repo.get_group_join_verification(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if !need_verification {
+            // 直接加入
+            self.repo.add_member(conversation_id, user_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            // 刷新宫格头像
+            let avatar = self.repo.build_grid_avatar(conversation_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let _ = sqlx::query("UPDATE conversations SET avatar = $2 WHERE id = $1")
+                .bind(conversation_id)
+                .bind(&avatar)
+                .execute(&self.db)
+                .await;
+
+            Ok(JoinGroupResponse {
+                auto_approved: true,
+                owner_id: None,
+                group_name: None,
+            })
+        } else {
+            // 创建申请
+            let _ = self.repo.create_join_request(user_id, conversation_id, message)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            Ok(JoinGroupResponse {
+                auto_approved: false,
+                owner_id: conv.owner_id.map(|id| id.to_string()),
+                group_name: conv.name,
+            })
+        }
+    }
+
+    /// 处理入群申请
+    pub async fn handle_join_request(
+        &self,
+        request_id: Uuid,
+        handler_id: i64,
+        approved: bool,
+    ) -> Result<(), StatusCode> {
+        let request = self.repo.find_join_request_by_id(request_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if request.status != 0 {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        // 校验是群主
+        let conv = self.repo.find_by_id(request.conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if conv.owner_id != Some(handler_id) {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        if approved {
+            self.repo.update_join_request_status(request_id, 1, handler_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            self.repo.add_member(request.conversation_id, request.user_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+            // 刷新宫格头像
+            let avatar = self.repo.build_grid_avatar(request.conversation_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            let _ = sqlx::query("UPDATE conversations SET avatar = $2 WHERE id = $1")
+                .bind(request.conversation_id)
+                .bind(&avatar)
+                .execute(&self.db)
+                .await;
+        } else {
+            self.repo.update_join_request_status(request_id, 2, handler_id)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        }
+
+        Ok(())
+    }
+
+    /// 获取我的群通知（作为群主的待处理入群申请）
+    pub async fn get_my_join_requests(
+        &self,
+        user_id: i64,
+        limit: i32,
+        offset: i32,
+    ) -> Result<Vec<MyJoinRequestItem>, StatusCode> {
+        self.repo.get_my_pending_join_requests(user_id, limit, offset)
+            .await
+            .map_err(|e| {
+                println!("❌ [conv] get_my_join_requests failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
     }
 }

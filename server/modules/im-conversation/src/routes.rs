@@ -2,28 +2,16 @@ use axum::{
     Router, Json,
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
-    routing::{get, post, delete},
+    routing::{post, delete},
 };
 use std::sync::Arc;
 use uuid::Uuid;
 
 use flash_core::jwt::extract_user_id;
 use flash_core::state::AppState;
-use sqlx;
 
-use super::models::{CreatePrivateRequest, MessageResponse};
+use super::models::MessageResponse;
 use super::service::ConversationService;
-
-async fn create_conversation(
-    State(state): State<Arc<AppState>>,
-    headers: HeaderMap,
-    Json(req): Json<CreatePrivateRequest>,
-) -> Result<Json<serde_json::Value>, StatusCode> {
-    let user_id = extract_user_id(&headers)?;
-    let service = ConversationService::new(state.db.clone());
-    let resp = service.create_private(user_id, req.peer_user_id).await?;
-    Ok(Json(serde_json::to_value(resp).unwrap()))
-}
 
 async fn list_conversations(
     State(state): State<Arc<AppState>>,
@@ -83,7 +71,7 @@ async fn mark_read(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/conversations", post(create_conversation).get(list_conversations))
+        .route("/conversations", axum::routing::get(list_conversations))
         .route("/conversations/{id}", delete(delete_conversation).get(get_conversation))
         .route("/conversations/{id}/read", post(mark_read))
 }

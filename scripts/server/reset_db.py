@@ -29,6 +29,7 @@ MIGRATIONS = [
     "20260329_002_conversations.sql",
     "20260330_003_messages.sql",
     "20260407_004_friends.sql",
+    "20260412_005_group.sql",
 ]
 
 # ─── 平台相关路径 ───
