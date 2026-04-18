@@ -60,9 +60,6 @@ class WsClient {
   Stream<WsFrame> get friendAcceptedStream => _friendAcceptedController.stream;
   Stream<WsFrame> get friendRemovedStream => _friendRemovedController.stream;
 
-  final _groupJoinRequestController = StreamController<WsFrame>.broadcast();
-  Stream<WsFrame> get groupJoinRequestStream => _groupJoinRequestController.stream;
-
   WsClient({
     required ImConfig config,
     required TokenProvider tokenProvider,
@@ -165,8 +162,6 @@ class WsClient {
         _friendAcceptedController.add(frame);
       case WsFrameType.FRIEND_REMOVED:
         _friendRemovedController.add(frame);
-      case WsFrameType.GROUP_JOIN_REQUEST:
-        _groupJoinRequestController.add(frame);
       default:
         break;
     }
@@ -264,6 +259,5 @@ class WsClient {
     _friendRequestController.close();
     _friendAcceptedController.close();
     _friendRemovedController.close();
-    _groupJoinRequestController.close();
   }
 }

@@ -10,6 +10,7 @@ members = [
     "modules/im-message",
     "modules/app-storage",
     "modules/im-friend",
+    "modules/im-group",
 ]
 
 [workspace.dependencies]
@@ -37,6 +38,7 @@ im-ws = { path = "modules/im-ws" }
 im-conversation = { path = "modules/im-conversation" }
 im-message = { path = "modules/im-message" }
 im-friend = { path = "modules/im-friend" }
+im-group = { path = "modules/im-group" }
 axum.workspace = true
 tokio.workspace = true
 serde.workspace = true

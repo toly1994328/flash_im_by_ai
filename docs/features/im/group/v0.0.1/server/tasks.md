@@ -25,12 +25,15 @@
 10. ✅ 任务 10 — HTTP 发消息接口
 11. ✅ 任务 11 — 系统用户 + send_system 方法
 12. ✅ 任务 12 — 创建群聊自动发系统消息
+13. ✅ 任务 13 — GET /conversations type 过滤
+14. ✅ 任务 14 — 移除搜索/入群/审批代码
+15. ⬜ 任务 15 — 拆分 im-group 独立 crate
 
 ---
 
 ## 任务 1：数据库迁移 `✅ 已完成`
 
-- ✅ 新建 `server/migrations/20260412_005_group.sql`（group_info + group_join_requests）
+- ✅ 新建 `server/migrations/20260412_005_group.sql`（group_info + 系统用户）
 - ✅ 注册到 `scripts/server/reset_db.py` 的 MIGRATIONS 列表
 - ✅ `python scripts/server/reset_db.py` 验证通过
 
@@ -111,3 +114,61 @@
 - ✅ `GroupApiState` 新增 `msg_service: Arc<MessageService>`
 - ✅ 创建群聊成功后调 `msg_service.send_system(conv_id, "XXX 创建了群聊")`
 - ✅ `main.rs` 注入 msg_service 到 GroupApiState
+
+## 任务 13：GET /conversations type 过滤 `✅ 已完成`
+
+- ✅ `im-conversation/routes.rs` list_conversations 新增可选 `type` 查询参数
+- ✅ `im-conversation/service.rs` get_list 签名新增 `conv_type: Option<i16>` 参数
+- ✅ `im-conversation/repository.rs` list_by_user 动态拼接 `AND c.type = $4` 条件
+- ✅ 不传 type 时行为不变（返回所有会话），传 `type=1` 只返回群聊
+
+## 任务 14：移除搜索/入群/审批代码 `✅ 已完成`
+
+搜索加群、入群申请、群主审批的前后端代码全部移除。
+
+- ✅ `group_routes.rs` 移除 search_groups / join_group / handle_join_request / get_my_join_requests 四个路由，只保留 create_conversation
+- ✅ `GroupApiState` 移除 `dispatcher` 字段（不再需要 WS 推送）
+- ✅ `main.rs` GroupApiState 构造移除 dispatcher 注入
+- ✅ `service.rs` 移除 search_groups / request_join / handle_join_request / get_my_join_requests 四个方法
+- ✅ `repository.rs` 移除 search_groups / get_group_join_verification / create_join_request / find_pending_join_request / find_join_request_by_id / update_join_request_status / get_my_pending_join_requests 七个方法
+- ✅ `models.rs` 移除 GroupSearchResult / GroupJoinRequest / MyJoinRequestItem / JoinGroupInput / HandleJoinInput / JoinGroupResponse / SearchQuery 七个模型
+- ✅ `dispatcher.rs` 移除 notify_group_join_request 方法和 GroupJoinRequestNotification import
+- ✅ `proto/ws.proto` 移除 GROUP_JOIN_REQUEST 帧类型和 GroupJoinRequestNotification 消息
+- ✅ `python scripts/proto/gen.py` 重新生成前后端代码
+
+## 任务 15：新建 im-group 独立 crate `⬜ 待处理`
+
+群聊相关代码放在独立的 im-group crate 中。会话模块只管通讯能力，群的事情归群管。
+
+### 15.1 新建 im-group crate `⬜`
+
+- 新建 `server/modules/im-group/`（Cargo.toml + src/lib.rs）
+- 在 workspace Cargo.toml 中注册 im-group
+- 依赖：flash-core（PgPool, JWT）、im-message（MessageService，用于 send_system）
+
+### 15.2 模型 `⬜`
+
+- `im-group/src/models.rs`：CreateGroupRequest（群名 + 成员列表）
+
+### 15.3 repository `⬜`
+
+- `im-group/src/repository.rs`：create_group 事务 + build_grid_avatar
+
+### 15.4 service `⬜`
+
+- `im-group/src/service.rs`：create_group 校验 + 事务编排
+
+### 15.5 路由 `⬜`
+
+- `im-group/src/routes.rs`：POST /groups 创建群聊 + 发系统消息
+- GroupApiState 定义在 im-group 内部
+
+### 15.6 main.rs 注册 `⬜`
+
+- 新增 `im-group` 依赖
+- 注册 im-group 路由
+
+### 15.7 编译验证 `⬜`
+
+- `cargo build` 零错误
+- `python scripts/server/reset_db.py` 通过

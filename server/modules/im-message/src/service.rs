@@ -109,7 +109,7 @@ impl MessageService {
         conversation_id: Uuid,
         content: String,
     ) -> Result<Message, StatusCode> {
-        const SYSTEM_USER_ID: i64 = 999999999;
+        const SYSTEM_USER_ID: i64 = 0;
 
         let msg = NewMessage {
             conversation_id,

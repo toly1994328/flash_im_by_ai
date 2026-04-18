@@ -7,6 +7,7 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
+import 'package:flash_im_group/flash_im_group.dart';
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
 
@@ -23,7 +24,6 @@ class _HomePageState extends State<HomePage> {
   int _currentIndex = 0;
   bool _hasShownPasswordGuide = false;
   late final ConversationListCubit _convCubit;
-  late final GroupNotificationCubit _groupNotifCubit;
 
   @override
   void initState() {
@@ -32,10 +32,6 @@ class _HomePageState extends State<HomePage> {
       context.read<ConversationRepository>(),
       wsClient: context.read<WsClient>(),
     )..loadConversations();
-    _groupNotifCubit = GroupNotificationCubit(
-      repository: context.read<ConversationRepository>(),
-      wsClient: context.read<WsClient>(),
-    )..load();
     context.read<FriendCubit>().loadFriends();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPasswordGuide();
@@ -309,7 +305,6 @@ class _HomePageState extends State<HomePage> {
                     isGroup: conversation.isGroup,
                     peerUserId: conversation.peerUserId,
                     onAddMember: conversation.isGroup ? null : () {
-                      Navigator.of(context).pop(); // close ChatPage
                       _createGroupFromChat(context, conversation);
                     },
                   ),
@@ -350,19 +345,43 @@ class _HomePageState extends State<HomePage> {
       },
       onSearchGroupTap: () {
         Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => SearchGroupPage(
+          builder: (_) => MyGroupsPage(
             repository: context.read<ConversationRepository>(),
+            onGroupTap: (conversation) {
+              final session = context.read<SessionCubit>().state;
+              final user = session.user;
+              if (user == null) return;
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => MultiRepositoryProvider(
+                  providers: [
+                    RepositoryProvider.value(value: context.read<MessageRepository>()),
+                    RepositoryProvider.value(value: context.read<WsClient>()),
+                  ],
+                  child: BlocProvider(
+                    create: (_) => ChatCubit(
+                      repository: context.read<MessageRepository>(),
+                      wsClient: context.read<WsClient>(),
+                      conversationId: conversation.id,
+                      currentUserId: user.userId.toString(),
+                      currentUserName: user.nickname,
+                      currentUserAvatar: user.avatar,
+                    )..loadMessages(),
+                    child: ChatPage(
+                      conversationId: conversation.id,
+                      peerName: conversation.displayName,
+                      peerAvatar: conversation.displayAvatar,
+                      baseUrl: AppConfig.baseUrl,
+                      isGroup: true,
+                    ),
+                  ),
+                ),
+              ));
+            },
           ),
         ));
       },
-      onGroupNotificationsTap: () {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => GroupNotificationsPage(
-            repository: context.read<ConversationRepository>(),
-          ),
-        ));
-      },
-      groupNotificationCount: _groupNotifCubit.state.pendingCount,
+      onGroupNotificationsTap: null,
+      groupNotificationCount: 0,
     );
   }
 
@@ -413,7 +432,6 @@ class _HomePageState extends State<HomePage> {
               isGroup: false,
               peerUserId: friend.friendId,
               onAddMember: () {
-                Navigator.of(context).pop();
                 _createGroupFromChat(context, Conversation(
                   id: conv.id,
                   type: 0,
@@ -434,30 +452,39 @@ class _HomePageState extends State<HomePage> {
 
   List<SelectableMember> _friendsToMembers() {
     return context.read<FriendCubit>().state.friends
-        .map((f) => SelectableMember(id: f.friendId, nickname: f.nickname, avatar: f.avatar))
+        .map((f) => SelectableMember(
+          id: f.friendId,
+          nickname: f.nickname,
+          avatar: f.avatar,
+          letter: PinyinUtil.getFirstLetter(f.nickname),
+        ))
         .toList();
   }
 
   Future<void> _openCreateGroup(BuildContext context, {Set<String>? initialSelectedIds}) async {
     final members = _friendsToMembers();
-    final result = await Navigator.of(context).push<CreateGroupResult>(
+    Navigator.of(context).push(
       MaterialPageRoute(
         builder: (_) => CreateGroupPage(
           members: members,
           initialSelectedIds: initialSelectedIds ?? const {},
+          onCreated: (result) => _handleGroupCreated(context, result),
         ),
       ),
     );
-    if (result == null || !mounted) return;
+  }
+
+  Future<void> _handleGroupCreated(BuildContext context, CreateGroupResult result) async {
     try {
-      final conv = await context.read<ConversationRepository>()
+      final conv = await context.read<GroupRepository>()
           .createGroup(name: result.name, memberIds: result.memberIds);
       if (!mounted) return;
       _convCubit.loadConversations();
       final session = context.read<SessionCubit>().state;
       final user = session.user;
       if (user == null) return;
-      Navigator.of(context).push(MaterialPageRoute(
+      // push ChatPage 替换 CreateGroupPage，用户看到直接进入聊天
+      Navigator.of(context).pushReplacement(MaterialPageRoute(
         builder: (_) => MultiRepositoryProvider(
           providers: [
             RepositoryProvider.value(value: context.read<MessageRepository>()),

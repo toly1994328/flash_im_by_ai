@@ -49,25 +49,6 @@ pub struct FriendRemovedNotification {
     #[prost(string, tag = "1")]
     pub friend_id: ::prost::alloc::string::String,
 }
-#[derive(Clone, PartialEq, ::prost::Message)]
-pub struct GroupJoinRequestNotification {
-    #[prost(string, tag = "1")]
-    pub request_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "2")]
-    pub from_user_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "3")]
-    pub nickname: ::prost::alloc::string::String,
-    #[prost(string, tag = "4")]
-    pub avatar: ::prost::alloc::string::String,
-    #[prost(string, tag = "5")]
-    pub message: ::prost::alloc::string::String,
-    #[prost(string, tag = "6")]
-    pub conversation_id: ::prost::alloc::string::String,
-    #[prost(string, tag = "7")]
-    pub group_name: ::prost::alloc::string::String,
-    #[prost(int64, tag = "8")]
-    pub created_at: i64,
-}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum WsFrameType {
@@ -81,7 +62,6 @@ pub enum WsFrameType {
     FriendRequest = 7,
     FriendAccepted = 8,
     FriendRemoved = 9,
-    GroupJoinRequest = 10,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -100,7 +80,6 @@ impl WsFrameType {
             Self::FriendRequest => "FRIEND_REQUEST",
             Self::FriendAccepted => "FRIEND_ACCEPTED",
             Self::FriendRemoved => "FRIEND_REMOVED",
-            Self::GroupJoinRequest => "GROUP_JOIN_REQUEST",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -116,7 +95,6 @@ impl WsFrameType {
             "FRIEND_REQUEST" => Some(Self::FriendRequest),
             "FRIEND_ACCEPTED" => Some(Self::FriendAccepted),
             "FRIEND_REMOVED" => Some(Self::FriendRemoved),
-            "GROUP_JOIN_REQUEST" => Some(Self::GroupJoinRequest),
             _ => None,
         }
     }

@@ -10,8 +10,20 @@ use uuid::Uuid;
 use flash_core::jwt::extract_user_id;
 use flash_core::state::AppState;
 
-use super::models::MessageResponse;
+use super::models::{MessageResponse, CreatePrivateRequest};
 use super::service::ConversationService;
+
+/// POST /conversations — 创建单聊会话
+async fn create_conversation(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(req): Json<CreatePrivateRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let service = ConversationService::new(state.db.clone());
+    let resp = service.create_private(user_id, req.peer_user_id).await?;
+    Ok(Json(serde_json::to_value(resp).unwrap()))
+}
 
 async fn list_conversations(
     State(state): State<Arc<AppState>>,
@@ -21,8 +33,9 @@ async fn list_conversations(
     let user_id = extract_user_id(&headers)?;
     let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20);
     let offset = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
+    let conv_type = params.get("type").and_then(|v| v.parse::<i16>().ok());
     let service = ConversationService::new(state.db.clone());
-    let list = service.get_list(user_id, limit, offset).await?;
+    let list = service.get_list(user_id, limit, offset, conv_type).await?;
     Ok(Json(serde_json::to_value(list).unwrap()))
 }
 
@@ -71,7 +84,7 @@ async fn mark_read(
 
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
-        .route("/conversations", axum::routing::get(list_conversations))
+        .route("/conversations", post(create_conversation).get(list_conversations))
         .route("/conversations/{id}", delete(delete_conversation).get(get_conversation))
         .route("/conversations/{id}/read", post(mark_read))
 }

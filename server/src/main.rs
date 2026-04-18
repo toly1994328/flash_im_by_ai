@@ -1,5 +1,4 @@
 mod mock;
-mod group_routes;
 
 use std::sync::Arc;
 use axum::Router;
@@ -11,7 +10,7 @@ use im_ws::state::WsState;
 use im_ws::broadcaster::WsBroadcaster;
 use im_ws::dispatcher::MessageDispatcher;
 use im_friend::{FriendRepository, FriendService, FriendApiState, friend_routes};
-use group_routes::{GroupApiState, group_routes};
+use im_group::{GroupService, GroupApiState, group_routes};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::ServeDir;
 use app_storage::{StorageConfig, StorageService};
@@ -71,10 +70,9 @@ async fn main() {
         msg_service: Some(msg_service.clone()),
     };
 
-    // 群聊路由状态（需要 dispatcher）
+    // 群聊路由状态
     let group_api_state = GroupApiState {
-        service: Arc::new(im_conversation::ConversationService::new(db.clone())),
-        dispatcher: dispatcher.clone(),
+        service: Arc::new(GroupService::new(db.clone())),
         msg_service: msg_service.clone(),
     };
 
