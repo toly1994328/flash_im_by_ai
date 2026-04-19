@@ -182,8 +182,7 @@ def main():
             if len(member_ids) < 2:
                 print(f"  {RED}SKIP: {g['name']} (not enough members){RESET}")
                 continue
-            r = Curl.post(f"{BASE}/conversations", json.dumps({
-                "type": "group",
+            r = Curl.post(f"{BASE}/groups", json.dumps({
                 "name": g["name"],
                 "member_ids": member_ids,
             }, ensure_ascii=False), owner_token)

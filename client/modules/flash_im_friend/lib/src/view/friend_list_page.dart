@@ -56,6 +56,14 @@ class FriendListPage extends StatelessWidget {
               badge: state.pendingCount,
               onTap: () => onRequestsTap?.call(),
             ),
+            if (onGroupNotificationsTap != null)
+              _ContactHeaderItem(
+                icon: Icons.notifications,
+                iconColor: const Color(0xFF3B82F6),
+                title: '群通知',
+                badge: groupNotificationCount,
+                onTap: () => onGroupNotificationsTap?.call(),
+              ),
             _ContactHeaderItem(
               icon: Icons.group,
               iconColor: const Color(0xFF4CAF50),

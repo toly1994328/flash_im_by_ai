@@ -9,13 +9,14 @@ import '../data/friend_repository.dart';
 import 'user_search_page.dart';
 import 'scan_page.dart';
 
-/// 添加朋友页面（微信风格）
+/// 加好友/群页面（微信风格）
 ///
 /// 顶部搜索入口 → 功能入口列表 → 底部个人二维码
 class AddFriendPage extends StatelessWidget {
   final FriendRepository repository;
+  final VoidCallback? onSearchGroup;
 
-  const AddFriendPage({super.key, required this.repository});
+  const AddFriendPage({super.key, required this.repository, this.onSearchGroup});
 
   /// 是否支持摄像头（Android/iOS 支持，桌面端不支持）
   bool get _supportCamera =>
@@ -29,7 +30,7 @@ class AddFriendPage extends StatelessWidget {
     return Scaffold(
       backgroundColor: const Color(0xFFF5F5F5),
       appBar: AppBar(
-        title: const Text('添加朋友'),
+        title: const Text('加好友/群'),
         backgroundColor: const Color(0xFFEDEDED),
         elevation: 0,
         scrolledUnderElevation: 0,
@@ -71,6 +72,13 @@ class AddFriendPage extends StatelessWidget {
                   title: '创建群聊',
                   subtitle: '与好友一起建群',
                   onTap: () {},
+                ),
+                _EntryItem(
+                  icon: Icons.search,
+                  iconColor: const Color(0xFFFF9800),
+                  title: '搜索群聊',
+                  subtitle: '搜索群名或群号加入群聊',
+                  onTap: () => onSearchGroup?.call(),
                 ),
                 const SizedBox(height: 10),
                 // 底部个人二维码

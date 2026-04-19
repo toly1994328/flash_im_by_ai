@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.1_group（群聊创建）
+最后更新：v0.0.2_group（搜索加群与入群审批）
 
 ---
 
@@ -50,6 +50,11 @@
 | D-16 | 好友实时通知 | im-friend + im-ws (dispatcher) | 后端 | v0.0.1_friend | ✅ |
 | D-17 | 用户搜索/资料 | flash-user | 后端 | v0.0.1_friend | ✅ |
 | D-18 | 群聊创建 | im-group | 后端 | v0.0.1_group | ✅ |
+| D-19 | 群搜索 | im-group | 后端 | v0.0.2_group | ✅ |
+| D-20 | 入群申请 | im-group | 后端 | v0.0.2_group | ✅ |
+| D-21 | 入群审批 | im-group | 后端 | v0.0.2_group | ✅ |
+| D-22 | 入群通知查询 | im-group | 后端 | v0.0.2_group | ✅ |
+| D-23 | 群成员查询与设置 | im-group | 后端 | v0.0.2_group | ✅ |
 
 ### 前端基础层（F）
 
@@ -64,6 +69,7 @@
 | F-07 | 共享头像组件 | flash_shared | v0.0.3 | ✅ |
 | F-08 | 视频信息提取 | flash_im_chat (video_thumbnail_service) | v0.0.4_media | ✅ |
 | F-09 | 好友WS流分发 | flash_im_core | v0.0.1_friend | ✅ |
+| F-10 | 群通知WS帧分发 | flash_im_core | v0.0.2_group | ✅ |
 
 ### 前端业务层（P）
 
@@ -101,6 +107,10 @@
 | P-31 | 单聊详情页 | flash_im_chat (private_chat_info_page) | v0.0.1_group | ✅ |
 | P-32 | 群聊消息气泡适配 | flash_im_chat (message_bubble) | v0.0.1_group | ✅ |
 | P-33 | 群聊会话列表适配 | flash_im_conversation (conversation_tile) | v0.0.1_group | ✅ |
+| P-34 | 群搜索与入群 | flash_im_group (search_group_page) | v0.0.2_group | ✅ |
+| P-35 | 群通知页 | flash_im_group (group_notifications_page) | v0.0.2_group | ✅ |
+| P-36 | 群通知角标 | flash_im_group (group_notification_cubit) | v0.0.2_group | ✅ |
+| P-37 | 群聊详情页 | flash_im_group (group_chat_info_page) | v0.0.2_group | ✅ |
 
 
 ---
@@ -113,7 +123,7 @@
 Level 0: flash-core (I-01)
 Level 1: flash-auth (I-02,I-03) | flash-user (I-04,D-17) | im-conversation (D-01~D-05,D-11) | app-storage (I-10~I-12)
          im-friend (D-14~D-16) → 依赖 flash-core + im-ws + im-conversation(Option) + im-message(Option)
-         im-group (D-18) → 依赖 flash-core + im-message
+         im-group (D-18~D-23) → 依赖 flash-core + im-message + im-ws
 Level 2: im-message (D-06~D-10,D-12~D-13) → 依赖 im-conversation
 Level 3: im-ws (I-05~I-09) → 依赖 im-message
 Level 4: main.rs → 组装所有模块
@@ -127,7 +137,7 @@ Level 1: flash_auth (F-01) | flash_session (F-02) | flash_im_core (F-04~F-06)
 Level 2: flash_im_conversation (P-01~P-05,P-10) → 依赖 flash_session + flash_im_core
          flash_im_chat (F-08,P-06~P-09,P-11~P-19) → 依赖 flash_im_core + flash_shared
          flash_im_friend (F-09,P-20~P-27) → 依赖 flash_im_core + flash_shared + flash_session
-         flash_im_group (P-28~P-29) → 依赖 flash_shared + flash_im_conversation
+         flash_im_group (P-28~P-29,P-34~P-37) → 依赖 flash_shared + flash_im_conversation + flutter_bloc
 Level 3: main.dart → 组装所有模块
 ```
 
@@ -168,6 +178,11 @@ graph TB
         D16[D-16 好友实时通知]
         D17[D-17 用户搜索/资料]
         D18[D-18 群聊创建]
+        D19[D-19 群搜索]
+        D20[D-20 入群申请]
+        D21[D-21 入群审批]
+        D22[D-22 入群通知查询]
+        D23[D-23 群成员查询与设置]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -179,6 +194,7 @@ graph TB
         F07[F-07 共享头像]
         F08[F-08 视频信息提取]
         F09[F-09 好友WS流分发]
+        F10[F-10 群通知WS帧分发]
     end
     subgraph 前端业务层
         P01[P-01 会话列表]
@@ -213,6 +229,10 @@ graph TB
         P31[P-31 单聊详情页]
         P32[P-32 群聊气泡适配]
         P33[P-33 会话列表适配]
+        P34[P-34 群搜索与入群]
+        P35[P-35 群通知页]
+        P36[P-36 群通知角标]
+        P37[P-37 群聊详情页]
     end
 
     %% 后端：模块间依赖
@@ -325,6 +345,21 @@ graph TB
     P32 --> P08
     P33 --> P01
     P28 -.-> P20
+
+    %% 群聊 v0.0.2：搜索加群
+    D19 --> D18
+    D20 --> D18
+    D20 --> I08
+    D21 --> D20
+    D22 --> D20
+    D23 --> D18
+    F10 --> F06
+    P34 -.->|HTTP| D19
+    P34 -.->|HTTP| D20
+    P35 -.->|HTTP| D21
+    P35 -.->|HTTP| D22
+    P36 --> F10
+    P37 -.->|HTTP| D23
 ```
 
 ---
@@ -348,6 +383,7 @@ graph TB
 | v0.11.0 | 2026-04-06 | 49 | [trace/v0.11.0_2026-04-06.md](trace/v0.11.0_2026-04-06.md) |
 | v0.12.0 | 2026-04-12 | 65 | [trace/v0.12.0_2026-04-12.md](trace/v0.12.0_2026-04-12.md) |
 | v0.13.0 | 2026-04-18 | 71 | [trace/v0.13.0_2026-04-18.md](trace/v0.13.0_2026-04-18.md) |
+| v0.14.0 | 2026-04-19 | 81 | [trace/v0.14.0_2026-04-19.md](trace/v0.14.0_2026-04-19.md) |
 
 ---
 
@@ -363,4 +399,4 @@ graph TB
 | 消息 | [message/server.md](modules/message/server.md) | I-10~I-12, D-06~D-10, D-12~D-13 |
 | 消息（客户端） | [message/client.md](modules/message/client.md) | F-06~F-08, P-06~P-09, P-11~P-19 |
 | 好友 | [friend/server.md](modules/friend/server.md) [friend/client.md](modules/friend/client.md) | D-14~D-17, F-09, P-20~P-27 |
-| 群聊 | [group/server.md](modules/group/server.md) [group/client.md](modules/group/client.md) | D-18, P-28~P-29, P-31~P-33 |
+| 群聊 | [group/server.md](modules/group/server.md) [group/client.md](modules/group/client.md) | D-18~D-23, F-10, P-28~P-29, P-31~P-37 |

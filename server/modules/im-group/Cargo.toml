@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 flash-core = { path = "../flash-core" }
 im-message = { path = "../im-message" }
+im-ws = { path = "../im-ws" }
 axum.workspace = true
 tokio.workspace = true
 serde.workspace = true

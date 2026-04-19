@@ -11,6 +11,7 @@ dependencies:
   flutter:
     sdk: flutter
   dio: ^5.8.0+1
+  flutter_bloc: ^8.1.0
   flash_shared:
     path: ../flash_shared
   flash_im_conversation:

@@ -74,6 +74,7 @@ async fn main() {
     let group_api_state = GroupApiState {
         service: Arc::new(GroupService::new(db.clone())),
         msg_service: msg_service.clone(),
+        dispatcher: dispatcher.clone(),
     };
 
     let app = Router::new()

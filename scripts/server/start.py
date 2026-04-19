@@ -113,7 +113,10 @@ def build_and_run():
     print("[SERVER] Build succeeded.")
 
     print("[SERVER] Starting...")
-    subprocess.run(["cargo", "run"], cwd=SERVER_DIR, env=env)
+    try:
+        subprocess.run(["cargo", "run"], cwd=SERVER_DIR, env=env)
+    except KeyboardInterrupt:
+        print("\n[SERVER] Stopped.")
 
 
 if __name__ == "__main__":

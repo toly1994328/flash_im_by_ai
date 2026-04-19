@@ -1272,6 +1272,7 @@ dependencies = [
  "chrono",
  "flash-core",
  "im-message",
+ "im-ws",
  "serde",
  "serde_json",
  "sqlx",

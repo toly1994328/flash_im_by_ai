@@ -21,6 +21,7 @@ class ChatPage extends StatefulWidget {
   final bool isGroup;
   final String? peerUserId;
   final VoidCallback? onAddMember;
+  final VoidCallback? onGroupInfo;
 
   const ChatPage({
     super.key,
@@ -31,6 +32,7 @@ class ChatPage extends StatefulWidget {
     this.isGroup = false,
     this.peerUserId,
     this.onAddMember,
+    this.onGroupInfo,
   });
 
   @override
@@ -90,11 +92,7 @@ class _ChatPageState extends State<ChatPage> {
             if (widget.isGroup)
               IconButton(
                 icon: const Icon(Icons.group),
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('群详情页将在下一版本实现')),
-                  );
-                },
+                onPressed: () => widget.onGroupInfo?.call(),
               ),
           ],
         ),
@@ -161,6 +159,7 @@ class _ChatPageState extends State<ChatPage> {
       controller: _scrollController,
       reverse: true,
       shrinkWrap: useShrinkWrap,
+      padding: const EdgeInsets.only(top: 12, bottom: 8),
       itemCount: itemCount,
       itemBuilder: (_, index) {
         if (index >= messages.length) {

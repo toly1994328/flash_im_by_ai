@@ -1,7 +1,8 @@
 use axum::http::StatusCode;
 use sqlx::PgPool;
+use uuid::Uuid;
 
-use super::models::GroupConversation;
+use super::models::{GroupConversation, GroupSearchResult, JoinRequestItem, JoinResult, GroupDetail};
 use super::repository::GroupRepository;
 
 pub struct GroupService {
@@ -51,6 +52,214 @@ impl GroupService {
             .await
             .map_err(|e| {
                 println!("❌ [group] create_group failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    // ─── v0.0.2：搜索加群与入群审批 ───
+
+    /// 搜索群聊
+    pub async fn search_groups(
+        &self,
+        user_id: i64,
+        keyword: &str,
+    ) -> Result<Vec<GroupSearchResult>, StatusCode> {
+        let keyword = keyword.trim();
+        if keyword.is_empty() {
+            return Ok(vec![]);
+        }
+
+        let is_numeric = keyword.parse::<i64>().is_ok();
+
+        self.repo.search_groups(user_id, keyword, is_numeric)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] search_groups failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 申请入群
+    pub async fn join_group(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        message: Option<&str>,
+    ) -> Result<JoinResult, StatusCode> {
+        // 校验群存在
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        // 校验非成员
+        let is_member = self.repo.is_member(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if is_member {
+            return Err(StatusCode::BAD_REQUEST); // 已经是群成员
+        }
+
+        // 校验无待处理申请
+        let pending = self.repo.find_pending_request(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if pending.is_some() {
+            return Err(StatusCode::BAD_REQUEST); // 已有待处理的入群申请
+        }
+
+        // 查 join_verification
+        let need_verification = self.repo.get_join_verification(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        if !need_verification {
+            // 无需验证，直接加入
+            self.repo.join_group_direct(conversation_id, user_id)
+                .await
+                .map_err(|e| {
+                    println!("❌ [group] join_group_direct failed: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+            Ok(JoinResult::AutoApproved)
+        } else {
+            // 需要验证，创建申请
+            let request_id = self.repo.create_join_request(conversation_id, user_id, message)
+                .await
+                .map_err(|e| {
+                    println!("❌ [group] create_join_request failed: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+            Ok(JoinResult::PendingApproval { request_id, owner_id })
+        }
+    }
+
+    /// 群主审批入群申请
+    /// 返回 Some(applicant_user_id) 表示同意，None 表示拒绝
+    pub async fn handle_join_request(
+        &self,
+        owner_id: i64,
+        conversation_id: Uuid,
+        request_id: Uuid,
+        approved: bool,
+    ) -> Result<Option<i64>, StatusCode> {
+        // 校验当前用户是群主
+        let actual_owner = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if actual_owner != owner_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // 校验申请存在且 status=0
+        let (req_conv_id, applicant_id, status) = self.repo.get_join_request(request_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if req_conv_id != conversation_id {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        if status != 0 {
+            return Err(StatusCode::BAD_REQUEST); // 该申请已处理
+        }
+
+        if approved {
+            self.repo.update_join_request_status(request_id, 1)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            self.repo.join_group_direct(conversation_id, applicant_id)
+                .await
+                .map_err(|e| {
+                    println!("❌ [group] join after approval failed: {}", e);
+                    StatusCode::INTERNAL_SERVER_ERROR
+                })?;
+            Ok(Some(applicant_id))
+        } else {
+            self.repo.update_join_request_status(request_id, 2)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            Ok(None)
+        }
+    }
+
+    /// 查询入群申请列表（群主视角）
+    pub async fn list_join_requests(
+        &self,
+        owner_id: i64,
+    ) -> Result<Vec<JoinRequestItem>, StatusCode> {
+        self.repo.list_join_requests(owner_id)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] list_join_requests failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    // ─── 群详情与群设置 ───
+
+    /// 获取群详情
+    pub async fn get_group_detail(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+    ) -> Result<GroupDetail, StatusCode> {
+        // 校验是群成员
+        let is_member = self.repo.is_member(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if !is_member {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // 查群信息
+        let (name, avatar, owner_id, group_no, join_verification) = self.repo
+            .get_group_info(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        // 查成员列表
+        let members = self.repo.get_group_members(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        Ok(GroupDetail {
+            id: conversation_id,
+            name,
+            avatar,
+            owner_id,
+            group_no,
+            member_count: members.len() as i64,
+            join_verification,
+            members,
+        })
+    }
+
+    /// 群主修改群设置
+    pub async fn update_group_settings(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        join_verification: bool,
+    ) -> Result<(), StatusCode> {
+        // 校验是群主
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+
+        if owner_id != user_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        self.repo.update_group_settings(conversation_id, join_verification)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] update_group_settings failed: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })
     }
