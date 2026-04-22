@@ -31,6 +31,7 @@ MIGRATIONS = [
     "20260407_004_friends.sql",
     "20260412_005_group.sql",
     "20260419_006_group_join.sql",
+    "20260420_007_group_manage.sql",
 ]
 
 # ─── 平台相关路径 ───

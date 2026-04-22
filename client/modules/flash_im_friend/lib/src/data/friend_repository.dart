@@ -48,7 +48,7 @@ class FriendRepository {
     await _dio.post('/api/friends/requests/$requestId/reject');
   }
 
-  Future<List<Friend>> getFriends({int limit = 20, int offset = 0}) async {
+  Future<List<Friend>> getFriends({int limit = 1000, int offset = 0}) async {
     final res = await _dio.get('/api/friends', queryParameters: {
       'limit': limit,
       'offset': offset,

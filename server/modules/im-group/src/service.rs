@@ -1,4 +1,5 @@
 use axum::http::StatusCode;
+use flash_core::AppError;
 use sqlx::PgPool;
 use uuid::Uuid;
 
@@ -18,6 +19,10 @@ impl GroupService {
 
     pub fn db(&self) -> &PgPool {
         &self.db
+    }
+
+    pub fn repo(&self) -> &GroupRepository {
+        &self.repo
     }
 
     /// 创建群聊
@@ -216,7 +221,7 @@ impl GroupService {
         }
 
         // 查群信息
-        let (name, avatar, owner_id, group_no, join_verification) = self.repo
+        let (name, avatar, owner_id, group_no, join_verification, status, announcement, announcement_updated_at) = self.repo
             .get_group_info(conversation_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -236,6 +241,9 @@ impl GroupService {
             member_count: members.len() as i64,
             join_verification,
             members,
+            status,
+            announcement,
+            announcement_updated_at,
         })
     }
 
@@ -260,6 +268,216 @@ impl GroupService {
             .await
             .map_err(|e| {
                 println!("❌ [group] update_group_settings failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    // ─── v0.0.3：群成员管理 ───
+
+    /// 邀请入群
+    pub async fn add_members(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        member_ids: &[i64],
+    ) -> Result<usize, AppError> {
+        // 校验当前用户是群成员
+        let is_member = self.repo.is_member(conversation_id, user_id).await?;
+        if !is_member {
+            return Err(AppError::forbidden("非群成员，无权邀请"));
+        }
+
+        // 校验群未解散
+        let status = self.repo.get_conversation_status(conversation_id).await?;
+        if status == 1 {
+            return Err(AppError::forbidden("群聊已解散"));
+        }
+
+        // 校验不超过 max_members (200)
+        let current_count = self.repo.get_member_count(conversation_id).await?;
+        if current_count + member_ids.len() as i64 > 200 {
+            return Err(AppError::bad_request("超过群成员上限"));
+        }
+
+        let added = self.repo.add_members(conversation_id, member_ids).await?;
+        Ok(added)
+    }
+
+    /// 踢人
+    pub async fn remove_member(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        target_id: i64,
+    ) -> Result<(), StatusCode> {
+        // 校验当前用户是群主
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if owner_id != user_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // 不能踢群主自己
+        if target_id == owner_id {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        // 校验 target 是群成员
+        let is_member = self.repo.is_member(conversation_id, target_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if !is_member {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        self.repo.remove_member(conversation_id, target_id)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] remove_member failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 退群
+    pub async fn leave(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+    ) -> Result<(), StatusCode> {
+        // 校验当前用户是群成员
+        let is_member = self.repo.is_member(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if !is_member {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        // 群主不能退出
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if owner_id == user_id {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        self.repo.remove_member(conversation_id, user_id)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] leave failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 转让群主
+    pub async fn transfer_owner(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        new_owner_id: i64,
+    ) -> Result<(), StatusCode> {
+        // 校验当前用户是群主
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if owner_id != user_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // 校验新群主是群成员
+        let is_member = self.repo.is_member(conversation_id, new_owner_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        if !is_member {
+            return Err(StatusCode::BAD_REQUEST);
+        }
+
+        self.repo.transfer_owner(conversation_id, new_owner_id)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] transfer_owner failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 解散群聊
+    pub async fn disband(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+    ) -> Result<(), StatusCode> {
+        // 校验当前用户是群主
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if owner_id != user_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        self.repo.disband(conversation_id)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] disband failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 更新群公告
+    pub async fn update_announcement(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        announcement: &str,
+    ) -> Result<(), StatusCode> {
+        // 校验当前用户是群主
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if owner_id != user_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        self.repo.update_announcement(conversation_id, announcement, user_id)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] update_announcement failed: {}", e);
+                StatusCode::INTERNAL_SERVER_ERROR
+            })
+    }
+
+    /// 修改群信息（群名/头像）
+    pub async fn update_group(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        name: Option<&str>,
+        avatar: Option<&str>,
+    ) -> Result<(), StatusCode> {
+        // 校验当前用户是群主
+        let owner_id = self.repo.get_group_owner(conversation_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+            .ok_or(StatusCode::NOT_FOUND)?;
+        if owner_id != user_id {
+            return Err(StatusCode::FORBIDDEN);
+        }
+
+        // 如果传了 name，trim 后校验非空
+        if let Some(n) = name {
+            if n.trim().is_empty() {
+                return Err(StatusCode::BAD_REQUEST);
+            }
+        }
+
+        self.repo.update_group(conversation_id, name, avatar)
+            .await
+            .map_err(|e| {
+                println!("❌ [group] update_group failed: {}", e);
                 StatusCode::INTERNAL_SERVER_ERROR
             })
     }

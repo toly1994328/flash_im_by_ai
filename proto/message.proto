@@ -48,3 +48,11 @@ message ConversationUpdate {
   int32 unread_count = 4;
   int32 total_unread = 5;
 }
+
+message GroupInfoUpdate {
+  string conversation_id = 1;
+  optional string name = 2;
+  optional string avatar = 3;
+  optional string announcement = 4;
+  optional int32 status = 5;
+}

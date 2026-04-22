@@ -78,7 +78,7 @@ pub struct FriendListQuery {
     pub offset: i32,
 }
 
-fn default_limit() -> i32 { 20 }
+fn default_limit() -> i32 { 1000 }
 
 /// 好友服务错误
 #[derive(Debug, Error)]

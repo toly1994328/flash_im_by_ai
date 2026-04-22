@@ -6,21 +6,6 @@ class CreateGroupResult {
   const CreateGroupResult({required this.name, required this.memberIds});
 }
 
-/// 可选成员（CreateGroupPage 用，避免依赖 flash_im_friend）
-class SelectableMember {
-  final String id;
-  final String nickname;
-  final String? avatar;
-  final String letter; // 拼音首字母（A-Z / #），由调用方传入
-
-  const SelectableMember({
-    required this.id,
-    required this.nickname,
-    this.avatar,
-    this.letter = '#',
-  });
-}
-
 // ─── v0.0.2：搜索加群与入群审批 ───
 
 /// 群搜索结果

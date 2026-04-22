@@ -9,7 +9,7 @@ use im_message::{MessageService, models::NewMessage};
 use crate::proto::{
     MessageAck, SendMessageRequest, WsFrame, WsFrameType,
     FriendRequestNotification, FriendAcceptedNotification, FriendRemovedNotification,
-    GroupJoinRequestNotification,
+    GroupJoinRequestNotification, GroupInfoUpdate,
 };
 use crate::state::WsState;
 
@@ -164,5 +164,31 @@ impl MessageDispatcher {
         };
         self.ws_state.send_to_user(to_owner_id, frame.encode_to_vec()).await;
         println!("📨 [dispatcher] group_join_request notification sent to owner {}", to_owner_id);
+    }
+
+    /// 推送群信息变更通知给所有群成员
+    pub async fn notify_group_info_update(
+        &self,
+        member_ids: &[i64],
+        conversation_id: &str,
+        name: Option<&str>,
+        avatar: Option<&str>,
+        announcement: Option<&str>,
+        status: Option<i32>,
+    ) {
+        let update = GroupInfoUpdate {
+            conversation_id: conversation_id.to_string(),
+            name: name.map(|s| s.to_string()),
+            avatar: avatar.map(|s| s.to_string()),
+            announcement: announcement.map(|s| s.to_string()),
+            status,
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::GroupInfoUpdate as i32,
+            payload: update.encode_to_vec(),
+        };
+        let data = frame.encode_to_vec();
+        self.ws_state.send_to_users(member_ids, data).await;
+        println!("📨 [dispatcher] group_info_update sent to {:?}", member_ids);
     }
 }
