@@ -333,7 +333,7 @@ class _HomePageState extends State<HomePage> {
                           currentUserId: user.userId.toString(),
                           friendsFetcher: () async => _friendsToMembers(),
                           onLeaveOrDisband: () {
-                            Navigator.of(context)..pop()..pop();
+                            Navigator.of(context).popUntil((route) => route.isFirst);
                             _convCubit.loadConversations();
                           },
                         ),
@@ -436,7 +436,7 @@ class _HomePageState extends State<HomePage> {
                                 currentUserId: user.userId.toString(),
                                 friendsFetcher: () async => _friendsToMembers(),
                                 onLeaveOrDisband: () {
-                                  Navigator.of(context)..pop()..pop();
+                                  Navigator.of(context).popUntil((route) => route.isFirst);
                                   _convCubit.loadConversations();
                                 },
                               ),
@@ -599,7 +599,7 @@ class _HomePageState extends State<HomePage> {
                     currentUserId: user.userId.toString(),
                     friendsFetcher: () async => _friendsToMembers(),
                     onLeaveOrDisband: () {
-                      Navigator.of(context)..pop()..pop();
+                      Navigator.of(context).popUntil((route) => route.isFirst);
                       _convCubit.loadConversations();
                     },
                   ),

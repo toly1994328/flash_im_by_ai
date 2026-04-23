@@ -1,4 +1,4 @@
-# POST /groups/33a71c87-efc8-414d-af0e-696879167e33/members
+# POST /groups/0756c679-62de-4f8f-a274-43d29187d18b/members
 
 非群成员邀请他人入群返回 403。
 
@@ -15,8 +15,8 @@
 ## curl
 
 ```bash
-curl -s -X POST "http://127.0.0.1:9600/groups/33a71c87-efc8-414d-af0e-696879167e33/members"
-  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2IiwiZXhwIjoxNzc3MzMzNTExLCJpYXQiOjE3NzY3Mjg3MTF9.4uOua7ci4XLTjg9UmJDAj4mLfdG6TDRE-VHXNhcxarc"
+curl -s -X POST "http://127.0.0.1:9600/groups/0756c679-62de-4f8f-a274-43d29187d18b/members"
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiI2IiwiZXhwIjoxNzc3NTA2ODU1LCJpYXQiOjE3NzY5MDIwNTV9.hVDmHbEBFS93fH5AHgp-seLW5tjjDpQJODouGV2ILqM"
   -H "Content-Type: application/json"
   -d '{"member_ids": [6]}'
 ```

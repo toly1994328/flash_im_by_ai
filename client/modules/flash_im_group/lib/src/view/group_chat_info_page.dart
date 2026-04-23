@@ -644,7 +644,7 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
               final tileW = (constraints.maxWidth - _spacing * (_membersPerRow - 1)) / _membersPerRow;
               return Wrap(
                 spacing: _spacing,
-                runSpacing: 20,
+                runSpacing: 12,
                 children: [
                   ...visibleMembers.map((m) {
                     final member = m as Map<String, dynamic>;
@@ -862,7 +862,7 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
     return Container(
       color: Colors.white,
       padding: const EdgeInsets.only(left: 16),
-      child: const Divider(height: 0.5, thickness: 0.5),
+      child: Divider(height: 0.5, thickness: 0.5, color: Colors.grey[200]),
     );
   }
 }
