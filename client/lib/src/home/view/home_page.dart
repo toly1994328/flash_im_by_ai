@@ -316,7 +316,11 @@ class _HomePageState extends State<HomePage> {
                     peerAvatar: conversation.displayAvatar,
                     baseUrl: AppConfig.baseUrl,
                     isGroup: conversation.isGroup,
+                    isDisband: false,
+                    announcement: null,
                     peerUserId: conversation.peerUserId,
+                    groupDetailFetcher: conversation.isGroup ? () =>
+                        context.read<GroupRepository>().getGroupDetail(conversation.id) : null,
                     onAddMember: conversation.isGroup ? null : () {
                       _createGroupFromChat(context, conversation);
                     },
@@ -327,6 +331,11 @@ class _HomePageState extends State<HomePage> {
                           conversationId: conversation.id,
                           baseUrl: AppConfig.baseUrl,
                           currentUserId: user.userId.toString(),
+                          friendsFetcher: () async => _friendsToMembers(),
+                          onLeaveOrDisband: () {
+                            Navigator.of(context).popUntil((route) => route.isFirst);
+                            _convCubit.loadConversations();
+                          },
                         ),
                       ));
                     } : null,
@@ -414,6 +423,10 @@ class _HomePageState extends State<HomePage> {
                           peerAvatar: conversation.displayAvatar,
                           baseUrl: AppConfig.baseUrl,
                           isGroup: true,
+                          isDisband: false,
+                          announcement: null,
+                          groupDetailFetcher: () =>
+                              context.read<GroupRepository>().getGroupDetail(conversation.id),
                           onGroupInfo: () {
                             Navigator.of(context).push(MaterialPageRoute(
                               builder: (_) => GroupChatInfoPage(
@@ -421,6 +434,11 @@ class _HomePageState extends State<HomePage> {
                                 conversationId: conversation.id,
                                 baseUrl: AppConfig.baseUrl,
                                 currentUserId: user.userId.toString(),
+                                friendsFetcher: () async => _friendsToMembers(),
+                                onLeaveOrDisband: () {
+                                  Navigator.of(context).popUntil((route) => route.isFirst);
+                                  _convCubit.loadConversations();
+                                },
                               ),
                             ));
                           },
@@ -568,6 +586,10 @@ class _HomePageState extends State<HomePage> {
               peerAvatar: conv.displayAvatar,
               baseUrl: AppConfig.baseUrl,
               isGroup: true,
+              isDisband: false,
+              announcement: null,
+              groupDetailFetcher: () =>
+                  context.read<GroupRepository>().getGroupDetail(conv.id),
               onGroupInfo: () {
                 Navigator.of(context).push(MaterialPageRoute(
                   builder: (_) => GroupChatInfoPage(
@@ -575,6 +597,11 @@ class _HomePageState extends State<HomePage> {
                     conversationId: conv.id,
                     baseUrl: AppConfig.baseUrl,
                     currentUserId: user.userId.toString(),
+                    friendsFetcher: () async => _friendsToMembers(),
+                    onLeaveOrDisband: () {
+                      Navigator.of(context).popUntil((route) => route.isFirst);
+                      _convCubit.loadConversations();
+                    },
                   ),
                 ));
               },

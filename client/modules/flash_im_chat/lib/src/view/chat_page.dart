@@ -1,7 +1,9 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:flash_im_core/flash_im_core.dart' show WsClient, WsFrame, WsFrameType, GroupInfoUpdate;
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
@@ -22,6 +24,11 @@ class ChatPage extends StatefulWidget {
   final String? peerUserId;
   final VoidCallback? onAddMember;
   final VoidCallback? onGroupInfo;
+  final bool isDisband;
+  final String? announcement;
+
+  /// 群详情获取器（群聊时由外部注入，返回 {status, announcement}）
+  final Future<Map<String, dynamic>> Function()? groupDetailFetcher;
 
   const ChatPage({
     super.key,
@@ -33,6 +40,9 @@ class ChatPage extends StatefulWidget {
     this.peerUserId,
     this.onAddMember,
     this.onGroupInfo,
+    this.isDisband = false,
+    this.announcement,
+    this.groupDetailFetcher,
   });
 
   @override
@@ -41,15 +51,52 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final _scrollController = ScrollController();
+  late String _title;
+  late bool _isDisband;
+  String? _announcement;
+  StreamSubscription? _groupInfoSub;
 
   @override
   void initState() {
     super.initState();
+    _title = widget.peerName;
+    _isDisband = widget.isDisband;
+    _announcement = widget.announcement;
     _scrollController.addListener(_onScroll);
+    // 监听 GROUP_INFO_UPDATE 推送，实时同步群名/公告/解散状态
+    _groupInfoSub = context.read<WsClient>().groupInfoUpdateStream.listen((frame) {
+      final update = GroupInfoUpdate.fromBuffer(frame.payload);
+      if (update.conversationId != widget.conversationId) return;
+      if (mounted) {
+        setState(() {
+          if (update.hasName()) _title = update.name;
+          if (update.hasAnnouncement()) _announcement = update.announcement;
+          if (update.hasStatus()) _isDisband = update.status == 1;
+        });
+      }
+    });
+    // 群聊时异步拉取群详情（公告 + 解散状态）
+    if (widget.isGroup && widget.groupDetailFetcher != null) {
+      _loadGroupDetail();
+    }
+  }
+
+  Future<void> _loadGroupDetail() async {
+    try {
+      final detail = await widget.groupDetailFetcher!();
+      if (!mounted) return;
+      final status = detail['status'] as int? ?? 0;
+      final announcement = detail['announcement'] as String?;
+      setState(() {
+        _isDisband = status == 1;
+        _announcement = announcement;
+      });
+    } catch (_) {}
   }
 
   @override
   void dispose() {
+    _groupInfoSub?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -73,7 +120,7 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(widget.peerName),
+          title: Text(_title),
           actions: [
             if (!widget.isGroup)
               IconButton(
@@ -89,7 +136,7 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 ),
               ),
-            if (widget.isGroup)
+            if (widget.isGroup && !_isDisband)
               IconButton(
                 icon: const Icon(Icons.group),
                 onPressed: () => widget.onGroupInfo?.call(),
@@ -100,6 +147,37 @@ class _ChatPageState extends State<ChatPage> {
           color: Colors.white,
           child: Column(
             children: [
+              // 群公告横幅
+              if (widget.isGroup && !_isDisband &&
+                  _announcement != null && _announcement!.isNotEmpty)
+                GestureDetector(
+                  onTap: () => widget.onGroupInfo?.call(),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFFFF9E6),
+                      border: Border(
+                        bottom: BorderSide(color: Color(0xFFEEE6CC), width: 0.5),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.campaign_outlined, color: Color(0xFFE6A817), size: 18),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            _announcement!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: const TextStyle(fontSize: 13, color: Color(0xFF666666)),
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 16),
+                      ],
+                    ),
+                  ),
+                ),
               Expanded(
                 child: BlocBuilder<ChatCubit, ChatState>(
                   builder: (context, state) {
@@ -127,20 +205,31 @@ class _ChatPageState extends State<ChatPage> {
                   },
                 ),
               ),
-              ChatInput(
-                onSend: (content) => context.read<ChatCubit>().sendMessage(content),
-                onSendImage: (path) => context.read<ChatCubit>().sendImageFromFile(path),
-                onSendVideo: (path) async {
-                  final info = await VideoThumbnailService().extractVideoInfo(path);
-                  if (context.mounted) {
-                    context.read<ChatCubit>().sendVideoFromFile(
-                      path, info.thumbnailPath, info.durationMs,
-                      width: info.width, height: info.height,
-                    );
-                  }
-                },
-                onSendFile: (path) => context.read<ChatCubit>().sendFileFromPicker(path),
-              ),
+              if (_isDisband)
+                Container(
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  color: const Color(0xFFF0F0F0),
+                  alignment: Alignment.center,
+                  child: const Text(
+                    '该群聊已解散',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
+                  ),
+                )
+              else
+                ChatInput(
+                  onSend: (content) => context.read<ChatCubit>().sendMessage(content),
+                  onSendImage: (path) => context.read<ChatCubit>().sendImageFromFile(path),
+                  onSendVideo: (path) async {
+                    final info = await VideoThumbnailService().extractVideoInfo(path);
+                    if (context.mounted) {
+                      context.read<ChatCubit>().sendVideoFromFile(
+                        path, info.thumbnailPath, info.durationMs,
+                        width: info.width, height: info.height,
+                      );
+                    }
+                  },
+                  onSendFile: (path) => context.read<ChatCubit>().sendFileFromPicker(path),
+                ),
             ],
           ),
         ),

@@ -104,10 +104,40 @@ pub struct GroupDetail {
     pub member_count: i64,
     pub join_verification: bool,
     pub members: Vec<GroupMember>,
+    pub status: i16,
+    pub announcement: Option<String>,
+    pub announcement_updated_at: Option<DateTime<Utc>>,
 }
 
 /// 群设置请求
 #[derive(Debug, Deserialize)]
 pub struct UpdateGroupSettingsRequest {
     pub join_verification: Option<bool>,
+}
+
+// ─── v0.0.3：群成员管理 ───
+
+/// 邀请入群请求
+#[derive(Debug, Deserialize)]
+pub struct AddMembersRequest {
+    pub member_ids: Vec<i64>,
+}
+
+/// 转让群主请求
+#[derive(Debug, Deserialize)]
+pub struct TransferOwnerRequest {
+    pub new_owner_id: i64,
+}
+
+/// 修改群信息请求
+#[derive(Debug, Deserialize)]
+pub struct UpdateGroupRequest {
+    pub name: Option<String>,
+    pub avatar: Option<String>,
+}
+
+/// 群公告请求
+#[derive(Debug, Deserialize)]
+pub struct UpdateAnnouncementRequest {
+    pub announcement: String,
 }

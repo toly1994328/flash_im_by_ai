@@ -4,3 +4,6 @@ export 'src/group_avatar_widget.dart';
 export 'src/popup_menu_button.dart';
 export 'src/search_bar.dart';
 export 'src/search_input.dart';
+export 'src/pinyin_util.dart';
+export 'src/selectable_member.dart';
+export 'src/member_picker_page.dart';

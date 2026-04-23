@@ -61,4 +61,45 @@ class GroupRepository {
       'join_verification': joinVerification,
     });
   }
+
+  // ─── v0.0.3：群成员管理 ───
+
+  /// 邀请入群
+  Future<int> addMembers(String groupId, List<int> memberIds) async {
+    final res = await _dio.post('/groups/$groupId/members', data: {'member_ids': memberIds});
+    return (res.data as Map<String, dynamic>)['added_count'] as int;
+  }
+
+  /// 踢人
+  Future<void> removeMember(String groupId, int userId) async {
+    await _dio.delete('/groups/$groupId/members/$userId');
+  }
+
+  /// 退群
+  Future<void> leaveGroup(String groupId) async {
+    await _dio.post('/groups/$groupId/leave');
+  }
+
+  /// 转让群主
+  Future<void> transferOwner(String groupId, int newOwnerId) async {
+    await _dio.put('/groups/$groupId/transfer', data: {'new_owner_id': newOwnerId});
+  }
+
+  /// 解散群聊
+  Future<void> disbandGroup(String groupId) async {
+    await _dio.post('/groups/$groupId/disband');
+  }
+
+  /// 更新群公告
+  Future<void> updateAnnouncement(String groupId, String announcement) async {
+    await _dio.put('/groups/$groupId/announcement', data: {'announcement': announcement});
+  }
+
+  /// 修改群信息（群名/头像）
+  Future<void> updateGroup(String groupId, {String? name, String? avatar}) async {
+    await _dio.put('/groups/$groupId', data: {
+      if (name != null) 'name': name,
+      if (avatar != null) 'avatar': avatar,
+    });
+  }
 }

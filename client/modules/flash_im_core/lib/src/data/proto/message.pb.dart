@@ -470,6 +470,93 @@ class ConversationUpdate extends $pb.GeneratedMessage {
   void clearTotalUnread() => $_clearField(5);
 }
 
+class GroupInfoUpdate extends $pb.GeneratedMessage {
+  factory GroupInfoUpdate({
+    $core.String? conversationId,
+    $core.String? name,
+    $core.String? avatar,
+    $core.String? announcement,
+    $core.int? status,
+  }) {
+    final result = create();
+    if (conversationId != null) result.conversationId = conversationId;
+    if (name != null) result.name = name;
+    if (avatar != null) result.avatar = avatar;
+    if (announcement != null) result.announcement = announcement;
+    if (status != null) result.status = status;
+    return result;
+  }
+
+  GroupInfoUpdate._();
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupInfoUpdate clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupInfoUpdate copyWith(void Function(GroupInfoUpdate) updates) =>
+      super.copyWith((message) => updates(message as GroupInfoUpdate))
+          as GroupInfoUpdate;
+
+  factory GroupInfoUpdate.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'GroupInfoUpdate',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'conversationId')
+    ..aOS(2, _omitFieldNames ? '' : 'name')
+    ..aOS(3, _omitFieldNames ? '' : 'avatar')
+    ..aOS(4, _omitFieldNames ? '' : 'announcement')
+    ..aI(5, _omitFieldNames ? '' : 'status')
+    ..hasRequiredFields = false;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static GroupInfoUpdate create() => GroupInfoUpdate._();
+  @$core.override
+  GroupInfoUpdate createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static GroupInfoUpdate getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<GroupInfoUpdate>(create);
+  static GroupInfoUpdate? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get conversationId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set conversationId($core.String value) => $_setString(0, value);
+
+  @$pb.TagNumber(2)
+  $core.String get name => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set name($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasName() => $_has(1);
+
+  @$pb.TagNumber(3)
+  $core.String get avatar => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set avatar($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAvatar() => $_has(2);
+
+  @$pb.TagNumber(4)
+  $core.String get announcement => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set announcement($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasAnnouncement() => $_has(3);
+
+  @$pb.TagNumber(5)
+  $core.int get status => $_getIZ(4);
+  @$pb.TagNumber(5)
+  set status($core.int value) => $_setSignedInt32(4, value);
+  @$pb.TagNumber(5)
+  $core.bool hasStatus() => $_has(4);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

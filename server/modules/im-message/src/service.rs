@@ -31,6 +31,20 @@ impl MessageService {
             return Err(StatusCode::BAD_REQUEST);
         }
 
+        // Check if conversation is disbanded
+        let conv_status: Option<(i16,)> = sqlx::query_as(
+            "SELECT COALESCE(status, 0::SMALLINT) FROM conversations WHERE id = $1"
+        )
+        .bind(msg.conversation_id)
+        .fetch_optional(&self.db)
+        .await
+        .map_err(|e| { println!("❌ [msg.send] status check failed: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
+
+        if conv_status.map(|(s,)| s).unwrap_or(0) == 1 {
+            println!("❌ [msg.send] conversation {} is disbanded", msg.conversation_id);
+            return Err(StatusCode::FORBIDDEN);
+        }
+
         // 验证是会话成员
         let is_member: Option<(i32,)> = sqlx::query_as(
             "SELECT 1 FROM conversation_members \

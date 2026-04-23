@@ -82,6 +82,7 @@ pub enum WsFrameType {
     FriendAccepted = 8,
     FriendRemoved = 9,
     GroupJoinRequest = 10,
+    GroupInfoUpdate = 11,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -101,6 +102,7 @@ impl WsFrameType {
             Self::FriendAccepted => "FRIEND_ACCEPTED",
             Self::FriendRemoved => "FRIEND_REMOVED",
             Self::GroupJoinRequest => "GROUP_JOIN_REQUEST",
+            Self::GroupInfoUpdate => "GROUP_INFO_UPDATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -117,6 +119,7 @@ impl WsFrameType {
             "FRIEND_ACCEPTED" => Some(Self::FriendAccepted),
             "FRIEND_REMOVED" => Some(Self::FriendRemoved),
             "GROUP_JOIN_REQUEST" => Some(Self::GroupJoinRequest),
+            "GROUP_INFO_UPDATE" => Some(Self::GroupInfoUpdate),
             _ => None,
         }
     }
@@ -178,6 +181,19 @@ pub struct ConversationUpdate {
     pub unread_count: i32,
     #[prost(int32, tag = "5")]
     pub total_unread: i32,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct GroupInfoUpdate {
+    #[prost(string, tag = "1")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(string, optional, tag = "2")]
+    pub name: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "3")]
+    pub avatar: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(string, optional, tag = "4")]
+    pub announcement: ::core::option::Option<::prost::alloc::string::String>,
+    #[prost(int32, optional, tag = "5")]
+    pub status: ::core::option::Option<i32>,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

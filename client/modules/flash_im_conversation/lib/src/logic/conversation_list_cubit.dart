@@ -12,11 +12,13 @@ class ConversationListCubit extends Cubit<ConversationListState> {
   static const int _pageSize = 20;
   bool _isLoadingMore = false;
   StreamSubscription? _updateSub;
+  StreamSubscription? _groupInfoSub;
 
   ConversationListCubit(this._repository, {WsClient? wsClient})
       : _wsClient = wsClient,
         super(const ConversationListInitial()) {
     _updateSub = _wsClient?.conversationUpdateStream.listen(_handleUpdate);
+    _groupInfoSub = _wsClient?.groupInfoUpdateStream.listen(_handleGroupInfoUpdate);
   }
 
   void _handleUpdate(WsFrame frame) {
@@ -150,9 +152,41 @@ class ConversationListCubit extends Cubit<ConversationListState> {
     _repository.markRead(conversationId).catchError((_) {});
   }
 
+  void _handleGroupInfoUpdate(WsFrame frame) {
+    try {
+      final update = GroupInfoUpdate.fromBuffer(frame.payload);
+      final current = state;
+      if (current is! ConversationListLoaded) return;
+
+      final updated = current.conversations.map((c) {
+        if (c.id == update.conversationId) {
+          return Conversation(
+            id: c.id,
+            type: c.type,
+            name: update.hasName() ? update.name : c.name,
+            avatar: update.hasAvatar() ? update.avatar : c.avatar,
+            peerUserId: c.peerUserId,
+            peerNickname: c.peerNickname,
+            peerAvatar: c.peerAvatar,
+            lastMessageAt: c.lastMessageAt,
+            lastMessagePreview: c.lastMessagePreview,
+            unreadCount: c.unreadCount,
+            isPinned: c.isPinned,
+            isMuted: c.isMuted,
+            createdAt: c.createdAt,
+          );
+        }
+        return c;
+      }).toList();
+
+      emit(ConversationListLoaded(updated, hasMore: current.hasMore, totalUnread: current.totalUnread));
+    } catch (_) {}
+  }
+
   @override
   Future<void> close() {
     _updateSub?.cancel();
+    _groupInfoSub?.cancel();
     return super.close();
   }
 }

@@ -9,3 +9,4 @@ export 'src/view/my_groups_page.dart';
 export 'src/view/search_group_page.dart';
 export 'src/view/group_notifications_page.dart';
 export 'src/view/group_chat_info_page.dart';
+export 'src/view/group_announcement_page.dart';

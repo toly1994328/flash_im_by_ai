@@ -327,8 +327,9 @@ impl GroupRepository {
                     up.avatar
                 FROM conversation_members cm
                 LEFT JOIN user_profiles up ON cm.user_id = up.account_id
+                JOIN conversations c ON c.id = cm.conversation_id
                 WHERE cm.conversation_id = $1 AND cm.is_deleted = false
-                ORDER BY cm.joined_at"#
+                ORDER BY CASE WHEN cm.user_id = c.owner_id THEN 0 ELSE 1 END, cm.joined_at"#
         )
         .bind(conversation_id)
         .fetch_all(&self.db)
@@ -339,10 +340,11 @@ impl GroupRepository {
     pub async fn get_group_info(
         &self,
         conversation_id: Uuid,
-    ) -> Result<Option<(Option<String>, Option<String>, Option<i64>, i64, bool)>, sqlx::Error> {
-        // 返回 (name, avatar, owner_id, group_no, join_verification)
+    ) -> Result<Option<(Option<String>, Option<String>, Option<i64>, i64, bool, i16, Option<String>, Option<chrono::DateTime<chrono::Utc>>)>, sqlx::Error> {
+        // 返回 (name, avatar, owner_id, group_no, join_verification, status, announcement, announcement_updated_at)
         sqlx::query_as(
-            r#"SELECT c.name, c.avatar, c.owner_id, COALESCE(gi.group_no, 0), COALESCE(gi.join_verification, false)
+            r#"SELECT c.name, c.avatar, c.owner_id, COALESCE(gi.group_no, 0), COALESCE(gi.join_verification, false),
+                COALESCE(c.status, 0::SMALLINT), gi.announcement, gi.announcement_updated_at
                 FROM conversations c
                 LEFT JOIN group_info gi ON gi.conversation_id = c.id
                 WHERE c.id = $1 AND c.type = 1"#
@@ -366,5 +368,190 @@ impl GroupRepository {
         .execute(&self.db)
         .await?;
         Ok(())
+    }
+
+    // ─── v0.0.3：群成员管理 ───
+
+    /// 邀请入群（批量添加成员）
+    pub async fn add_members(
+        &self,
+        conversation_id: Uuid,
+        member_ids: &[i64],
+    ) -> Result<usize, sqlx::Error> {
+        let mut added = 0usize;
+        for &uid in member_ids {
+            let result = sqlx::query(
+                "INSERT INTO conversation_members (conversation_id, user_id) VALUES ($1, $2)
+                 ON CONFLICT (conversation_id, user_id) DO UPDATE SET is_deleted = FALSE, joined_at = NOW()"
+            )
+            .bind(conversation_id)
+            .bind(uid)
+            .execute(&self.db)
+            .await?;
+            if result.rows_affected() > 0 {
+                added += 1;
+            }
+        }
+
+        // 刷新宫格头像
+        let avatar = self.build_grid_avatar(conversation_id).await?;
+        sqlx::query("UPDATE conversations SET avatar = $2 WHERE id = $1")
+            .bind(conversation_id)
+            .bind(&avatar)
+            .execute(&self.db)
+            .await?;
+
+        Ok(added)
+    }
+
+    /// 移除群成员（踢人和退群共用）
+    pub async fn remove_member(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "UPDATE conversation_members SET is_deleted = TRUE WHERE conversation_id = $1 AND user_id = $2"
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .execute(&self.db)
+        .await?;
+
+        // 刷新宫格头像
+        let avatar = self.build_grid_avatar(conversation_id).await?;
+        sqlx::query("UPDATE conversations SET avatar = $2 WHERE id = $1")
+            .bind(conversation_id)
+            .bind(&avatar)
+            .execute(&self.db)
+            .await?;
+
+        Ok(())
+    }
+
+    /// 转让群主
+    pub async fn transfer_owner(
+        &self,
+        conversation_id: Uuid,
+        new_owner_id: i64,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE conversations SET owner_id = $2 WHERE id = $1")
+            .bind(conversation_id)
+            .bind(new_owner_id)
+            .execute(&self.db)
+            .await?;
+        Ok(())
+    }
+
+    /// 解散群聊
+    pub async fn disband(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query("UPDATE conversations SET status = 1 WHERE id = $1")
+            .bind(conversation_id)
+            .execute(&self.db)
+            .await?;
+        Ok(())
+    }
+
+    /// 更新群公告
+    pub async fn update_announcement(
+        &self,
+        conversation_id: Uuid,
+        announcement: &str,
+        updated_by: i64,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "UPDATE group_info SET announcement = $2, announcement_updated_at = NOW(), announcement_updated_by = $3 WHERE conversation_id = $1"
+        )
+        .bind(conversation_id)
+        .bind(announcement)
+        .bind(updated_by)
+        .execute(&self.db)
+        .await?;
+        Ok(())
+    }
+
+    /// 修改群信息（群名/头像，动态拼接）
+    pub async fn update_group(
+        &self,
+        conversation_id: Uuid,
+        name: Option<&str>,
+        avatar: Option<&str>,
+    ) -> Result<(), sqlx::Error> {
+        let mut sets = Vec::new();
+        let mut idx = 1u32;
+
+        if name.is_some() {
+            idx += 1;
+            sets.push(format!("name = ${}", idx));
+        }
+        if avatar.is_some() {
+            idx += 1;
+            sets.push(format!("avatar = ${}", idx));
+        }
+
+        if sets.is_empty() {
+            return Ok(());
+        }
+
+        let sql = format!(
+            "UPDATE conversations SET {} WHERE id = $1",
+            sets.join(", ")
+        );
+
+        let mut query = sqlx::query(&sql).bind(conversation_id);
+        if let Some(n) = name {
+            query = query.bind(n);
+        }
+        if let Some(a) = avatar {
+            query = query.bind(a);
+        }
+
+        query.execute(&self.db).await?;
+        Ok(())
+    }
+
+    /// 查询群成员数量
+    pub async fn get_member_count(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<i64, sqlx::Error> {
+        let (count,): (i64,) = sqlx::query_as(
+            "SELECT COUNT(*) FROM conversation_members WHERE conversation_id = $1 AND is_deleted = false"
+        )
+        .bind(conversation_id)
+        .fetch_one(&self.db)
+        .await?;
+        Ok(count)
+    }
+
+    /// 查询群聊状态（0=正常, 1=已解散）
+    pub async fn get_conversation_status(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<i16, sqlx::Error> {
+        let (status,): (i16,) = sqlx::query_as(
+            "SELECT COALESCE(status, 0::SMALLINT) FROM conversations WHERE id = $1"
+        )
+        .bind(conversation_id)
+        .fetch_one(&self.db)
+        .await?;
+        Ok(status)
+    }
+
+    /// 查询群成员 ID 列表（活跃成员）
+    pub async fn get_member_ids(
+        &self,
+        conversation_id: Uuid,
+    ) -> Result<Vec<i64>, sqlx::Error> {
+        let rows: Vec<(i64,)> = sqlx::query_as(
+            "SELECT user_id FROM conversation_members WHERE conversation_id = $1 AND is_deleted = false"
+        )
+        .bind(conversation_id)
+        .fetch_all(&self.db)
+        .await?;
+        Ok(rows.into_iter().map(|(id,)| id).collect())
     }
 }
