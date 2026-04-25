@@ -144,7 +144,9 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          title: !widget.isGroup && widget.peerUserId != null
+          title: GestureDetector(
+            onDoubleTap: () => _showDebugInfo(),
+            child: !widget.isGroup && widget.peerUserId != null
               ? Column(
                   crossAxisAlignment: CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
@@ -179,6 +181,7 @@ class _ChatPageState extends State<ChatPage> {
                   ],
                 )
               : Text(_title),
+          ),
           actions: [
             if (!widget.isGroup)
               IconButton(
@@ -372,6 +375,38 @@ class _ChatPageState extends State<ChatPage> {
       list = Align(alignment: Alignment.topCenter, child: list);
     }
     return list;
+  }
+
+  void _showDebugInfo() {
+    final cubit = context.read<ChatCubit>();
+    final wsClient = context.read<WsClient>();
+    final info = StringBuffer()
+      ..writeln('=== Chat Debug ===')
+      ..writeln('conversationId: ${widget.conversationId.substring(0, 8)}...')
+      ..writeln('isGroup: ${widget.isGroup}')
+      ..writeln('peerUserId: ${widget.peerUserId}')
+      ..writeln('peerReadSeq: ${cubit.peerReadSeq}')
+      ..writeln('membersReadSeq: ${cubit.membersReadSeq}')
+      ..writeln('isPeerOnline: $_isPeerOnline')
+      ..writeln('onlineUserIds: ${wsClient.onlineUserIds}')
+      ..writeln('isDisband: $_isDisband')
+      ..writeln('announcement: ${_announcement ?? "null"}');
+    final s = cubit.state;
+    if (s is ChatLoaded) {
+      info.writeln('messages: ${s.messages.length}');
+      info.writeln('readSeqVersion: ${s.readSeqVersion}');
+      if (s.messages.isNotEmpty) {
+        info.writeln('maxSeq: ${s.messages.last.seq}');
+      }
+    }
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Debug Info', style: TextStyle(fontSize: 14)),
+        content: SelectableText(info.toString(), style: const TextStyle(fontSize: 12, fontFamily: 'monospace')),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('OK'))],
+      ),
+    );
   }
 
   void _showReadReceiptDetail(String messageId) {

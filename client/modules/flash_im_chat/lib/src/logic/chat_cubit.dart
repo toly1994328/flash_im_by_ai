@@ -27,6 +27,7 @@ class ChatCubit extends Cubit<ChatState> {
   Map<String, int> _membersReadSeq = {};
   Timer? _readReceiptTimer;
   StreamSubscription? _readReceiptSub;
+  int _readSeqVersion = 0;
 
   int get peerReadSeq => _peerReadSeq;
   Map<String, int> get membersReadSeq => Map.unmodifiable(_membersReadSeq);
@@ -53,7 +54,7 @@ class ChatCubit extends Cubit<ChatState> {
         _peerReadSeq = notif.readSeq.toInt();
       }
       final s = state;
-      if (s is ChatLoaded) emit(s.copyWith());
+      if (s is ChatLoaded) emit(s.copyWith(readSeqVersion: ++_readSeqVersion));
     });
   }
 
@@ -484,7 +485,7 @@ class ChatCubit extends Cubit<ChatState> {
         _peerReadSeq = res.values.first;
       }
       final s = state;
-      if (s is ChatLoaded) emit(s.copyWith());
+      if (s is ChatLoaded) emit(s.copyWith(readSeqVersion: ++_readSeqVersion));
     } catch (_) {}
   }
 

@@ -52,6 +52,7 @@ class ChatLoaded extends ChatState {
   final bool isLoadingMore;
   final double? uploadProgress;
   final Map<String, FileDownloadInfo> fileDownloads;
+  final int readSeqVersion;
 
   const ChatLoaded({
     required this.messages,
@@ -59,6 +60,7 @@ class ChatLoaded extends ChatState {
     this.isLoadingMore = false,
     this.uploadProgress,
     this.fileDownloads = const {},
+    this.readSeqVersion = 0,
   });
 
   ChatLoaded copyWith({
@@ -68,6 +70,7 @@ class ChatLoaded extends ChatState {
     double? uploadProgress,
     bool clearUploadProgress = false,
     Map<String, FileDownloadInfo>? fileDownloads,
+    int? readSeqVersion,
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
@@ -75,11 +78,12 @@ class ChatLoaded extends ChatState {
       isLoadingMore: isLoadingMore ?? this.isLoadingMore,
       uploadProgress: clearUploadProgress ? null : (uploadProgress ?? this.uploadProgress),
       fileDownloads: fileDownloads ?? this.fileDownloads,
+      readSeqVersion: readSeqVersion ?? this.readSeqVersion,
     );
   }
 
   @override
-  List<Object?> get props => [messages, hasMore, isLoadingMore, uploadProgress, fileDownloads];
+  List<Object?> get props => [messages, hasMore, isLoadingMore, uploadProgress, fileDownloads, readSeqVersion];
 }
 
 class ChatError extends ChatState {
