@@ -8,6 +8,7 @@ class FriendState extends Equatable {
   final int pendingCount;
   final bool isLoading;
   final String? error;
+  final Set<String> onlineIds;
 
   const FriendState({
     this.friends = const [],
@@ -16,6 +17,7 @@ class FriendState extends Equatable {
     this.pendingCount = 0,
     this.isLoading = false,
     this.error,
+    this.onlineIds = const {},
   });
 
   FriendState copyWith({
@@ -26,6 +28,7 @@ class FriendState extends Equatable {
     bool? isLoading,
     String? error,
     bool clearError = false,
+    Set<String>? onlineIds,
   }) {
     return FriendState(
       friends: friends ?? this.friends,
@@ -34,9 +37,10 @@ class FriendState extends Equatable {
       pendingCount: pendingCount ?? this.pendingCount,
       isLoading: isLoading ?? this.isLoading,
       error: clearError ? null : (error ?? this.error),
+      onlineIds: onlineIds ?? this.onlineIds,
     );
   }
 
   @override
-  List<Object?> get props => [friends, receivedRequests, sentRequests, pendingCount, isLoading, error];
+  List<Object?> get props => [friends, receivedRequests, sentRequests, pendingCount, isLoading, error, onlineIds];
 }

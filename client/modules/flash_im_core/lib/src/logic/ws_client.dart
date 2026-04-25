@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:typed_data';
 
+import 'package:fixnum/fixnum.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../data/im_config.dart';
@@ -65,6 +66,21 @@ class WsClient {
 
   final _groupInfoUpdateController = StreamController<WsFrame>.broadcast();
   Stream<WsFrame> get groupInfoUpdateStream => _groupInfoUpdateController.stream;
+
+  final _userOnlineController = StreamController<WsFrame>.broadcast();
+  final _userOfflineController = StreamController<WsFrame>.broadcast();
+  final _onlineListController = StreamController<WsFrame>.broadcast();
+  final _readReceiptController = StreamController<WsFrame>.broadcast();
+
+  Stream<WsFrame> get userOnlineStream => _userOnlineController.stream;
+  Stream<WsFrame> get userOfflineStream => _userOfflineController.stream;
+  Stream<WsFrame> get onlineListStream => _onlineListController.stream;
+  Stream<WsFrame> get readReceiptStream => _readReceiptController.stream;
+
+  final Set<String> _onlineUserIds = {};
+
+  bool isUserOnline(String userId) => _onlineUserIds.contains(userId);
+  Set<String> get onlineUserIds => Set.unmodifiable(_onlineUserIds);
 
   WsClient({
     required ImConfig config,
@@ -172,6 +188,17 @@ class WsClient {
         _groupJoinRequestController.add(frame);
       case WsFrameType.GROUP_INFO_UPDATE:
         _groupInfoUpdateController.add(frame);
+      case WsFrameType.USER_ONLINE:
+        _handleUserOnline(frame);
+        _userOnlineController.add(frame);
+      case WsFrameType.USER_OFFLINE:
+        _handleUserOffline(frame);
+        _userOfflineController.add(frame);
+      case WsFrameType.ONLINE_LIST:
+        _handleOnlineList(frame);
+        _onlineListController.add(frame);
+      case WsFrameType.READ_RECEIPT:
+        _readReceiptController.add(frame);
       default:
         break;
     }
@@ -199,6 +226,7 @@ class WsClient {
 
   void _onDisconnected() {
     _cleanup();
+    _onlineUserIds.clear();
     _setState(WsConnectionState.disconnected);
 
     if (_intentionalDisconnect) return;
@@ -249,6 +277,33 @@ class WsClient {
     sendFrame(frame);
   }
 
+  /// 发送已读回执
+  void sendReadReceipt({required String conversationId, required int readSeq}) {
+    final req = msg.ReadReceiptRequest()
+      ..conversationId = conversationId
+      ..readSeq = Int64(readSeq);
+    final frame = WsFrame()
+      ..type = WsFrameType.READ_RECEIPT
+      ..payload = req.writeToBuffer();
+    sendFrame(frame);
+  }
+
+  void _handleUserOnline(WsFrame frame) {
+    final notif = msg.UserStatusNotification.fromBuffer(frame.payload);
+    _onlineUserIds.add(notif.userId);
+  }
+
+  void _handleUserOffline(WsFrame frame) {
+    final notif = msg.UserStatusNotification.fromBuffer(frame.payload);
+    _onlineUserIds.remove(notif.userId);
+  }
+
+  void _handleOnlineList(WsFrame frame) {
+    final notif = msg.OnlineListNotification.fromBuffer(frame.payload);
+    _onlineUserIds.clear();
+    _onlineUserIds.addAll(notif.userIds);
+  }
+
   /// 主动断开连接，不触发重连
   void disconnect() {
     _intentionalDisconnect = true;
@@ -271,5 +326,9 @@ class WsClient {
     _friendRemovedController.close();
     _groupJoinRequestController.close();
     _groupInfoUpdateController.close();
+    _userOnlineController.close();
+    _userOfflineController.close();
+    _onlineListController.close();
+    _readReceiptController.close();
   }
 }

@@ -309,6 +309,7 @@ class _HomePageState extends State<HomePage> {
                     currentUserId: user.userId.toString(),
                     currentUserName: user.nickname,
                     currentUserAvatar: user.avatar,
+                    isGroup: conversation.isGroup,
                   )..loadMessages(),
                   child: ChatPage(
                     conversationId: conversation.id,
@@ -416,6 +417,7 @@ class _HomePageState extends State<HomePage> {
                           currentUserId: user.userId.toString(),
                           currentUserName: user.nickname,
                           currentUserAvatar: user.avatar,
+                          isGroup: true,
                         )..loadMessages(),
                         child: ChatPage(
                           conversationId: conversation.id,
@@ -579,6 +581,7 @@ class _HomePageState extends State<HomePage> {
               currentUserId: user.userId.toString(),
               currentUserName: user.nickname,
               currentUserAvatar: user.avatar,
+              isGroup: true,
             )..loadMessages(),
             child: ChatPage(
               conversationId: conv.id,

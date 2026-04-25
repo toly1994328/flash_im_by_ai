@@ -48,12 +48,13 @@ async fn main() {
     let msg_service = Arc::new(im_message::MessageService::new(db.clone(), broadcaster));
 
     // 消息分发器（依赖 msg_service + ws_state）
-    let dispatcher = Arc::new(MessageDispatcher::new(msg_service.clone(), ws_state.clone()));
+    let dispatcher = Arc::new(MessageDispatcher::new(msg_service.clone(), ws_state.clone(), db.clone()));
 
     // WS handler 状态
     let ws_handler_state = Arc::new(WsHandlerState {
         ws_state,
         dispatcher: dispatcher.clone(),
+        db: db.clone(),
     });
 
     // 文件存储服务

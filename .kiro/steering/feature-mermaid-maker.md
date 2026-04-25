@@ -80,13 +80,15 @@ CGP[CreateGroupPage<br/>微信风格选人页<br/>字母索引 + 已选横条]
 - 跨端 WS：虚线箭头 `-.->|WS|`
 - 数据共享/复用：虚线箭头 `-.->` 标注关系
 
-## 输出
+## 触发方式
 
-用户触发：`/feature-mermaid {版本路径}`
+用户说 `/feature-mermaid {版本路径}` 时触发。
 
 例如：`/feature-mermaid im/group/v0.0.1`
 
-输出一段完整的 mermaid graph TB 代码，可以直接粘贴到 markdown 中渲染。
+## 输出
+
+一段完整的 mermaid graph TB 代码，可以直接粘贴到 markdown 中渲染。
 
 ## 原则
 
@@ -98,4 +100,16 @@ CGP[CreateGroupPage<br/>微信风格选人页<br/>字母索引 + 已选横条]
 
 ## 配色与语法规范
 
-详见 Skill：`mermaid-diagram-writing`。编写 mermaid 代码时请先激活该 Skill，遵循其中的配色表、特殊字符规避、subgraph 闭合、连线标签等规范。
+编写 mermaid 代码时请先激活 Skill `mermaid-diagram-writing`，遵循其中的配色表、特殊字符规避、subgraph 闭合、连线标签等规范。
+
+推荐配色：
+
+| 用途 | 填充色 | 边框色 |
+|------|--------|--------|
+| 页面/视图 | `#E8F5E9` | `#4CAF50` |
+| 状态管理 | `#FFF3E0` | `#FF9800` |
+| 数据层 | `#E3F2FD` | `#2196F3` |
+| 共享组件 | `#F3E5F5` | `#9C27B0` |
+| API 路由 | `#FFEBEE` | `#F44336` |
+| 服务层 | `#FFF8E1` | `#FFC107` |
+| 数据库 | `#ECEFF1` | `#607D8B` |

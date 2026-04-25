@@ -160,6 +160,25 @@ class MessageRepository {
     return FileUploadResult.fromJson(res.data as Map<String, dynamic>);
   }
 
+  /// 获取会话已读位置
+  Future<Map<String, int>> getReadSeq(String conversationId) async {
+    final res = await _dio.get('/conversations/$conversationId/read-seq');
+    final Map<String, dynamic> data =
+        res.data['members_read_seq'] as Map<String, dynamic>? ?? {};
+    return data.map((k, v) => MapEntry(k, (v as num).toInt()));
+  }
+
+  /// 获取消息已读/未读成员列表
+  Future<Map<String, dynamic>> getReadStatus(
+    String conversationId,
+    String messageId,
+  ) async {
+    final res = await _dio.get(
+      '/conversations/$conversationId/messages/$messageId/read-status',
+    );
+    return res.data as Map<String, dynamic>;
+  }
+
   /// 下载文件到本地目录
   /// 返回本地文件路径
   Future<String> downloadFile(

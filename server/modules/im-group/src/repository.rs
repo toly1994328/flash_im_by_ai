@@ -324,7 +324,8 @@ impl GroupRepository {
         sqlx::query_as::<_, GroupMember>(
             r#"SELECT cm.user_id,
                     COALESCE(up.nickname, '未知用户') AS nickname,
-                    up.avatar
+                    up.avatar,
+                    cm.last_read_seq
                 FROM conversation_members cm
                 LEFT JOIN user_profiles up ON cm.user_id = up.account_id
                 JOIN conversations c ON c.id = cm.conversation_id

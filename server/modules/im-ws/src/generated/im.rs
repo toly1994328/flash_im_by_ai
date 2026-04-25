@@ -83,6 +83,10 @@ pub enum WsFrameType {
     FriendRemoved = 9,
     GroupJoinRequest = 10,
     GroupInfoUpdate = 11,
+    UserOnline = 12,
+    UserOffline = 13,
+    OnlineList = 14,
+    ReadReceipt = 15,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -103,6 +107,10 @@ impl WsFrameType {
             Self::FriendRemoved => "FRIEND_REMOVED",
             Self::GroupJoinRequest => "GROUP_JOIN_REQUEST",
             Self::GroupInfoUpdate => "GROUP_INFO_UPDATE",
+            Self::UserOnline => "USER_ONLINE",
+            Self::UserOffline => "USER_OFFLINE",
+            Self::OnlineList => "ONLINE_LIST",
+            Self::ReadReceipt => "READ_RECEIPT",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -120,6 +128,10 @@ impl WsFrameType {
             "FRIEND_REMOVED" => Some(Self::FriendRemoved),
             "GROUP_JOIN_REQUEST" => Some(Self::GroupJoinRequest),
             "GROUP_INFO_UPDATE" => Some(Self::GroupInfoUpdate),
+            "USER_ONLINE" => Some(Self::UserOnline),
+            "USER_OFFLINE" => Some(Self::UserOffline),
+            "ONLINE_LIST" => Some(Self::OnlineList),
+            "READ_RECEIPT" => Some(Self::ReadReceipt),
             _ => None,
         }
     }
@@ -194,6 +206,32 @@ pub struct GroupInfoUpdate {
     pub announcement: ::core::option::Option<::prost::alloc::string::String>,
     #[prost(int32, optional, tag = "5")]
     pub status: ::core::option::Option<i32>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct UserStatusNotification {
+    #[prost(string, tag = "1")]
+    pub user_id: ::prost::alloc::string::String,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct OnlineListNotification {
+    #[prost(string, repeated, tag = "1")]
+    pub user_ids: ::prost::alloc::vec::Vec<::prost::alloc::string::String>,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReadReceiptRequest {
+    #[prost(string, tag = "1")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "2")]
+    pub read_seq: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct ReadReceiptNotification {
+    #[prost(string, tag = "1")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub user_id: ::prost::alloc::string::String,
+    #[prost(int64, tag = "3")]
+    pub read_seq: i64,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

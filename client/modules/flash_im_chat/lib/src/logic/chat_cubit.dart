@@ -16,11 +16,20 @@ class ChatCubit extends Cubit<ChatState> {
   final String currentUserId;
   final String currentUserName;
   final String? currentUserAvatar;
+  final bool isGroup;
 
   StreamSubscription? _chatMessageSub;
   StreamSubscription? _messageAckSub;
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
+
+  int _peerReadSeq = 0;
+  Map<String, int> _membersReadSeq = {};
+  Timer? _readReceiptTimer;
+  StreamSubscription? _readReceiptSub;
+
+  int get peerReadSeq => _peerReadSeq;
+  Map<String, int> get membersReadSeq => Map.unmodifiable(_membersReadSeq);
 
   ChatCubit({
     required MessageRepository repository,
@@ -29,11 +38,23 @@ class ChatCubit extends Cubit<ChatState> {
     required this.currentUserId,
     required this.currentUserName,
     this.currentUserAvatar,
+    this.isGroup = false,
   })  : _repository = repository,
         _wsClient = wsClient,
         super(const ChatInitial()) {
     _chatMessageSub = _wsClient.chatMessageStream.listen(_handleIncomingMessage);
     _messageAckSub = _wsClient.messageAckStream.listen(_handleMessageAck);
+    _readReceiptSub = _wsClient.readReceiptStream.listen((frame) {
+      final notif = ReadReceiptNotification.fromBuffer(frame.payload);
+      if (notif.conversationId != conversationId) return;
+      if (isGroup) {
+        _membersReadSeq[notif.userId] = notif.readSeq.toInt();
+      } else {
+        _peerReadSeq = notif.readSeq.toInt();
+      }
+      final s = state;
+      if (s is ChatLoaded) emit(s.copyWith());
+    });
   }
 
   Future<void> loadMessages() async {
@@ -42,6 +63,9 @@ class ChatCubit extends Cubit<ChatState> {
       final messages = await _repository.getMessages(conversationId);
       messages.sort((a, b) => a.seq.compareTo(b.seq));
       emit(ChatLoaded(messages: messages, hasMore: messages.length >= 50));
+      _loadReadSeq();
+      final maxSeq = messages.isNotEmpty ? messages.last.seq : 0;
+      _reportReadSeq(maxSeq);
     } catch (e) {
       emit(ChatError(e.toString()));
     }
@@ -350,6 +374,7 @@ class ChatCubit extends Cubit<ChatState> {
       final updated = [...current.messages, message];
       updated.sort((a, b) => a.seq.compareTo(b.seq));
       emit(current.copyWith(messages: updated));
+      _reportReadSeq(message.seq);
     } catch (_) {}
   }
 
@@ -445,6 +470,29 @@ class ChatCubit extends Cubit<ChatState> {
   Future<void> close() {
     _chatMessageSub?.cancel();
     _messageAckSub?.cancel();
+    _readReceiptSub?.cancel();
+    _readReceiptTimer?.cancel();
     return super.close();
+  }
+
+  Future<void> _loadReadSeq() async {
+    try {
+      final res = await _repository.getReadSeq(conversationId);
+      if (isGroup) {
+        _membersReadSeq = res;
+      } else if (res.isNotEmpty) {
+        _peerReadSeq = res.values.first;
+      }
+      final s = state;
+      if (s is ChatLoaded) emit(s.copyWith());
+    } catch (_) {}
+  }
+
+  void _reportReadSeq(int maxSeq) {
+    if (maxSeq <= 0) return;
+    _readReceiptTimer?.cancel();
+    _readReceiptTimer = Timer(const Duration(seconds: 1), () {
+      _wsClient.sendReadReceipt(conversationId: conversationId, readSeq: maxSeq);
+    });
   }
 }

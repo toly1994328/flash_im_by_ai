@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from message.proto.
+// Generated from proto/message.proto.
 
 // @dart = 3.3
 
@@ -489,16 +489,12 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
 
   GroupInfoUpdate._();
 
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GroupInfoUpdate clone() => deepCopy();
-  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
-  GroupInfoUpdate copyWith(void Function(GroupInfoUpdate) updates) =>
-      super.copyWith((message) => updates(message as GroupInfoUpdate))
-          as GroupInfoUpdate;
-
   factory GroupInfoUpdate.fromBuffer($core.List<$core.int> data,
           [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
       create()..mergeFromBuffer(data, registry);
+  factory GroupInfoUpdate.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
 
   static final $pb.BuilderInfo _i = $pb.BuilderInfo(
       _omitMessageNames ? '' : 'GroupInfoUpdate',
@@ -510,6 +506,13 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
     ..aOS(4, _omitFieldNames ? '' : 'announcement')
     ..aI(5, _omitFieldNames ? '' : 'status')
     ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupInfoUpdate clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  GroupInfoUpdate copyWith(void Function(GroupInfoUpdate) updates) =>
+      super.copyWith((message) => updates(message as GroupInfoUpdate))
+          as GroupInfoUpdate;
 
   @$core.override
   $pb.BuilderInfo get info_ => _i;
@@ -527,6 +530,10 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
   $core.String get conversationId => $_getSZ(0);
   @$pb.TagNumber(1)
   set conversationId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConversationId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConversationId() => $_clearField(1);
 
   @$pb.TagNumber(2)
   $core.String get name => $_getSZ(1);
@@ -534,6 +541,8 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
   set name($core.String value) => $_setString(1, value);
   @$pb.TagNumber(2)
   $core.bool hasName() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearName() => $_clearField(2);
 
   @$pb.TagNumber(3)
   $core.String get avatar => $_getSZ(2);
@@ -541,6 +550,8 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
   set avatar($core.String value) => $_setString(2, value);
   @$pb.TagNumber(3)
   $core.bool hasAvatar() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAvatar() => $_clearField(3);
 
   @$pb.TagNumber(4)
   $core.String get announcement => $_getSZ(3);
@@ -548,6 +559,8 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
   set announcement($core.String value) => $_setString(3, value);
   @$pb.TagNumber(4)
   $core.bool hasAnnouncement() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearAnnouncement() => $_clearField(4);
 
   @$pb.TagNumber(5)
   $core.int get status => $_getIZ(4);
@@ -555,6 +568,257 @@ class GroupInfoUpdate extends $pb.GeneratedMessage {
   set status($core.int value) => $_setSignedInt32(4, value);
   @$pb.TagNumber(5)
   $core.bool hasStatus() => $_has(4);
+  @$pb.TagNumber(5)
+  void clearStatus() => $_clearField(5);
+}
+
+class UserStatusNotification extends $pb.GeneratedMessage {
+  factory UserStatusNotification({
+    $core.String? userId,
+  }) {
+    final result = create();
+    if (userId != null) result.userId = userId;
+    return result;
+  }
+
+  UserStatusNotification._();
+
+  factory UserStatusNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory UserStatusNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'UserStatusNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'userId')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UserStatusNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  UserStatusNotification copyWith(
+          void Function(UserStatusNotification) updates) =>
+      super.copyWith((message) => updates(message as UserStatusNotification))
+          as UserStatusNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static UserStatusNotification create() => UserStatusNotification._();
+  @$core.override
+  UserStatusNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static UserStatusNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<UserStatusNotification>(create);
+  static UserStatusNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get userId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set userId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUserId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUserId() => $_clearField(1);
+}
+
+class OnlineListNotification extends $pb.GeneratedMessage {
+  factory OnlineListNotification({
+    $core.Iterable<$core.String>? userIds,
+  }) {
+    final result = create();
+    if (userIds != null) result.userIds.addAll(userIds);
+    return result;
+  }
+
+  OnlineListNotification._();
+
+  factory OnlineListNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory OnlineListNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'OnlineListNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..pPS(1, _omitFieldNames ? '' : 'userIds')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OnlineListNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  OnlineListNotification copyWith(
+          void Function(OnlineListNotification) updates) =>
+      super.copyWith((message) => updates(message as OnlineListNotification))
+          as OnlineListNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static OnlineListNotification create() => OnlineListNotification._();
+  @$core.override
+  OnlineListNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static OnlineListNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<OnlineListNotification>(create);
+  static OnlineListNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $pb.PbList<$core.String> get userIds => $_getList(0);
+}
+
+class ReadReceiptRequest extends $pb.GeneratedMessage {
+  factory ReadReceiptRequest({
+    $core.String? conversationId,
+    $fixnum.Int64? readSeq,
+  }) {
+    final result = create();
+    if (conversationId != null) result.conversationId = conversationId;
+    if (readSeq != null) result.readSeq = readSeq;
+    return result;
+  }
+
+  ReadReceiptRequest._();
+
+  factory ReadReceiptRequest.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReadReceiptRequest.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReadReceiptRequest',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'conversationId')
+    ..aInt64(2, _omitFieldNames ? '' : 'readSeq')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadReceiptRequest clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadReceiptRequest copyWith(void Function(ReadReceiptRequest) updates) =>
+      super.copyWith((message) => updates(message as ReadReceiptRequest))
+          as ReadReceiptRequest;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadReceiptRequest create() => ReadReceiptRequest._();
+  @$core.override
+  ReadReceiptRequest createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReadReceiptRequest getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReadReceiptRequest>(create);
+  static ReadReceiptRequest? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get conversationId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set conversationId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConversationId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConversationId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get readSeq => $_getI64(1);
+  @$pb.TagNumber(2)
+  set readSeq($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasReadSeq() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearReadSeq() => $_clearField(2);
+}
+
+class ReadReceiptNotification extends $pb.GeneratedMessage {
+  factory ReadReceiptNotification({
+    $core.String? conversationId,
+    $core.String? userId,
+    $fixnum.Int64? readSeq,
+  }) {
+    final result = create();
+    if (conversationId != null) result.conversationId = conversationId;
+    if (userId != null) result.userId = userId;
+    if (readSeq != null) result.readSeq = readSeq;
+    return result;
+  }
+
+  ReadReceiptNotification._();
+
+  factory ReadReceiptNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory ReadReceiptNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'ReadReceiptNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'conversationId')
+    ..aOS(2, _omitFieldNames ? '' : 'userId')
+    ..aInt64(3, _omitFieldNames ? '' : 'readSeq')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadReceiptNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  ReadReceiptNotification copyWith(
+          void Function(ReadReceiptNotification) updates) =>
+      super.copyWith((message) => updates(message as ReadReceiptNotification))
+          as ReadReceiptNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static ReadReceiptNotification create() => ReadReceiptNotification._();
+  @$core.override
+  ReadReceiptNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static ReadReceiptNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<ReadReceiptNotification>(create);
+  static ReadReceiptNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get conversationId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set conversationId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConversationId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConversationId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get userId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set userId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasUserId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearUserId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $fixnum.Int64 get readSeq => $_getI64(2);
+  @$pb.TagNumber(3)
+  set readSeq($fixnum.Int64 value) => $_setInt64(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasReadSeq() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearReadSeq() => $_clearField(3);
 }
 
 const $core.bool _omitFieldNames =

@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from message.proto.
+// Generated from proto/message.proto.
 
 // @dart = 3.3
 
@@ -151,3 +151,93 @@ final $typed_data.Uint8List conversationUpdateDescriptor = $convert.base64Decode
     'Rpb25JZBIwChRsYXN0X21lc3NhZ2VfcHJldmlldxgCIAEoCVISbGFzdE1lc3NhZ2VQcmV2aWV3'
     'EiYKD2xhc3RfbWVzc2FnZV9hdBgDIAEoA1INbGFzdE1lc3NhZ2VBdBIhCgx1bnJlYWRfY291bn'
     'QYBCABKAVSC3VucmVhZENvdW50EiEKDHRvdGFsX3VucmVhZBgFIAEoBVILdG90YWxVbnJlYWQ=');
+
+@$core.Deprecated('Use groupInfoUpdateDescriptor instead')
+const GroupInfoUpdate$json = {
+  '1': 'GroupInfoUpdate',
+  '2': [
+    {'1': 'conversation_id', '3': 1, '4': 1, '5': 9, '10': 'conversationId'},
+    {'1': 'name', '3': 2, '4': 1, '5': 9, '9': 0, '10': 'name', '17': true},
+    {'1': 'avatar', '3': 3, '4': 1, '5': 9, '9': 1, '10': 'avatar', '17': true},
+    {
+      '1': 'announcement',
+      '3': 4,
+      '4': 1,
+      '5': 9,
+      '9': 2,
+      '10': 'announcement',
+      '17': true
+    },
+    {'1': 'status', '3': 5, '4': 1, '5': 5, '9': 3, '10': 'status', '17': true},
+  ],
+  '8': [
+    {'1': '_name'},
+    {'1': '_avatar'},
+    {'1': '_announcement'},
+    {'1': '_status'},
+  ],
+};
+
+/// Descriptor for `GroupInfoUpdate`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List groupInfoUpdateDescriptor = $convert.base64Decode(
+    'Cg9Hcm91cEluZm9VcGRhdGUSJwoPY29udmVyc2F0aW9uX2lkGAEgASgJUg5jb252ZXJzYXRpb2'
+    '5JZBIXCgRuYW1lGAIgASgJSABSBG5hbWWIAQESGwoGYXZhdGFyGAMgASgJSAFSBmF2YXRhcogB'
+    'ARInCgxhbm5vdW5jZW1lbnQYBCABKAlIAlIMYW5ub3VuY2VtZW50iAEBEhsKBnN0YXR1cxgFIA'
+    'EoBUgDUgZzdGF0dXOIAQFCBwoFX25hbWVCCQoHX2F2YXRhckIPCg1fYW5ub3VuY2VtZW50QgkK'
+    'B19zdGF0dXM=');
+
+@$core.Deprecated('Use userStatusNotificationDescriptor instead')
+const UserStatusNotification$json = {
+  '1': 'UserStatusNotification',
+  '2': [
+    {'1': 'user_id', '3': 1, '4': 1, '5': 9, '10': 'userId'},
+  ],
+};
+
+/// Descriptor for `UserStatusNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List userStatusNotificationDescriptor =
+    $convert.base64Decode(
+        'ChZVc2VyU3RhdHVzTm90aWZpY2F0aW9uEhcKB3VzZXJfaWQYASABKAlSBnVzZXJJZA==');
+
+@$core.Deprecated('Use onlineListNotificationDescriptor instead')
+const OnlineListNotification$json = {
+  '1': 'OnlineListNotification',
+  '2': [
+    {'1': 'user_ids', '3': 1, '4': 3, '5': 9, '10': 'userIds'},
+  ],
+};
+
+/// Descriptor for `OnlineListNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List onlineListNotificationDescriptor =
+    $convert.base64Decode(
+        'ChZPbmxpbmVMaXN0Tm90aWZpY2F0aW9uEhkKCHVzZXJfaWRzGAEgAygJUgd1c2VySWRz');
+
+@$core.Deprecated('Use readReceiptRequestDescriptor instead')
+const ReadReceiptRequest$json = {
+  '1': 'ReadReceiptRequest',
+  '2': [
+    {'1': 'conversation_id', '3': 1, '4': 1, '5': 9, '10': 'conversationId'},
+    {'1': 'read_seq', '3': 2, '4': 1, '5': 3, '10': 'readSeq'},
+  ],
+};
+
+/// Descriptor for `ReadReceiptRequest`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readReceiptRequestDescriptor = $convert.base64Decode(
+    'ChJSZWFkUmVjZWlwdFJlcXVlc3QSJwoPY29udmVyc2F0aW9uX2lkGAEgASgJUg5jb252ZXJzYX'
+    'Rpb25JZBIZCghyZWFkX3NlcRgCIAEoA1IHcmVhZFNlcQ==');
+
+@$core.Deprecated('Use readReceiptNotificationDescriptor instead')
+const ReadReceiptNotification$json = {
+  '1': 'ReadReceiptNotification',
+  '2': [
+    {'1': 'conversation_id', '3': 1, '4': 1, '5': 9, '10': 'conversationId'},
+    {'1': 'user_id', '3': 2, '4': 1, '5': 9, '10': 'userId'},
+    {'1': 'read_seq', '3': 3, '4': 1, '5': 3, '10': 'readSeq'},
+  ],
+};
+
+/// Descriptor for `ReadReceiptNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List readReceiptNotificationDescriptor = $convert.base64Decode(
+    'ChdSZWFkUmVjZWlwdE5vdGlmaWNhdGlvbhInCg9jb252ZXJzYXRpb25faWQYASABKAlSDmNvbn'
+    'ZlcnNhdGlvbklkEhcKB3VzZXJfaWQYAiABKAlSBnVzZXJJZBIZCghyZWFkX3NlcRgDIAEoA1IH'
+    'cmVhZFNlcQ==');

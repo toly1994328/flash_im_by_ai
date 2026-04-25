@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:flash_im_core/flash_im_core.dart' show WsClient, WsFrame, WsFrameType, GroupInfoUpdate;
+import 'package:flash_im_core/flash_im_core.dart' show WsClient, WsFrame, WsFrameType, GroupInfoUpdate, UserStatusNotification;
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
@@ -14,6 +14,8 @@ import 'video_player_page.dart';
 import 'file_preview_page.dart';
 import '../data/video_thumbnail_service.dart';
 import 'private_chat_info_page.dart';
+import 'read_receipt_detail.dart';
+import '../data/message_repository.dart';
 
 class ChatPage extends StatefulWidget {
   final String conversationId;
@@ -55,6 +57,9 @@ class _ChatPageState extends State<ChatPage> {
   late bool _isDisband;
   String? _announcement;
   StreamSubscription? _groupInfoSub;
+  StreamSubscription? _onlineSub;
+  StreamSubscription? _offlineSub;
+  bool _isPeerOnline = false;
 
   @override
   void initState() {
@@ -75,6 +80,23 @@ class _ChatPageState extends State<ChatPage> {
         });
       }
     });
+    // 单聊：监听对方在线/离线状态
+    if (!widget.isGroup && widget.peerUserId != null) {
+      final wsClient = context.read<WsClient>();
+      _isPeerOnline = wsClient.isUserOnline(widget.peerUserId!);
+      _onlineSub = wsClient.userOnlineStream.listen((frame) {
+        final notif = UserStatusNotification.fromBuffer(frame.payload);
+        if (notif.userId == widget.peerUserId && mounted) {
+          setState(() => _isPeerOnline = true);
+        }
+      });
+      _offlineSub = wsClient.userOfflineStream.listen((frame) {
+        final notif = UserStatusNotification.fromBuffer(frame.payload);
+        if (notif.userId == widget.peerUserId && mounted) {
+          setState(() => _isPeerOnline = false);
+        }
+      });
+    }
     // 群聊时异步拉取群详情（公告 + 解散状态）
     if (widget.isGroup && widget.groupDetailFetcher != null) {
       _loadGroupDetail();
@@ -97,6 +119,8 @@ class _ChatPageState extends State<ChatPage> {
   @override
   void dispose() {
     _groupInfoSub?.cancel();
+    _onlineSub?.cancel();
+    _offlineSub?.cancel();
     _scrollController.dispose();
     super.dispose();
   }
@@ -120,7 +144,41 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: Scaffold(
         appBar: AppBar(
-          title: Text(_title),
+          title: !widget.isGroup && widget.peerUserId != null
+              ? Column(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(_title, style: const TextStyle(fontSize: 16)),
+                    Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: _isPeerOnline
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFFBBBBBB),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          _isPeerOnline ? '在线' : '离线',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: _isPeerOnline
+                                ? const Color(0xFF4CAF50)
+                                : const Color(0xFFBBBBBB),
+                            fontWeight: FontWeight.normal,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                )
+              : Text(_title),
           actions: [
             if (!widget.isGroup)
               IconButton(
@@ -262,7 +320,8 @@ class _ChatPageState extends State<ChatPage> {
         }
         final msg = messages[messages.length - 1 - index];
         final isMe = msg.senderId == context.read<ChatCubit>().currentUserId;
-        final chatState = context.read<ChatCubit>().state;
+        final chatCubit = context.read<ChatCubit>();
+        final chatState = chatCubit.state;
         final progress = (chatState is ChatLoaded) ? chatState.uploadProgress : null;
 
         String fullUrl(String url) =>
@@ -274,6 +333,13 @@ class _ChatPageState extends State<ChatPage> {
           baseUrl: widget.baseUrl,
           uploadProgress: (msg.status == MessageStatus.sending) ? progress : null,
           fileDownloadInfo: (chatState is ChatLoaded) ? chatState.fileDownloads[msg.id] : null,
+          peerReadSeq: chatCubit.peerReadSeq,
+          membersReadSeq: chatCubit.membersReadSeq,
+          currentUserId: chatCubit.currentUserId,
+          isGroup: widget.isGroup,
+          onReadCountTap: widget.isGroup ? () {
+            _showReadReceiptDetail(msg.id);
+          } : null,
           onImageTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => ImagePreviewPage(imageUrl: fullUrl(msg.content)),
           )),
@@ -306,6 +372,27 @@ class _ChatPageState extends State<ChatPage> {
       list = Align(alignment: Alignment.topCenter, child: list);
     }
     return list;
+  }
+
+  void _showReadReceiptDetail(String messageId) {
+    final repository = context.read<MessageRepository>();
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ReadReceiptDetailSheet(
+        messageId: messageId,
+        conversationId: widget.conversationId,
+        baseUrl: widget.baseUrl,
+        fetcher: () async {
+          final res = await repository.getReadStatus(
+            widget.conversationId,
+            messageId,
+          );
+          return res;
+        },
+      ),
+    );
   }
 
   Widget _buildSkeleton() {

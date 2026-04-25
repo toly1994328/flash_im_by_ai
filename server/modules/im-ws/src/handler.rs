@@ -8,16 +8,18 @@ use axum::{
 use futures::{SinkExt, StreamExt};
 use prost::Message as ProstMessage;
 use tokio::sync::mpsc;
+use uuid::Uuid;
 
 use flash_core::jwt::verify_token;
 
-use crate::proto::{AuthRequest, AuthResult, WsFrame, WsFrameType};
+use crate::proto::{AuthRequest, AuthResult, ReadReceiptRequest, WsFrame, WsFrameType};
 use crate::state::WsState;
 use crate::dispatcher::MessageDispatcher;
 
 pub struct WsHandlerState {
     pub ws_state: Arc<WsState>,
     pub dispatcher: Arc<MessageDispatcher>,
+    pub db: sqlx::PgPool,
 }
 
 pub async fn ws_handler(
@@ -28,6 +30,7 @@ pub async fn ws_handler(
 }
 
 async fn handle_socket(socket: WebSocket, state: Arc<WsHandlerState>) {
+    let conn_id = Uuid::new_v4().to_string();
     let (mut ws_sender, mut ws_receiver) = socket.split();
 
     // 认证
@@ -45,11 +48,19 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsHandlerState>) {
 
     let _ = send_frame(&mut ws_sender, WsFrameType::AuthResult,
         &AuthResult { success: true, message: "OK".into() }).await;
-    println!("✅ [im-ws] user {} connected", user_id);
+    println!("✅ [im-ws] user {} connected (conn={})", user_id, &conn_id[..8]);
 
     // 创建推送通道，注册到在线用户表
     let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
-    state.ws_state.add(user_id, tx).await;
+    let is_first = state.ws_state.add(user_id, conn_id.clone(), tx).await;
+
+    // 首次上线广播
+    if is_first {
+        state.dispatcher.broadcast_user_online(user_id).await;
+    }
+
+    // 推送在线列表
+    state.dispatcher.send_online_list(user_id).await;
 
     // spawn 发送任务：从 channel 读数据，写到 WebSocket
     let send_task = tokio::spawn(async move {
@@ -81,14 +92,76 @@ async fn handle_socket(socket: WebSocket, state: Arc<WsHandlerState>) {
             WsFrameType::ChatMessage => {
                 state.dispatcher.handle_chat_message(user_id, &frame.payload).await;
             }
+            WsFrameType::ReadReceipt => {
+                handle_read_receipt(user_id, &frame.payload, &state).await;
+            }
             _ => {}
         }
     }
 
-    // 清理
-    state.ws_state.remove(user_id).await;
+    // 清理：移除连接，判断是否完全下线
+    let is_last = state.ws_state.remove(user_id, &conn_id).await;
     send_task.abort();
-    println!("❌ [im-ws] user {} disconnected", user_id);
+
+    if is_last {
+        state.dispatcher.broadcast_user_offline(user_id).await;
+    }
+    println!("❌ [im-ws] user {} disconnected (conn={}, last={})", user_id, &conn_id[..8], is_last);
+}
+
+/// 处理已读回执
+async fn handle_read_receipt(user_id: i64, payload: &[u8], state: &WsHandlerState) {
+    let req = match ReadReceiptRequest::decode(payload) {
+        Ok(r) => r,
+        Err(_) => return,
+    };
+    let conv_id = match Uuid::parse_str(&req.conversation_id) {
+        Ok(id) => id,
+        Err(_) => return,
+    };
+
+    // 1. 更新 last_read_seq（GREATEST 防止回退）
+    let _ = sqlx::query(
+        "UPDATE conversation_members \
+         SET last_read_seq = GREATEST(last_read_seq, $3) \
+         WHERE conversation_id = $1 AND user_id = $2"
+    )
+    .bind(conv_id)
+    .bind(user_id)
+    .bind(req.read_seq)
+    .execute(&state.db)
+    .await;
+
+    // 2. 重新计算 unread_count
+    let _ = sqlx::query(
+        "UPDATE conversation_members cm \
+         SET unread_count = ( \
+             SELECT COUNT(*) FROM messages m \
+             WHERE m.conversation_id = cm.conversation_id \
+               AND m.seq > cm.last_read_seq \
+               AND m.sender_id != cm.user_id \
+         ) \
+         WHERE cm.conversation_id = $1 AND cm.user_id = $2"
+    )
+    .bind(conv_id)
+    .bind(user_id)
+    .execute(&state.db)
+    .await;
+
+    // 3. 查询会话成员，推送已读通知给其他人
+    let member_rows: Vec<(i64,)> = sqlx::query_as(
+        "SELECT user_id FROM conversation_members \
+         WHERE conversation_id = $1 AND is_deleted = false"
+    )
+    .bind(conv_id)
+    .fetch_all(&state.db)
+    .await
+    .unwrap_or_default();
+
+    let member_ids: Vec<i64> = member_rows.into_iter().map(|(id,)| id).collect();
+    state.dispatcher.broadcast_read_receipt(
+        &req.conversation_id, user_id, req.read_seq, &member_ids,
+    ).await;
 }
 
 async fn wait_for_auth(

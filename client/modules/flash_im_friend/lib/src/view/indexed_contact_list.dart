@@ -14,6 +14,7 @@ class IndexedContactList extends StatefulWidget {
   final void Function(Friend friend)? onFriendTap;
   final void Function(Friend friend)? onFriendLongPress;
   final Future<void> Function()? onRefresh;
+  final Set<String> onlineIds;
 
   const IndexedContactList({
     super.key,
@@ -24,6 +25,7 @@ class IndexedContactList extends StatefulWidget {
     this.onFriendTap,
     this.onFriendLongPress,
     this.onRefresh,
+    this.onlineIds = const {},
   });
 
   @override
@@ -206,6 +208,7 @@ class _IndexedContactListState extends State<IndexedContactList> {
       _EntryType.friend => _FriendItem(
           friend: e.friend!,
           showDivider: e.showDivider,
+          isOnline: widget.onlineIds.contains(e.friend!.friendId),
           onTap: () => widget.onFriendTap?.call(e.friend!),
           onLongPress: () => widget.onFriendLongPress?.call(e.friend!),
         ),
@@ -334,12 +337,14 @@ class _FriendItem extends StatelessWidget {
   final VoidCallback? onTap;
   final VoidCallback? onLongPress;
   final bool showDivider;
+  final bool isOnline;
 
   const _FriendItem({
     required this.friend,
     this.onTap,
     this.onLongPress,
     this.showDivider = true,
+    this.isOnline = false,
   });
 
   @override
@@ -358,7 +363,24 @@ class _FriendItem extends StatelessWidget {
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: Row(
                   children: [
-                    AvatarWidget(avatar: friend.avatar, size: 40, borderRadius: 6),
+                    Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        AvatarWidget(avatar: friend.avatar, size: 40, borderRadius: 6),
+                        if (isOnline)
+                          Positioned(
+                            right: -1, bottom: -1,
+                            child: Container(
+                              width: 10, height: 10,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF4CAF50),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 1.5),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(friend.nickname,

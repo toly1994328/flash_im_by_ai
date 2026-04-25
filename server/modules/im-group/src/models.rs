@@ -91,6 +91,7 @@ pub struct GroupMember {
     pub user_id: i64,
     pub nickname: String,
     pub avatar: Option<String>,
+    pub last_read_seq: i64,
 }
 
 /// 群详情（群信息 + 成员列表）

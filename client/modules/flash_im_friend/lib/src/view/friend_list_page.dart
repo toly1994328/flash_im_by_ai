@@ -97,6 +97,7 @@ class FriendListPage extends StatelessWidget {
           return IndexedContactList(
             friends: state.friends,
             headerItems: headerItems,
+            onlineIds: state.onlineIds,
             onFriendTap: onFriendTap,
             onFriendLongPress: (friend) => _confirmDelete(context, friend),
             onRefresh: () => context.read<FriendCubit>().loadFriends(),

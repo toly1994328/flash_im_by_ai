@@ -11,6 +11,9 @@ class FriendCubit extends Cubit<FriendState> {
   StreamSubscription? _requestSub;
   StreamSubscription? _acceptedSub;
   StreamSubscription? _removedSub;
+  StreamSubscription? _onlineSub;
+  StreamSubscription? _offlineSub;
+  StreamSubscription? _onlineListSub;
 
   FriendCubit({
     required FriendRepository repository,
@@ -21,6 +24,13 @@ class FriendCubit extends Cubit<FriendState> {
     _requestSub = _wsClient.friendRequestStream.listen(_handleFriendRequest);
     _acceptedSub = _wsClient.friendAcceptedStream.listen(_handleFriendAccepted);
     _removedSub = _wsClient.friendRemovedStream.listen(_handleFriendRemoved);
+    _onlineSub = _wsClient.userOnlineStream.listen(_handleUserOnline);
+    _offlineSub = _wsClient.userOfflineStream.listen(_handleUserOffline);
+    _onlineListSub = _wsClient.onlineListStream.listen(_handleOnlineList);
+    // 初始化在线状态（WsClient 可能已经收到过 ONLINE_LIST）
+    if (_wsClient.onlineUserIds.isNotEmpty) {
+      emit(state.copyWith(onlineIds: Set<String>.from(_wsClient.onlineUserIds)));
+    }
   }
 
   Future<void> loadFriends() async {
@@ -137,11 +147,37 @@ class FriendCubit extends Cubit<FriendState> {
     } catch (_) {}
   }
 
+  void _handleUserOnline(WsFrame frame) {
+    try {
+      final notif = UserStatusNotification.fromBuffer(frame.payload);
+      final updated = Set<String>.from(state.onlineIds)..add(notif.userId);
+      emit(state.copyWith(onlineIds: updated));
+    } catch (_) {}
+  }
+
+  void _handleUserOffline(WsFrame frame) {
+    try {
+      final notif = UserStatusNotification.fromBuffer(frame.payload);
+      final updated = Set<String>.from(state.onlineIds)..remove(notif.userId);
+      emit(state.copyWith(onlineIds: updated));
+    } catch (_) {}
+  }
+
+  void _handleOnlineList(WsFrame frame) {
+    try {
+      final notif = OnlineListNotification.fromBuffer(frame.payload);
+      emit(state.copyWith(onlineIds: Set<String>.from(notif.userIds)));
+    } catch (_) {}
+  }
+
   @override
   Future<void> close() {
     _requestSub?.cancel();
     _acceptedSub?.cancel();
     _removedSub?.cancel();
+    _onlineSub?.cancel();
+    _offlineSub?.cancel();
+    _onlineListSub?.cancel();
     return super.close();
   }
 }

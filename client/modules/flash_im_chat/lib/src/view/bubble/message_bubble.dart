@@ -16,6 +16,11 @@ class MessageBubble extends StatelessWidget {
   final String? baseUrl;
   final double? uploadProgress;
   final FileDownloadInfo? fileDownloadInfo;
+  final int? peerReadSeq;
+  final Map<String, int> membersReadSeq;
+  final String? currentUserId;
+  final bool isGroup;
+  final VoidCallback? onReadCountTap;
 
   const MessageBubble({
     super.key,
@@ -27,6 +32,11 @@ class MessageBubble extends StatelessWidget {
     this.baseUrl,
     this.uploadProgress,
     this.fileDownloadInfo,
+    this.peerReadSeq,
+    this.membersReadSeq = const {},
+    this.currentUserId,
+    this.isGroup = false,
+    this.onReadCountTap,
   });
 
   @override
@@ -82,11 +92,52 @@ class MessageBubble extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             if (isMe) _buildStatusIcon(),
+            if (isMe && _shouldShowReadIndicator()) ...[
+              const SizedBox(width: 4),
+              _buildReadReceiptIndicator(),
+            ],
             if (isMe) const SizedBox(width: 4),
             Flexible(child: _buildBubble()),
           ],
         ),
       ],
+    );
+  }
+
+  bool _shouldShowReadIndicator() {
+    return message.status == MessageStatus.sent && message.seq > 0;
+  }
+
+  Widget _buildReadReceiptIndicator() {
+    if (isGroup) {
+      return _buildGroupReadIndicator();
+    } else {
+      return _buildPrivateReadIndicator();
+    }
+  }
+
+  Widget _buildPrivateReadIndicator() {
+    final isRead = (peerReadSeq ?? 0) >= message.seq;
+    return isRead ? const _AllReadIcon() : const _UnreadCircle();
+  }
+
+  Widget _buildGroupReadIndicator() {
+    final readCount = membersReadSeq.entries
+        .where((e) => e.key != currentUserId && e.value >= message.seq)
+        .length;
+    final totalMembers = membersReadSeq.entries
+        .where((e) => e.key != currentUserId)
+        .length;
+
+    if (totalMembers > 0 && readCount >= totalMembers) {
+      return const _AllReadIcon();
+    }
+    if (readCount == 0) {
+      return const _UnreadCircle();
+    }
+    return GestureDetector(
+      onTap: onReadCountTap,
+      child: _ReadCountCircle(count: readCount),
     );
   }
 
@@ -124,5 +175,50 @@ class MessageBubble extends StatelessWidget {
         child: Icon(Icons.error_outline, color: Colors.red, size: 14)),
       _ => const SizedBox.shrink(),
     };
+  }
+}
+
+class _AllReadIcon extends StatelessWidget {
+  const _AllReadIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Icon(Icons.check_circle, size: 14, color: Color(0xFFB8D9F5));
+  }
+}
+
+class _UnreadCircle extends StatelessWidget {
+  const _UnreadCircle();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 12,
+      height: 12,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(color: const Color(0xFF177EE6), width: 1.5),
+      ),
+    );
+  }
+}
+
+class _ReadCountCircle extends StatelessWidget {
+  final int count;
+  const _ReadCountCircle({required this.count});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFF177EE6), width: 1),
+      ),
+      child: Text(
+        '$count',
+        style: const TextStyle(fontSize: 10, color: Color(0xFF177EE6)),
+      ),
+    );
   }
 }

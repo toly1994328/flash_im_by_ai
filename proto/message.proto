@@ -56,3 +56,22 @@ message GroupInfoUpdate {
   optional string announcement = 4;
   optional int32 status = 5;
 }
+
+message UserStatusNotification {
+  string user_id = 1;
+}
+
+message OnlineListNotification {
+  repeated string user_ids = 1;
+}
+
+message ReadReceiptRequest {
+  string conversation_id = 1;
+  int64 read_seq = 2;
+}
+
+message ReadReceiptNotification {
+  string conversation_id = 1;
+  string user_id = 2;
+  int64 read_seq = 3;
+}

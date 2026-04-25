@@ -10,17 +10,19 @@ use crate::proto::{
     MessageAck, SendMessageRequest, WsFrame, WsFrameType,
     FriendRequestNotification, FriendAcceptedNotification, FriendRemovedNotification,
     GroupJoinRequestNotification, GroupInfoUpdate,
+    UserStatusNotification, OnlineListNotification, ReadReceiptNotification,
 };
 use crate::state::WsState;
 
 pub struct MessageDispatcher {
     msg_service: Arc<MessageService>,
     ws_state: Arc<WsState>,
+    db: sqlx::PgPool,
 }
 
 impl MessageDispatcher {
-    pub fn new(msg_service: Arc<MessageService>, ws_state: Arc<WsState>) -> Self {
-        Self { msg_service, ws_state }
+    pub fn new(msg_service: Arc<MessageService>, ws_state: Arc<WsState>, db: sqlx::PgPool) -> Self {
+        Self { msg_service, ws_state, db }
     }
 
     pub async fn handle_chat_message(&self, sender_id: i64, payload: &[u8]) {
@@ -190,5 +192,85 @@ impl MessageDispatcher {
         let data = frame.encode_to_vec();
         self.ws_state.send_to_users(member_ids, data).await;
         println!("📨 [dispatcher] group_info_update sent to {:?}", member_ids);
+    }
+
+    /// 广播用户上线通知给在线的好友
+    pub async fn broadcast_user_online(&self, user_id: i64) {
+        let friend_ids = self.get_online_friend_ids(user_id).await;
+        if friend_ids.is_empty() { return; }
+        let notification = UserStatusNotification { user_id: user_id.to_string() };
+        let frame = WsFrame {
+            r#type: WsFrameType::UserOnline as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_users(&friend_ids, frame.encode_to_vec()).await;
+        println!("📡 [dispatcher] user {} online, notified {} friends", user_id, friend_ids.len());
+    }
+
+    /// 广播用户下线通知给在线的好友
+    pub async fn broadcast_user_offline(&self, user_id: i64) {
+        let friend_ids = self.get_online_friend_ids(user_id).await;
+        if friend_ids.is_empty() { return; }
+        let notification = UserStatusNotification { user_id: user_id.to_string() };
+        let frame = WsFrame {
+            r#type: WsFrameType::UserOffline as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_users(&friend_ids, frame.encode_to_vec()).await;
+        println!("📡 [dispatcher] user {} offline, notified {} friends", user_id, friend_ids.len());
+    }
+
+    /// 查询用户的好友中哪些在线
+    async fn get_online_friend_ids(&self, user_id: i64) -> Vec<i64> {
+        let friend_rows: Vec<(i64,)> = sqlx::query_as(
+            "SELECT friend_id FROM friend_relations WHERE user_id = $1"
+        )
+        .bind(user_id)
+        .fetch_all(&self.db)
+        .await
+        .unwrap_or_default();
+
+        let online_users = self.ws_state.get_online_users().await;
+        let online_set: std::collections::HashSet<i64> = online_users.into_iter().collect();
+
+        friend_rows.into_iter()
+            .map(|(id,)| id)
+            .filter(|id| online_set.contains(id))
+            .collect()
+    }
+
+    /// 推送在线好友列表给指定用户（认证成功后调用）
+    pub async fn send_online_list(&self, user_id: i64) {
+        let friend_ids = self.get_online_friend_ids(user_id).await;
+        let user_ids: Vec<String> = friend_ids.iter().map(|id| id.to_string()).collect();
+        let count = user_ids.len();
+        let notification = OnlineListNotification { user_ids };
+        let frame = WsFrame {
+            r#type: WsFrameType::OnlineList as i32,
+            payload: notification.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(user_id, frame.encode_to_vec()).await;
+        println!("📡 [dispatcher] sent online list to user {} ({} friends online)", user_id, count);
+    }
+
+    /// 广播已读回执通知给会话其他成员
+    pub async fn broadcast_read_receipt(
+        &self,
+        conversation_id: &str,
+        user_id: i64,
+        read_seq: i64,
+        member_ids: &[i64],
+    ) {
+        let notification = ReadReceiptNotification {
+            conversation_id: conversation_id.to_string(),
+            user_id: user_id.to_string(),
+            read_seq,
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::ReadReceipt as i32,
+            payload: notification.encode_to_vec(),
+        };
+        let targets: Vec<i64> = member_ids.iter().filter(|&&id| id != user_id).copied().collect();
+        self.ws_state.send_to_users(&targets, frame.encode_to_vec()).await;
     }
 }
