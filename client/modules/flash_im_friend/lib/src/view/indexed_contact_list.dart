@@ -369,13 +369,13 @@ class _FriendItem extends StatelessWidget {
                         AvatarWidget(avatar: friend.avatar, size: 40, borderRadius: 6),
                         if (isOnline)
                           Positioned(
-                            right: -1, bottom: -1,
+                            right: -2, bottom: -2,
                             child: Container(
-                              width: 10, height: 10,
+                              width: 12, height: 12,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF4CAF50),
+                                color: const Color(0xFF07C160),
                                 shape: BoxShape.circle,
-                                border: Border.all(color: Colors.white, width: 1.5),
+                                border: Border.all(color: Colors.white, width: 2),
                               ),
                             ),
                           ),

@@ -289,65 +289,74 @@ class _HomePageState extends State<HomePage> {
       ),
       body: BlocProvider.value(
         value: _convCubit,
-        child: ConversationListPage(
-          onConversationTap: (conversation) {
-            final session = context.read<SessionCubit>().state;
-            final user = session.user;
-            if (user == null) return;
-            _convCubit.clearUnread(conversation.id);
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => MultiRepositoryProvider(
-                providers: [
-                  RepositoryProvider.value(value: context.read<MessageRepository>()),
-                  RepositoryProvider.value(value: context.read<WsClient>()),
-                ],
-                child: BlocProvider(
-                  create: (_) => ChatCubit(
-                    repository: context.read<MessageRepository>(),
-                    wsClient: context.read<WsClient>(),
-                    conversationId: conversation.id,
-                    currentUserId: user.userId.toString(),
-                    currentUserName: user.nickname,
-                    currentUserAvatar: user.avatar,
-                    isGroup: conversation.isGroup,
-                  )..loadMessages(),
-                  child: ChatPage(
-                    conversationId: conversation.id,
-                    peerName: conversation.displayName,
-                    peerAvatar: conversation.displayAvatar,
-                    baseUrl: AppConfig.baseUrl,
-                    isGroup: conversation.isGroup,
-                    isDisband: false,
-                    announcement: null,
-                    peerUserId: conversation.peerUserId,
-                    groupDetailFetcher: conversation.isGroup ? () =>
-                        context.read<GroupRepository>().getGroupDetail(conversation.id) : null,
-                    onAddMember: conversation.isGroup ? null : () {
-                      _createGroupFromChat(context, conversation);
-                    },
-                    onGroupInfo: conversation.isGroup ? () {
-                      Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => GroupChatInfoPage(
-                          repository: context.read<GroupRepository>(),
-                          conversationId: conversation.id,
-                          baseUrl: AppConfig.baseUrl,
-                          currentUserId: user.userId.toString(),
-                          friendsFetcher: () async => _friendsToMembers(),
-                          onLeaveOrDisband: () {
-                            Navigator.of(context).popUntil((route) => route.isFirst);
-                            _convCubit.loadConversations();
-                          },
-                        ),
-                      ));
-                    } : null,
-                  ),
-                ),
-              ),
-            ));
+        child: BlocBuilder<FriendCubit, FriendState>(
+          builder: (context, friendState) {
+            return ConversationListPage(
+              onlineUserIds: friendState.onlineIds,
+              onConversationTap: (conv) => _openChat(context, conv),
+            );
           },
         ),
       ),
     );
+  }
+
+  Future<void> _openChat(BuildContext context, Conversation conversation) async {
+    final session = context.read<SessionCubit>().state;
+    final user = session.user;
+    if (user == null) return;
+    _convCubit.clearUnread(conversation.id);
+    _convCubit.setActiveConversation(conversation.id);
+    await Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => MultiRepositoryProvider(
+        providers: [
+          RepositoryProvider.value(value: context.read<MessageRepository>()),
+          RepositoryProvider.value(value: context.read<WsClient>()),
+        ],
+        child: BlocProvider(
+          create: (_) => ChatCubit(
+            repository: context.read<MessageRepository>(),
+            wsClient: context.read<WsClient>(),
+            conversationId: conversation.id,
+            currentUserId: user.userId.toString(),
+            currentUserName: user.nickname,
+            currentUserAvatar: user.avatar,
+            isGroup: conversation.isGroup,
+          )..loadMessages(),
+          child: ChatPage(
+            conversationId: conversation.id,
+            peerName: conversation.displayName,
+            peerAvatar: conversation.displayAvatar,
+            baseUrl: AppConfig.baseUrl,
+            isGroup: conversation.isGroup,
+            isDisband: false,
+            announcement: null,
+            peerUserId: conversation.peerUserId,
+            groupDetailFetcher: conversation.isGroup ? () =>
+                context.read<GroupRepository>().getGroupDetail(conversation.id) : null,
+            onAddMember: conversation.isGroup ? null : () {
+              _createGroupFromChat(context, conversation);
+            },
+            onGroupInfo: conversation.isGroup ? () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => GroupChatInfoPage(
+                  repository: context.read<GroupRepository>(),
+                  conversationId: conversation.id,
+                  baseUrl: AppConfig.baseUrl,
+                  currentUserId: user.userId.toString(),
+                  friendsFetcher: () async => _friendsToMembers(),
+                  onLeaveOrDisband: () {
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                    _convCubit.loadConversations();
+                  },
+                ),
+              ));
+            } : null,
+          ),
+        ),
+      ),
+    ));
+    _convCubit.clearActiveConversation();
   }
 
   Widget _buildContactsTab() {

@@ -16,8 +16,10 @@ tags: [在线状态, 已读回执, WS, Flutter]
 - WsClient 新增 `sendReadReceipt(conversationId, readSeq)` 方法
 - Dart proto 生成：新增 USER_ONLINE / USER_OFFLINE / ONLINE_LIST / READ_RECEIPT 帧类型和消息
 - ChatCubit 扩展：进入聊天页时自动上报已读位置（1 秒防抖），监听 readReceiptStream 更新消息已读状态
-- ChatPage 扩展：单聊消息气泡显示已读/未读标记，单聊 AppBar 显示对方在线/离线状态
+- ChatPage 扩展：单聊消息气泡显示已读/未读标记，单聊 AppBar 显示对方在线/离线文字
 - FriendCubit/好友列表扩展：好友条目显示在线绿点
+- ConversationListCubit 扩展：活跃会话不累加未读（markRead 同步后端）
+- 会话列表扩展：单聊头像右下角显示在线绿点
 
 ## 2. 现状分析
 
@@ -92,16 +94,24 @@ client/modules/
 │   └── data/proto/                       # 重新生成：新增帧类型和消息
 ├── flash_im_chat/lib/src/
 │   ├── logic/chat_cubit.dart             # 扩展：已读上报（防抖）+ readReceiptStream 监听 + peerReadSeq
+│   ├── logic/chat_state.dart             # 扩展：readSeqVersion 计数器（Equatable 修复）
+│   ├── data/message_repository.dart      # 扩展：getReadSeq + getReadStatus
 │   └── view/
 │       ├── chat_page.dart                # 扩展：AppBar 在线状态
 │       ├── bubble/message_bubble.dart    # 扩展：已读/未读标记（单聊 + 群聊）
 │       └── read_receipt_detail.dart      # 新建：群聊已读详情弹窗（已读/未读 Tab）
 ├── flash_im_friend/lib/src/
-│   ├── logic/friend_cubit.dart           # 扩展：监听 userOnlineStream/userOfflineStream
-│   └── view/friend_list_page.dart        # 扩展：好友条目在线绿点
+│   ├── logic/friend_cubit.dart           # 扩展：监听 userOnlineStream/userOfflineStream/onlineListStream
+│   ├── logic/friend_state.dart           # 扩展：onlineIds 集合
+│   └── view/indexed_contact_list.dart    # 扩展：好友条目在线绿点（0xFF07C160，12px）
+├── flash_im_conversation/lib/src/
+│   ├── logic/conversation_list_cubit.dart # 扩展：activeConversationId + 活跃会话不累加未读 + markRead
+│   └── view/
+│       ├── conversation_tile.dart        # 扩展：单聊头像在线绿点（isOnline 参数）
+│       └── conversation_list_page.dart   # 扩展：onlineUserIds 参数传入
 
 client/lib/src/
-└── home/view/home_page.dart              # 可能需要传入在线状态相关参数
+└── home/view/home_page.dart              # ChatCubit 构建传入 isGroup + setActiveConversation/clearActiveConversation + BlocBuilder<FriendCubit> 传入 onlineUserIds
 ```
 
 ### 技术决策
@@ -114,8 +124,11 @@ client/lib/src/
 | 已读标记单聊和群聊都做 | 单聊用 peerReadSeq，群聊用 membersReadSeq 映射 | 群聊显示"N人已读"，参考项目已实现 |
 | 群聊初始已读位置 | 扩展 GET /groups/{id}/detail 返回 members 的 last_read_seq | 进入群聊时一次性获取 |
 | 在线绿点放好友列表 | FriendCubit 监听在线状态变化，FriendListPage 渲染绿点 | 在线状态和好友关系强相关 |
-| ChatPage 在线状态 | 单聊 ChatPage AppBar 副标题显示"在线"/"离线" | 只在单聊显示，群聊不显示 |
-| 初始 peerReadSeq | 进入聊天页时从 HTTP 接口获取（扩展 GET /conversations/{id}/messages 响应） | 需要知道对方当前的已读位置 |
+| ChatPage 在线状态 | 单聊 ChatPage AppBar 副标题显示"在线"/"离线"文字（无圆点） | 只在单聊显示，群聊不显示 |
+| 初始 peerReadSeq | 进入聊天页时调独立 HTTP 接口 GET /conversations/{id}/read-seq | 独立接口避免 loadMore 重复返回已读位置 |
+| 活跃会话不累加未读 | ConversationListCubit 维护 activeConversationId，收到 ConversationUpdate 时跳过未读累加并调 markRead | 避免用户在聊天页时返回看到幽灵未读，markRead 保证后端一致 |
+| 会话列表在线绿点 | ConversationTile 接收 isOnline 参数，单聊头像右下角绿点 | 和好友列表绿点统一样式（0xFF07C160，12px，白色边框 2px） |
+| 在线绿点样式 | 微信绿 0xFF07C160，12px，白色边框 2px，Positioned bottom: -2, right: -2 | 参考项目一致 |
 
 ### 第三方依赖
 
@@ -136,11 +149,12 @@ client/lib/src/
 | 群聊已读：显示"N人已读" | 手动操作（多设备） |
 | 群聊已读：全部已读时显示蓝色实心勾 | 手动操作 |
 | 群聊已读：点击"N人已读"弹出已读/未读成员列表 | 手动操作 |
+| 会话列表：单聊头像显示在线绿点 | 手动操作（双设备） |
+| 会话列表：在聊天页收消息时返回不显示未读 | 手动操作 |
 
 ## 6. 暂不实现
 
 | 功能 | 理由 |
 |------|------|
 | 最后在线时间 | 后端未持久化 |
-| 会话列表在线绿点 | 本版只在好友列表和单聊 ChatPage 显示 |
 | 已读回执 HTTP 上报接口 | 上报走 WS |

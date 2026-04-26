@@ -21,7 +21,7 @@ docs/features/{模块}/{版本}/
 │   └── tasks.md             # 第 6 步：前端任务
 ```
 
-## 流水线（8 步）
+## 流水线（12 步）
 
 ### 第 1 步：需求分析
 
@@ -67,26 +67,38 @@ docs/features/{模块}/{版本}/
 
 这一步经常发现问题，不能省。
 
-### 第 5 步：后端实现 + 接口测试
+### 第 5 步：后端实现
 
 按 tasks.md 顺序实现，每完成一个任务标记 ✅。
-最后用 Link Test Writer 生成测试脚本，覆盖所有正常和异常场景。
+
+### 第 6 步：后端测试
+
+用 Link Test Writer 生成测试脚本，覆盖所有正常和异常场景。
 测试通过后自动生成接口文档。
 
-### 第 6 步：前端设计 + 任务 + 交叉审查
+### 第 7 步：前端设计
 
-和后端一样的三步：
+和后端一样：
 - `client/design.md`：页面结构、技术决策、变更范围
-- `client/tasks.md`：逐条任务、代码骨架
-- 交叉审查：联合 analysis + client/design + client/tasks 检查一致性
 
-### 第 7 步：前端实现
+### 第 8 步：前端任务
+
+- `client/tasks.md`：逐条任务、代码骨架
+
+### 第 9 步：前端交叉审查
+
+联合 analysis + client/design + client/tasks 检查一致性
+
+### 第 10 步：前端实现
 
 按 tasks.md 顺序实现。
 完成后 `flutter analyze` 验证编译。
-手动测试关键路径。
 
-### 第 8 步：归档
+### 第 11 步：前端测试
+
+单元测试（Cubit 逻辑、数据转换）+ 集成测试（关键路径手动验证）。
+
+### 第 12 步：归档
 
 角色：Feature Archiver
 - 更新 `docs/features/archiver/index.md`：节点编号表 + 网络图 + 存档记录

@@ -8,7 +8,8 @@ import 'conversation_tile.dart';
 /// 会话列表页面（支持下拉刷新 + 滚动加载更多）
 class ConversationListPage extends StatefulWidget {
   final void Function(Conversation conversation)? onConversationTap;
-  const ConversationListPage({super.key, this.onConversationTap});
+  final Set<String> onlineUserIds;
+  const ConversationListPage({super.key, this.onConversationTap, this.onlineUserIds = const {}});
 
   @override
   State<ConversationListPage> createState() => _ConversationListPageState();
@@ -88,6 +89,9 @@ class _ConversationListPageState extends State<ConversationListPage> {
                         }
                         return ConversationTile(
                           conversation: conversations[index],
+                          isOnline: !conversations[index].isGroup &&
+                              conversations[index].peerUserId != null &&
+                              widget.onlineUserIds.contains(conversations[index].peerUserId),
                           onTap: () => widget.onConversationTap?.call(conversations[index]),
                         );
                       },

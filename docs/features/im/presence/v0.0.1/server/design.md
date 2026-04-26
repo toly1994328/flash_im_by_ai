@@ -120,7 +120,7 @@ sequenceDiagram
     H->>C: AUTH_RESULT success
     alt 首次上线
         H->>D: broadcast_user_online(user_id)
-        D->>WS: 广播 USER_ONLINE 给所有在线用户
+        D->>WS: 查好友列表，广播 USER_ONLINE 给在线好友
     end
     H->>D: send_online_list(user_id)
     D->>C: ONLINE_LIST 帧（当前在线用户列表）
@@ -138,7 +138,7 @@ sequenceDiagram
     WS-->>H: is_last = true/false
     alt 完全下线
         H->>D: broadcast_user_offline(user_id)
-        D->>WS: 广播 USER_OFFLINE 给所有在线用户
+        D->>WS: 查好友列表，广播 USER_OFFLINE 给在线好友
     end
 ```
 
@@ -170,6 +170,8 @@ server/modules/
 │   ├── state.rs          # 重构：多端连接支持
 │   ├── handler.rs        # 扩展：上线广播 + 在线列表 + 下线广播 + READ_RECEIPT 处理
 │   └── dispatcher.rs     # 扩展：broadcast_user_online/offline（只通知好友）+ send_online_list（只返回好友）+ broadcast_read_receipt + 新增 PgPool 依赖
+├── im-message/src/
+│   └── routes.rs         # 新增：GET /read-seq + GET /read-status
 proto/
 ├── ws.proto              # 扩展：USER_ONLINE/OFFLINE/ONLINE_LIST/READ_RECEIPT
 └── message.proto         # 扩展：UserStatusNotification/OnlineListNotification/ReadReceiptRequest/ReadReceiptNotification
@@ -182,7 +184,7 @@ proto/
 | 在线状态不持久化 | 纯内存（WsState），重启后丢失 | 在线状态是瞬时的，持久化没有意义 |
 | 已读回执在 handler 中直接处理 | 不经过 MessageService，handler 直接操作数据库 | 已读回执不是"消息"，不需要走消息链路 |
 | handler 需要数据库连接 | WsHandlerState 新增 PgPool | 已读回执需要更新 conversation_members |
-| 广播上线/下线给所有在线用户 | 不过滤好友关系 | 前端自己过滤（只在好友列表中显示绿点），后端保持简单 |
+| 广播上线/下线只给在线好友 | 查 friend_relations 取好友列表，和在线集合取交集 | 非好友不需要知道你在不在线，减少无效推送 |
 | unread_count 重新计算方式 | `SELECT COUNT(*) FROM messages WHERE seq > last_read_seq` | 精确计算，不依赖增量 +1/-1 |
 
 ## 6. 新增 HTTP 接口

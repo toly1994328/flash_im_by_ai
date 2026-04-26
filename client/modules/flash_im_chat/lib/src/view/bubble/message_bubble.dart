@@ -193,8 +193,8 @@ class _UnreadCircle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 12,
-      height: 12,
+      width: 14,
+      height: 14,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         border: Border.all(color: const Color(0xFF177EE6), width: 1.5),
@@ -209,15 +209,27 @@ class _ReadCountCircle extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final digits = count.toString().length;
+    final size = digits == 1 ? 16.0 : 18.0;
+
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+      width: size,
+      height: size,
+      alignment: Alignment.center,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF177EE6), width: 1),
+        shape: digits <= 1 ? BoxShape.circle : BoxShape.rectangle,
+        borderRadius: digits > 1 ? BorderRadius.circular(size / 2) : null,
+        border: Border.all(color: const Color(0xFF177EE6), width: 1.5),
       ),
       child: Text(
         '$count',
-        style: const TextStyle(fontSize: 10, color: Color(0xFF177EE6)),
+        style: const TextStyle(
+          fontSize: 10,
+          height: 1,
+          fontWeight: FontWeight.w500,
+          color: Color(0xFF177EE6),
+        ),
+        textAlign: TextAlign.center,
       ),
     );
   }

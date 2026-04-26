@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.3_group（群成员管理与群详情）
+最后更新：v0.0.1_presence（在线状态与已读回执）
 
 ---
 
@@ -63,6 +63,10 @@
 | D-28 | 解散群聊 | im-group | 后端 | v0.0.3_group | ✅ |
 | D-29 | 群公告 | im-group | 后端 | v0.0.3_group | ✅ |
 | D-30 | 修改群名 | im-group | 后端 | v0.0.3_group | ✅ |
+| D-31 | 在线状态广播 | im-ws (dispatcher) | 后端 | v0.0.1_presence | ✅ |
+| D-32 | 在线列表推送 | im-ws (dispatcher) | 后端 | v0.0.1_presence | ✅ |
+| D-33 | 已读回执处理 | im-ws (handler) | 后端 | v0.0.1_presence | ✅ |
+| D-34 | 已读详情查询 | im-message (routes) | 后端 | v0.0.1_presence | ✅ |
 
 ### 前端基础层（F）
 
@@ -79,6 +83,8 @@
 | F-09 | 好友WS流分发 | flash_im_core | v0.0.1_friend | ✅ |
 | F-10 | 群通知WS帧分发 | flash_im_core | v0.0.2_group | ✅ |
 | F-11 | GROUP_INFO_UPDATE WS 帧分发 | flash_im_core | v0.0.3_group | ✅ |
+| F-12 | 在线状态 WS 帧分发 | flash_im_core | v0.0.1_presence | ✅ |
+| F-13 | 已读回执 WS 帧分发 | flash_im_core | v0.0.1_presence | ✅ |
 
 ### 前端业务层（P）
 
@@ -123,6 +129,9 @@
 | P-38 | 群详情页扩展 | flash_im_group (group_chat_info_page) | v0.0.3_group | ✅ |
 | P-39 | 邀请入群选人页 | flash_im_group (member_picker_page) | v0.0.3_group | ✅ |
 | P-40 | 群公告页 | flash_im_group (group_announcement_page) | v0.0.3_group | ✅ |
+| P-41 | 在线状态展示 | flash_im_friend + flash_im_chat + flash_im_conversation | v0.0.1_presence | ✅ |
+| P-42 | 已读回执展示 | flash_im_chat (message_bubble + read_receipt_detail) | v0.0.1_presence | ✅ |
+| P-43 | 已读回执上报 | flash_im_chat (chat_cubit) | v0.0.1_presence | ✅ |
 
 
 ---
@@ -203,6 +212,10 @@ graph TB
         D28[D-28 解散群聊]
         D29[D-29 群公告]
         D30[D-30 修改群名]
+        D31[D-31 在线状态广播]
+        D32[D-32 在线列表推送]
+        D33[D-33 已读回执处理]
+        D34[D-34 已读详情查询]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -216,6 +229,8 @@ graph TB
         F09[F-09 好友WS流分发]
         F10[F-10 群通知WS帧分发]
         F11[F-11 GROUP_INFO_UPDATE]
+        F12[F-12 在线状态WS帧分发]
+        F13[F-13 已读回执WS帧分发]
     end
     subgraph 前端业务层
         P01[P-01 会话列表]
@@ -257,6 +272,9 @@ graph TB
         P38[P-38 群详情页扩展]
         P39[P-39 邀请入群选人页]
         P40[P-40 群公告页]
+        P41[P-41 在线状态展示]
+        P42[P-42 已读回执展示]
+        P43[P-43 已读回执上报]
     end
 
     %% 后端：模块间依赖
@@ -418,6 +436,23 @@ graph TB
     P39 -.->|HTTP| D24
     P40 -.->|HTTP| D29
     P03 --> F11
+
+    %% 在线状态与已读回执 v0.0.1_presence：后端依赖
+    D31 --> I08
+    D31 --> I09
+    D32 --> I08
+    D32 --> I09
+    D33 --> I09
+    D34 --> D06
+
+    %% 在线状态与已读回执 v0.0.1_presence：前端依赖
+    F12 --> F06
+    F13 --> F06
+    P41 --> F12
+    P41 --> P20
+    P42 --> F13
+    P42 -.->|HTTP| D34
+    P43 --> F13
 ```
 
 ---
@@ -443,6 +478,7 @@ graph TB
 | v0.13.0 | 2026-04-18 | 71 | [trace/v0.13.0_2026-04-18.md](trace/v0.13.0_2026-04-18.md) |
 | v0.14.0 | 2026-04-19 | 81 | [trace/v0.14.0_2026-04-19.md](trace/v0.14.0_2026-04-19.md) |
 | v0.15.0 | 2026-04-23 | 93 | [trace/v0.15.0_2026-04-23.md](trace/v0.15.0_2026-04-23.md) |
+| v0.16.0 | 2026-04-25 | 102 | [trace/v0.16.0_2026-04-25.md](trace/v0.16.0_2026-04-25.md) |
 
 ---
 
@@ -459,3 +495,4 @@ graph TB
 | 消息（客户端） | [message/client.md](modules/message/client.md) | F-06~F-08, P-06~P-09, P-11~P-19 |
 | 好友 | [friend/server.md](modules/friend/server.md) [friend/client.md](modules/friend/client.md) | D-14~D-17, F-09, P-20~P-27 |
 | 群聊 | [group/server.md](modules/group/server.md) [group/client.md](modules/group/client.md) | D-18~D-30, I-13, F-10~F-11, P-28~P-29, P-31~P-40 |
+| 在线状态与已读回执 | [presence/server.md](modules/presence/server.md) [presence/client.md](modules/presence/client.md) | D-31~D-34, F-12~F-13, P-41~P-43 |

@@ -13,6 +13,7 @@ class ConversationListCubit extends Cubit<ConversationListState> {
   bool _isLoadingMore = false;
   StreamSubscription? _updateSub;
   StreamSubscription? _groupInfoSub;
+  String? _activeConversationId;
 
   ConversationListCubit(this._repository, {WsClient? wsClient})
       : _wsClient = wsClient,
@@ -58,6 +59,11 @@ class ConversationListCubit extends Cubit<ConversationListState> {
 
       final updated = current.conversations.map((c) {
         if (c.id == update.conversationId) {
+          // 当前正在查看的会话不累加未读，并通知后端清零
+          final isActive = _activeConversationId == update.conversationId;
+          if (isActive && update.unreadCount > 0) {
+            _repository.markRead(update.conversationId).catchError((_) {});
+          }
           return Conversation(
             id: c.id,
             type: c.type,
@@ -68,7 +74,7 @@ class ConversationListCubit extends Cubit<ConversationListState> {
             peerAvatar: c.peerAvatar,
             lastMessageAt: DateTime.fromMillisecondsSinceEpoch(update.lastMessageAt.toInt()),
             lastMessagePreview: update.lastMessagePreview,
-            unreadCount: c.unreadCount + update.unreadCount,
+            unreadCount: c.unreadCount + (isActive ? 0 : update.unreadCount),
             isPinned: c.isPinned,
             isMuted: c.isMuted,
             createdAt: c.createdAt,
@@ -128,6 +134,16 @@ class ConversationListCubit extends Cubit<ConversationListState> {
         emit(ConversationListLoaded(updated, hasMore: current.hasMore, totalUnread: current.totalUnread));
       }
     } catch (_) {}
+  }
+
+  /// 标记当前正在查看的会话（收到该会话消息时不累加未读）
+  void setActiveConversation(String conversationId) {
+    _activeConversationId = conversationId;
+  }
+
+  /// 离开聊天页时清除活跃会话标记
+  void clearActiveConversation() {
+    _activeConversationId = null;
   }
 
   /// 进入聊天页时清除该会话的未读数

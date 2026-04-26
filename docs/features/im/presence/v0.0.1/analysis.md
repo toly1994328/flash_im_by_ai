@@ -48,7 +48,7 @@ flowchart LR
 
 **用户故事**：作为正在聊天的用户，我想在聊天页看到对方是否在线。
 
-单聊 ChatPage 的 AppBar 副标题区域显示对方的在线状态："在线"（绿色）或"离线"。状态通过 WS 实时更新——对方上线时变为"在线"，下线时变为"离线"。
+单聊 ChatPage 的 AppBar 副标题区域显示对方的在线状态文字："在线"（绿色）或"离线"（灰色）。状态通过 WS 实时更新——对方上线时变为"在线"，下线时变为"离线"。
 
 ### 场景 4：单聊已读回执
 
@@ -125,6 +125,8 @@ flowchart LR
 | 群聊已读展示 | 显示已读人数，点击查看已读/未读成员列表 | 完整实现 |
 | 已读回执走 WS 而非 HTTP | WS 帧双向传输（上报 + 通知） | 实时性要求高，HTTP 轮询不合适 |
 | 群聊已读详情接口 | GET /conversations/{id}/messages/{mid}/read-status | 返回已读/未读成员列表 |
+| 活跃会话不累加未读 | ConversationListCubit 标记当前打开的会话，收到 ConversationUpdate 时不累加 unreadCount，同时调 markRead 同步后端 | 避免用户在聊天页时返回看到幽灵未读 |
+| 会话列表在线绿点 | 单聊头像右下角显示在线绿点（微信绿 0xFF07C160，12px，白色边框 2px） | 和好友列表绿点一致，让用户在会话列表也能感知在线状态 |
 
 ---
 
@@ -139,7 +141,7 @@ flowchart LR
 | D-33 | 已读回执处理 | 领域 | 接收 READ_RECEIPT 帧，更新 last_read_seq，通知对方 |
 | F-12 | 在线状态 WS 帧分发 | 前端基础 | WsClient 新增 userStatusStream + onlineListStream |
 | F-13 | 已读回执 WS 帧分发 | 前端基础 | WsClient 新增 readReceiptStream |
-| P-41 | 在线状态展示 | 前端业务 | 好友列表绿点 + ChatPage 在线/离线状态 |
+| P-41 | 在线状态展示 | 前端业务 | 好友列表绿点 + 会话列表单聊绿点 + ChatPage 在线/离线文字 |
 | P-42 | 已读回执展示 | 前端业务 | 单聊已读标记 + 群聊已读人数 + 群聊已读详情弹窗 |
 | P-43 | 已读回执上报 | 前端业务 | ChatPage 自动上报 readSeq（1 秒防抖） |
 | D-34 | 已读详情查询 | 领域 | GET /conversations/{id}/messages/{mid}/read-status，返回已读/未读成员列表 |

@@ -8,11 +8,13 @@ import '../data/conversation.dart';
 class ConversationTile extends StatelessWidget {
   final Conversation conversation;
   final VoidCallback? onTap;
+  final bool isOnline;
 
   const ConversationTile({
     super.key,
     required this.conversation,
     this.onTap,
+    this.isOnline = false,
   });
 
   @override
@@ -59,6 +61,20 @@ class ConversationTile extends StatelessWidget {
             top: -6,
             right: -6,
             child: _buildUnreadBadge(),
+          ),
+        if (!conversation.isGroup && isOnline)
+          Positioned(
+            bottom: -2,
+            right: -2,
+            child: Container(
+              width: 12,
+              height: 12,
+              decoration: BoxDecoration(
+                color: const Color(0xFF07C160),
+                shape: BoxShape.circle,
+                border: Border.all(color: Colors.white, width: 2),
+              ),
+            ),
           ),
       ],
     );
