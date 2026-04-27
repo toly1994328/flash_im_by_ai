@@ -6,6 +6,7 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
+use sqlx;
 
 use flash_core::jwt::extract_user_id;
 use im_conversation::service::ConversationService;
@@ -218,6 +219,41 @@ async fn delete_friend(
     Ok(Json(serde_json::json!({ "data": null })))
 }
 
+/// GET /api/friends/search — 搜索好友（按昵称模糊匹配）
+async fn search_friends(
+    State(state): State<FriendApiState>,
+    headers: HeaderMap,
+    Query(query): Query<std::collections::HashMap<String, String>>,
+) -> ApiResult {
+    let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
+    let keyword = query.get("keyword").cloned().unwrap_or_default();
+    let limit: i32 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(50).max(1);
+
+    let escaped = keyword.replace('%', "\\%").replace('_', "\\_");
+    let pattern = format!("%{}%", escaped);
+
+    let rows: Vec<(i64, String, Option<String>)> = sqlx::query_as(
+        "SELECT fr.friend_id, COALESCE(up.nickname, '?') AS nickname, up.avatar \
+         FROM friend_relations fr \
+         LEFT JOIN user_profiles up ON up.account_id = fr.friend_id \
+         WHERE fr.user_id = $1 AND up.nickname ILIKE $2 \
+         ORDER BY up.nickname \
+         LIMIT $3"
+    )
+    .bind(user_id)
+    .bind(&pattern)
+    .bind(limit)
+    .fetch_all(state.service.repo().pool())
+    .await
+    .map_err(|e| (StatusCode::INTERNAL_SERVER_ERROR, Json(serde_json::json!({"error": e.to_string()}))))?;
+
+    let data: Vec<serde_json::Value> = rows.into_iter().map(|(id, nickname, avatar)| {
+        serde_json::json!({ "friend_id": id.to_string(), "nickname": nickname, "avatar": avatar })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "data": data })))
+}
+
 pub fn friend_routes(state: FriendApiState) -> Router {
     Router::new()
         .route("/api/friends/requests", post(send_request))
@@ -227,6 +263,7 @@ pub fn friend_routes(state: FriendApiState) -> Router {
         .route("/api/friends/requests/{id}/reject", post(reject_request))
         .route("/api/friends/requests/{id}", delete(delete_request))
         .route("/api/friends", get(get_friends))
+        .route("/api/friends/search", get(search_friends))
         .route("/api/friends/{id}", delete(delete_friend))
         .with_state(state)
 }

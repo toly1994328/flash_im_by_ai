@@ -12,6 +12,7 @@ class FlashSearchInput extends StatelessWidget {
   final ValueChanged<String>? onSubmitted;
   final double height;
   final double borderRadius;
+  final Color backgroundColor;
 
   const FlashSearchInput({
     super.key,
@@ -22,6 +23,7 @@ class FlashSearchInput extends StatelessWidget {
     this.onSubmitted,
     this.height = 36,
     this.borderRadius = 6,
+    this.backgroundColor = Colors.white,
   });
 
   @override
@@ -29,7 +31,7 @@ class FlashSearchInput extends StatelessWidget {
     return Container(
       height: height,
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: backgroundColor,
         borderRadius: BorderRadius.circular(borderRadius),
       ),
       child: TextField(

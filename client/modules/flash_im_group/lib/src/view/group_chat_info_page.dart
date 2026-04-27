@@ -17,6 +17,7 @@ class GroupChatInfoPage extends StatefulWidget {
   final String? currentUserId;
   final Future<List<SelectableMember>> Function()? friendsFetcher;
   final VoidCallback? onLeaveOrDisband;
+  final VoidCallback? onSearchChat;
 
   const GroupChatInfoPage({
     super.key,
@@ -26,6 +27,7 @@ class GroupChatInfoPage extends StatefulWidget {
     this.currentUserId,
     this.friendsFetcher,
     this.onLeaveOrDisband,
+    this.onSearchChat,
   });
 
   @override
@@ -592,6 +594,11 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
           title: '群公告',
           value: (announcement != null && announcement.isNotEmpty) ? announcement : '未设置',
           onTap: _openAnnouncement,
+        ),
+        const SizedBox(height: 10),
+        _buildSettingItem(
+          title: '查找聊天内容',
+          onTap: () => widget.onSearchChat?.call(),
         ),
         // 群主设置
         if (_isOwner) ...[

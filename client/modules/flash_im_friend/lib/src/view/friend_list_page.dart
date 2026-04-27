@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flash_shared/flash_shared.dart';
 import '../data/friend.dart';
 import '../logic/friend_cubit.dart';
 import '../logic/friend_state.dart';
@@ -15,6 +16,7 @@ class FriendListPage extends StatelessWidget {
   final VoidCallback? onSearchGroupTap;
   final VoidCallback? onGroupNotificationsTap;
   final int groupNotificationCount;
+  final VoidCallback? onSearchTap;
 
   const FriendListPage({
     super.key,
@@ -24,6 +26,7 @@ class FriendListPage extends StatelessWidget {
     this.onSearchGroupTap,
     this.onGroupNotificationsTap,
     this.groupNotificationCount = 0,
+    this.onSearchTap,
   });
 
   @override
@@ -42,7 +45,14 @@ class FriendListPage extends StatelessWidget {
           ),
         ],
       ),
-      body: BlocBuilder<FriendCubit, FriendState>(
+      body: Column(
+        children: [
+          FlashSearchBar(
+            hintText: '搜索',
+            onTap: () => onSearchTap?.call(),
+          ),
+          Expanded(
+            child: BlocBuilder<FriendCubit, FriendState>(
         builder: (context, state) {
           if (state.isLoading && state.friends.isEmpty) {
             return const Center(child: CircularProgressIndicator());
@@ -103,6 +113,9 @@ class FriendListPage extends StatelessWidget {
             onRefresh: () => context.read<FriendCubit>().loadFriends(),
           );
         },
+      ),
+          ),
+        ],
       ),
     );
   }

@@ -31,6 +31,7 @@ class ChatPage extends StatefulWidget {
 
   /// 群详情获取器（群聊时由外部注入，返回 {status, announcement}）
   final Future<Map<String, dynamic>> Function()? groupDetailFetcher;
+  final VoidCallback? onSearchChat;
 
   const ChatPage({
     super.key,
@@ -45,6 +46,7 @@ class ChatPage extends StatefulWidget {
     this.isDisband = false,
     this.announcement,
     this.groupDetailFetcher,
+    this.onSearchChat,
   });
 
   @override
@@ -174,6 +176,7 @@ class _ChatPageState extends State<ChatPage> {
                       peerAvatar: widget.peerAvatar,
                       peerUserId: widget.peerUserId,
                       onAddMember: widget.onAddMember,
+                      onSearchChat: widget.onSearchChat,
                     ),
                   ),
                 ),

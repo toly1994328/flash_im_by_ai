@@ -9,6 +9,8 @@ class PrivateChatInfoPage extends StatelessWidget {
   final String? peerAvatar;
   final String? peerUserId;
   final VoidCallback? onAddMember;
+  final String? conversationId;
+  final VoidCallback? onSearchChat;
 
   const PrivateChatInfoPage({
     super.key,
@@ -16,6 +18,8 @@ class PrivateChatInfoPage extends StatelessWidget {
     this.peerAvatar,
     this.peerUserId,
     this.onAddMember,
+    this.conversationId,
+    this.onSearchChat,
   });
 
   @override
@@ -31,6 +35,17 @@ class PrivateChatInfoPage extends StatelessWidget {
         children: [
           const SizedBox(height: 10),
           _buildMemberSection(context),
+          if (onSearchChat != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              color: Colors.white,
+              child: ListTile(
+                title: const Text('查找聊天内容', style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
+                trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
+                onTap: onSearchChat,
+              ),
+            ),
+          ],
         ],
       ),
     );

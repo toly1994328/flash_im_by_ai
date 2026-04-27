@@ -2,7 +2,7 @@ use axum::{
     Router, Json,
     extract::{Path, State},
     http::{HeaderMap, StatusCode},
-    routing::{post, delete},
+    routing::{post, delete, get},
 };
 use std::sync::Arc;
 use uuid::Uuid;
@@ -82,9 +82,51 @@ async fn mark_read(
     Ok(Json(MessageResponse { message: "ok".to_string() }))
 }
 
+/// GET /api/conversations/search-joined-groups — 搜索已加入的群聊
+async fn search_joined_groups(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    axum::extract::Query(params): axum::extract::Query<std::collections::HashMap<String, String>>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let keyword = params.get("keyword").cloned().unwrap_or_default();
+    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(50).max(1);
+
+    let escaped = keyword.replace('%', "\\%").replace('_', "\\_");
+    let pattern = format!("%{}%", escaped);
+
+    let rows: Vec<(Uuid, Option<String>, Option<String>, i64)> = sqlx::query_as(
+        "SELECT c.id, c.name, c.avatar, \
+            (SELECT COUNT(*) FROM conversation_members WHERE conversation_id = c.id AND is_deleted = false) AS member_count \
+         FROM conversations c \
+         INNER JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = $1 AND cm.is_deleted = false \
+         WHERE c.type = 1 AND COALESCE(c.status, 0::SMALLINT) = 0 AND c.name ILIKE $2 \
+         ORDER BY c.name \
+         LIMIT $3"
+    )
+    .bind(user_id)
+    .bind(&pattern)
+    .bind(limit)
+    .fetch_all(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let data: Vec<serde_json::Value> = rows.into_iter().map(|(id, name, avatar, count)| {
+        serde_json::json!({
+            "conversation_id": id.to_string(),
+            "name": name,
+            "avatar": avatar,
+            "member_count": count,
+        })
+    }).collect();
+
+    Ok(Json(serde_json::json!({ "data": data })))
+}
+
 pub fn router() -> Router<Arc<AppState>> {
     Router::new()
         .route("/conversations", post(create_conversation).get(list_conversations))
         .route("/conversations/{id}", delete(delete_conversation).get(get_conversation))
         .route("/conversations/{id}/read", post(mark_read))
+        .route("/api/conversations/search-joined-groups", get(search_joined_groups))
 }

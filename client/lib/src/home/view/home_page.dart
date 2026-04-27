@@ -8,6 +8,7 @@ import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:flash_im_search/flash_im_search.dart';
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
 
@@ -287,18 +288,60 @@ class _HomePageState extends State<HomePage> {
           },
         ),
       ),
-      body: BlocProvider.value(
-        value: _convCubit,
-        child: BlocBuilder<FriendCubit, FriendState>(
-          builder: (context, friendState) {
-            return ConversationListPage(
-              onlineUserIds: friendState.onlineIds,
-              onConversationTap: (conv) => _openChat(context, conv),
-            );
-          },
-        ),
+      body: Column(
+        children: [
+          FlashSearchBar(
+            hintText: '搜索',
+            onTap: () => _openSearch(context),
+          ),
+          Expanded(
+            child: BlocProvider.value(
+              value: _convCubit,
+              child: BlocBuilder<FriendCubit, FriendState>(
+                builder: (context, friendState) {
+                  return ConversationListPage(
+                    onlineUserIds: friendState.onlineIds,
+                    onConversationTap: (conv) => _openChat(context, conv),
+                  );
+                },
+              ),
+            ),
+          ),
+        ],
       ),
     );
+  }
+
+  void _openSearch(BuildContext context) {
+    Navigator.of(context).push(MaterialPageRoute(
+      builder: (_) => SearchPage(
+        repository: context.read<SearchRepository>(),
+        onFriendTap: (friendId) {
+          final friends = context.read<FriendCubit>().state.friends;
+          final friend = friends.where((f) => f.friendId == friendId).firstOrNull;
+          if (friend != null) {
+            _openFriendDetail(context, friend);
+          }
+        },
+        onGroupTap: (conversationId) {
+          _openChatById(context, conversationId, isGroup: true);
+        },
+        onMessageTap: (conversationId, messageId) {
+          _openChatById(context, conversationId);
+        },
+      ),
+    ));
+  }
+
+  Future<void> _openChatById(BuildContext context, String conversationId, {bool isGroup = false}) async {
+    final session = context.read<SessionCubit>().state;
+    final user = session.user;
+    if (user == null) return;
+    try {
+      final conv = await context.read<ConversationRepository>().getById(conversationId);
+      if (!mounted) return;
+      _openChat(context, conv);
+    } catch (_) {}
   }
 
   Future<void> _openChat(BuildContext context, Conversation conversation) async {
@@ -349,9 +392,30 @@ class _HomePageState extends State<HomePage> {
                     Navigator.of(context).popUntil((route) => route.isFirst);
                     _convCubit.loadConversations();
                   },
+                  onSearchChat: () {
+                    Navigator.of(context).push(MaterialPageRoute(
+                      builder: (_) => ConversationSearchPage(
+                        conversationId: conversation.id,
+                        conversationName: conversation.displayName,
+                        repository: context.read<SearchRepository>(),
+                      ),
+                    ));
+                  },
                 ),
               ));
             } : null,
+            onSearchChat: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => ConversationSearchPage(
+                  conversationId: conversation.id,
+                  conversationName: conversation.displayName,
+                  repository: context.read<SearchRepository>(),
+                  onMessageTap: (convId, msgId) {
+                    Navigator.of(context).pop(); // 关闭搜索页
+                  },
+                ),
+              ));
+            },
           ),
         ),
       ),
@@ -365,6 +429,7 @@ class _HomePageState extends State<HomePage> {
       builder: (context, groupNotifState) {
         return FriendListPage(
           onFriendTap: (friend) => _openFriendDetail(context, friend),
+          onSearchTap: () => _openSearch(context),
           onAddFriendTap: () {
             Navigator.of(context).push(MaterialPageRoute(
               builder: (_) => AddFriendPage(
@@ -449,6 +514,15 @@ class _HomePageState extends State<HomePage> {
                                 onLeaveOrDisband: () {
                                   Navigator.of(context).popUntil((route) => route.isFirst);
                                   _convCubit.loadConversations();
+                                },
+                                onSearchChat: () {
+                                  Navigator.of(context).push(MaterialPageRoute(
+                                    builder: (_) => ConversationSearchPage(
+                                      conversationId: conversation.id,
+                                      conversationName: conversation.displayName,
+                                      repository: context.read<SearchRepository>(),
+                                    ),
+                                  ));
                                 },
                               ),
                             ));
@@ -613,6 +687,15 @@ class _HomePageState extends State<HomePage> {
                     onLeaveOrDisband: () {
                       Navigator.of(context).popUntil((route) => route.isFirst);
                       _convCubit.loadConversations();
+                    },
+                    onSearchChat: () {
+                      Navigator.of(context).push(MaterialPageRoute(
+                        builder: (_) => ConversationSearchPage(
+                          conversationId: conv.id,
+                          conversationName: conv.displayName,
+                          repository: context.read<SearchRepository>(),
+                        ),
+                      ));
                     },
                   ),
                 ));

@@ -6,7 +6,7 @@ inclusion: manual
 
 ## 身份
 
-你是功能版本的流程调度者。每个功能版本按固定的 8 步流水线推进，你负责引导用户走完每一步，确保不跳步、不遗漏。
+你是功能版本的流程调度者。每个功能版本按固定的 12 步流水线推进，你负责引导用户走完每一步，确保不跳步、不遗漏。
 
 ## 工作目录
 
@@ -17,8 +17,8 @@ docs/features/{模块}/{版本}/
 │   ├── design.md            # 第 2 步：后端设计
 │   └── tasks.md             # 第 3 步：后端任务
 ├── client/
-│   ├── design.md            # 第 6 步：前端设计
-│   └── tasks.md             # 第 6 步：前端任务
+│   ├── design.md            # 第 7 步：前端设计
+│   └── tasks.md             # 第 8 步：前端任务
 ```
 
 ## 流水线（12 步）
@@ -27,10 +27,11 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Analyst
 输出：`analysis.md`
+参考规范：#[[file:.kiro/steering/mermaid-diagram-writing.md]]
 
 包含三个投影面：
-- **交互链**：用户走什么路（用户故事 + 操作路径 + mermaid 流程图）
-- **逻辑树**：系统做什么（事件流表格 + 状态流转 + 时序图）
+- **交互链**：用户走什么路（用户故事 + 操作路径 + mermaid flowchart，每个场景必须附图）
+- **逻辑树**：系统做什么（事件流表格 + 状态流转 + mermaid sequenceDiagram，每条事件流必须附图）
 - **功能编号**：在网络中的位置（新增节点 + 前置依赖 + 边界接口）
 
 这一步决定"做什么"和"不做什么"，是后续所有文档的源头。
@@ -39,6 +40,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Designer
 输出：`server/design.md`
+参考规范：#[[file:.kiro/steering/rust-error-handling.md]]
 
 包含：
 - 数据模型（SQL + ER 图 + 设计决策表）
@@ -70,16 +72,19 @@ docs/features/{模块}/{版本}/
 ### 第 5 步：后端实现
 
 按 tasks.md 顺序实现，每完成一个任务标记 ✅。
+参考规范：#[[file:.kiro/steering/rust-error-handling.md]]
 
 ### 第 6 步：后端测试
 
 用 Link Test Writer 生成测试脚本，覆盖所有正常和异常场景。
 测试通过后自动生成接口文档。
+参考规范：#[[file:.kiro/steering/link-test-writer.md]]
 
 ### 第 7 步：前端设计
 
 和后端一样：
 - `client/design.md`：页面结构、技术决策、变更范围
+参考规范：#[[file:.kiro/steering/flash-im-ui-style.md]]
 
 ### 第 8 步：前端任务
 
@@ -93,6 +98,7 @@ docs/features/{模块}/{版本}/
 
 按 tasks.md 顺序实现。
 完成后 `flutter analyze` 验证编译。
+参考规范：#[[file:.kiro/steering/flash-im-ui-style.md]]
 
 ### 第 11 步：前端测试
 
@@ -101,6 +107,7 @@ docs/features/{模块}/{版本}/
 ### 第 12 步：归档
 
 角色：Feature Archiver
+参考规范：#[[file:.kiro/steering/feature-archiver.md]] #[[file:.kiro/steering/feature-mermaid-maker.md]]
 - 更新 `docs/features/archiver/index.md`：节点编号表 + 网络图 + 存档记录
 - 更新 `docs/features/archiver/modules/{域}/`：局域网络
 - 创建 `docs/features/archiver/trace/{版本}_{日期}.md`：存档快照
@@ -115,7 +122,7 @@ docs/features/{模块}/{版本}/
 | Feature Task Maker | 拆任务，给出代码骨架 | tasks.md |
 | Link Test Writer | 生成接口测试脚本 + 接口文档 | 测试脚本 + doc/ |
 | Feature Archiver | 归档功能网 | index.md + modules/ + trace/ |
-| Book Writer | 技术文章草稿 | docs/ref/doc/books/draft/ |
+| Book Writer | 技术文章草稿（归档后独立执行） | docs/ref/doc/books/draft/ |
 
 ## 使用方式
 
@@ -123,7 +130,7 @@ docs/features/{模块}/{版本}/
 
 1. 确认功能范围和版本号
 2. 新建分支
-3. 按 8 步流水线依次推进
+3. 按 12 步流水线依次推进
 4. 每一步完成后提示用户确认，再进入下一步
 5. 不跳步——如果用户要求直接写代码，提醒先完成设计文档
 

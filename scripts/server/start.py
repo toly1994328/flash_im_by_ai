@@ -25,7 +25,7 @@ if SYSTEM == "Windows":
     PG_DIR = r"C:\toly\SDK\postgres"
     PG_CTL = os.path.join(PG_DIR, "pgsql", "bin", "pg_ctl.exe")
     PG_DATA = os.path.join(PG_DIR, "data")
-    PG_LOG = os.path.join(PG_DIR, "pgsql", "pg.log")
+    PG_LOG = os.path.join(PG_DIR, "pg_start.log")
 else:
     # macOS (Homebrew) / Linux: pg_ctl 通常在 PATH 中
     PG_CTL = shutil.which("pg_ctl")
@@ -47,22 +47,63 @@ def run(cmd, encoding="utf-8", **kwargs):
 
 def ensure_postgres():
     if not PG_CTL or not os.path.exists(PG_CTL):
-        # macOS/Linux 可能通过 brew services 或 systemd 管理
         print("[PG] pg_ctl not found, assuming PostgreSQL is managed externally.")
         return
 
-    r = run([PG_CTL, "-D", PG_DATA, "status"])
-    if r.returncode != 0:
-        print("[PG] Starting PostgreSQL...")
-        # 不捕获输出，避免 pg_ctl 阻塞
-        subprocess.run(
-            [PG_CTL, "-D", PG_DATA, "-l", PG_LOG, "-o", "-p 5432", "start"],
-            timeout=15,
-        )
+    pg_isready = os.path.join(os.path.dirname(PG_CTL), "pg_isready.exe" if SYSTEM == "Windows" else "pg_isready")
+
+    # 先检查是否已经可用
+    if os.path.exists(pg_isready):
+        r = run([pg_isready, "-p", "5432", "-t", "2"])
+        if r.returncode == 0:
+            print("[PG] PostgreSQL is ready.")
+            return
+
+    # 不可用：尝试停止 → 清理 → 启动
+    print("[PG] PostgreSQL not ready, restarting...")
+    subprocess.run([PG_CTL, "-D", PG_DATA, "stop", "-m", "immediate"],
+                   timeout=10, capture_output=True)
+    time.sleep(1)
+
+    # 强制杀掉所有残留 postgres 进程（Windows 上共享内存不会自动释放）
+    if SYSTEM == "Windows":
+        subprocess.run(["taskkill", "/F", "/IM", "postgres.exe"],
+                       capture_output=True, timeout=5)
         time.sleep(2)
-        print("[PG] PostgreSQL started.")
+
+    # 清理残留 PID 文件
+    pid_file = os.path.join(PG_DATA, "postmaster.pid")
+    if os.path.exists(pid_file):
+        os.remove(pid_file)
+        print("[PG] Removed stale postmaster.pid")
+
+    # 启动
+    print("[PG] Starting PostgreSQL...")
+    if SYSTEM == "Windows":
+        subprocess.Popen([PG_CTL, "-D", PG_DATA, "-l", PG_LOG, "-o", "-p 5432", "start"])
     else:
-        print("[PG] PostgreSQL is running.")
+        subprocess.run([PG_CTL, "-D", PG_DATA, "-l", PG_LOG, "-o", "-p 5432", "start"], timeout=15)
+
+    # 等待就绪
+    for i in range(15):
+        if os.path.exists(pg_isready):
+            r = run([pg_isready, "-p", "5432", "-t", "1"])
+            if r.returncode == 0:
+                print("[PG] PostgreSQL is ready.")
+                return
+        elif _is_port_listening(5432):
+            print("[PG] PostgreSQL is ready.")
+            return
+        time.sleep(1)
+    print("[PG] WARNING: PostgreSQL may not have started. Check pg.log.")
+
+
+def _is_port_listening(port):
+    """检查端口是否被占用"""
+    import socket
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(1)
+        return s.connect_ex(("127.0.0.1", port)) == 0
 
 
 # ─── 2. 停止旧进程 ───

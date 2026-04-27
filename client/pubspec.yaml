@@ -59,6 +59,8 @@ dependencies:
     path: modules/flash_im_group
   flash_shared:
     path: modules/flash_shared
+  flash_im_search:
+    path: modules/flash_im_search
 
 dev_dependencies:
   flutter_test:

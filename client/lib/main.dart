@@ -7,6 +7,7 @@ import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:flash_im_search/flash_im_search.dart';
 import 'package:go_router/go_router.dart';
 import 'src/application/app.dart';
 import 'src/application/config.dart';
@@ -31,6 +32,7 @@ void main() async {
   final messageRepo = MessageRepository(dio: httpClient.dio);
   final friendRepo = FriendRepository(dio: httpClient.dio);
   final groupRepo = GroupRepository(dio: httpClient.dio);
+  final searchRepo = SearchRepository(dio: httpClient.dio);
 
   final wsClient = WsClient(
     config: ImConfig(wsUrl: 'ws://${AppConfig.host}:${AppConfig.port}/ws/im'),
@@ -66,6 +68,7 @@ void main() async {
         RepositoryProvider.value(value: messageRepo),
         RepositoryProvider.value(value: friendRepo),
         RepositoryProvider.value(value: groupRepo),
+        RepositoryProvider.value(value: searchRepo),
       ],
       child: MultiBlocProvider(
         providers: [

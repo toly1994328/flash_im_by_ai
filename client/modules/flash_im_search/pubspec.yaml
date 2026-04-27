@@ -1,0 +1,17 @@
+name: flash_im_search
+description: Flash IM search module
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.7.1
+  flutter: ">=3.29.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_bloc: ^8.1.0
+  dio: ^5.0.0
+  shared_preferences: ^2.5.0
+  flash_shared:
+    path: ../flash_shared
