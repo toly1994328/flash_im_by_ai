@@ -128,6 +128,7 @@ client/lib/
 | 关键词高亮 | HighlightText 组件，RichText + TextSpan | 匹配部分用主题蓝标记 |
 | 搜索结果每区默认 3 条 | 点击"查看更多"展开全部 | 避免首屏太长 |
 | 会话内搜索独立页面 | ConversationSearchPage | 不复用 SearchPage，逻辑更简单 |
+| MessageDetailPage 分页加载 | 进入时调会话内搜索 API，每页 20 条，滚动加载更多 | 综合搜索只返回每组 3 条预览，详情页需要完整列表 |
 | 导航用回调 | onFriendTap / onGroupTap / onMessageTap | 搜索模块不依赖具体的页面路由 |
 | 会话内搜索点击 → 消息详情页 | SingleMessagePage 展示完整消息信息 | 本来就在会话里，不需要跳 ChatPage |
 | 综合搜索点击 → 直接 push | 不 pop 搜索页，push 到栈顶 | 避免 pop + push 动画冲突 |

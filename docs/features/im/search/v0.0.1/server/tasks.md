@@ -263,7 +263,8 @@ async fn search_conversation_messages(
     let _user_id = extract_user_id(&headers)?;
     let conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| StatusCode::BAD_REQUEST)?;
     let keyword = params.get("keyword").cloned().unwrap_or_default();
-    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(50).min(100).max(1);
+    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(100).max(1);
+    let offset: i32 = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0).max(0);
 
     let escaped = keyword.replace('%', "\\%").replace('_', "\\_");
     let pattern = format!("%{}%", escaped);
@@ -274,9 +275,9 @@ async fn search_conversation_messages(
          LEFT JOIN user_profiles up ON up.account_id = m.sender_id \
          WHERE m.conversation_id = $1 AND m.type = 0 AND m.content ILIKE $2 \
          ORDER BY m.created_at DESC \
-         LIMIT $3"
+         LIMIT $3 OFFSET $4"
     )
-    .bind(conv_id).bind(&pattern).bind(limit)
+    .bind(conv_id).bind(&pattern).bind(limit).bind(offset)
     .fetch_all(service.db())
     .await.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 

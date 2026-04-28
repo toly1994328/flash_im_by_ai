@@ -34,6 +34,7 @@ class SearchPage extends StatelessWidget {
         onFriendTap: onFriendTap,
         onGroupTap: onGroupTap,
         onMessageTap: onMessageTap,
+        repository: repository,
       ),
     );
   }
@@ -43,11 +44,13 @@ class _SearchView extends StatefulWidget {
   final void Function(String friendId)? onFriendTap;
   final void Function(String conversationId)? onGroupTap;
   final void Function(String conversationId, String? messageId)? onMessageTap;
+  final SearchRepository repository;
 
   const _SearchView({
     this.onFriendTap,
     this.onGroupTap,
     this.onMessageTap,
+    required this.repository,
   });
 
   @override
@@ -383,6 +386,7 @@ class _SearchViewState extends State<_SearchView> {
         builder: (_) => MessageDetailPage(
           group: group,
           keyword: keyword,
+          repository: widget.repository,
           onMessageTap: widget.onMessageTap,
         ),
       ),

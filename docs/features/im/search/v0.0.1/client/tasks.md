@@ -19,7 +19,7 @@
 5. ✅ 任务 5 — HighlightText 组件
 6. ✅ 任务 6 — 搜索结果子组件（FriendSearchItem / GroupSearchItem / MessageSearchItem）
 7. ✅ 任务 7 — SearchPage（综合搜索页 + 搜索历史）
-8. ✅ 任务 8 — MessageDetailPage（消息搜索详情页）
+8. ✅ 任务 8 — MessageDetailPage（消息搜索详情页，分页加载，每页 20 条）
 9. ✅ 任务 9 — ConversationSearchPage（会话内搜索页）
 10. ✅ 任务 10 — SingleMessagePage（单条消息详情页）
 11. ✅ 任务 11 — 详情页集成"查找聊天内容"入口（单聊 + 群聊）

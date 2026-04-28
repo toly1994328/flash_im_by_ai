@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.1_presence（在线状态与已读回执）
+最后更新：v0.0.1_search（综合搜索）
 
 ---
 
@@ -67,6 +67,10 @@
 | D-32 | 在线列表推送 | im-ws (dispatcher) | 后端 | v0.0.1_presence | ✅ |
 | D-33 | 已读回执处理 | im-ws (handler) | 后端 | v0.0.1_presence | ✅ |
 | D-34 | 已读详情查询 | im-message (routes) | 后端 | v0.0.1_presence | ✅ |
+| D-35 | 好友搜索 | im-friend (api) | 后端 | v0.0.1_search | ✅ |
+| D-36 | 已加入群搜索 | im-conversation (routes) | 后端 | v0.0.1_search | ✅ |
+| D-37 | 消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
+| D-38 | 会话内消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
 
 ### 前端基础层（F）
 
@@ -85,6 +89,7 @@
 | F-11 | GROUP_INFO_UPDATE WS 帧分发 | flash_im_core | v0.0.3_group | ✅ |
 | F-12 | 在线状态 WS 帧分发 | flash_im_core | v0.0.1_presence | ✅ |
 | F-13 | 已读回执 WS 帧分发 | flash_im_core | v0.0.1_presence | ✅ |
+| F-14 | 搜索模块 | flash_im_search | v0.0.1_search | ✅ |
 
 ### 前端业务层（P）
 
@@ -132,6 +137,10 @@
 | P-41 | 在线状态展示 | flash_im_friend + flash_im_chat + flash_im_conversation | v0.0.1_presence | ✅ |
 | P-42 | 已读回执展示 | flash_im_chat (message_bubble + read_receipt_detail) | v0.0.1_presence | ✅ |
 | P-43 | 已读回执上报 | flash_im_chat (chat_cubit) | v0.0.1_presence | ✅ |
+| P-44 | 综合搜索页 | flash_im_search (search_page) | v0.0.1_search | ✅ |
+| P-45 | 消息搜索详情页 | flash_im_search (message_detail_page) | v0.0.1_search | ✅ |
+| P-46 | 会话内搜索页 | flash_im_search (conversation_search_page) | v0.0.1_search | ✅ |
+| P-47 | 单条消息详情页 | flash_im_search (single_message_page) | v0.0.1_search | ✅ |
 
 
 ---
@@ -216,6 +225,10 @@ graph TB
         D32[D-32 在线列表推送]
         D33[D-33 已读回执处理]
         D34[D-34 已读详情查询]
+        D35[D-35 好友搜索]
+        D36[D-36 已加入群搜索]
+        D37[D-37 消息搜索]
+        D38[D-38 会话内消息搜索]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -231,6 +244,7 @@ graph TB
         F11[F-11 GROUP_INFO_UPDATE]
         F12[F-12 在线状态WS帧分发]
         F13[F-13 已读回执WS帧分发]
+        F14[F-14 搜索模块]
     end
     subgraph 前端业务层
         P01[P-01 会话列表]
@@ -275,6 +289,10 @@ graph TB
         P41[P-41 在线状态展示]
         P42[P-42 已读回执展示]
         P43[P-43 已读回执上报]
+        P44[P-44 综合搜索页]
+        P45[P-45 消息搜索详情页]
+        P46[P-46 会话内搜索页]
+        P47[P-47 单条消息详情页]
     end
 
     %% 后端：模块间依赖
@@ -453,6 +471,22 @@ graph TB
     P42 --> F13
     P42 -.->|HTTP| D34
     P43 --> F13
+
+    %% 综合搜索 v0.0.1_search：后端依赖
+    D35 --> D15
+    D36 --> D01
+    D37 --> D06
+    D38 --> D06
+
+    %% 综合搜索 v0.0.1_search：前端依赖
+    F14 -.->|HTTP| D35
+    F14 -.->|HTTP| D36
+    F14 -.->|HTTP| D37
+    F14 -.->|HTTP| D38
+    P44 --> F14
+    P45 --> F14
+    P46 --> F14
+    P47 --> P46
 ```
 
 ---
@@ -479,6 +513,7 @@ graph TB
 | v0.14.0 | 2026-04-19 | 81 | [trace/v0.14.0_2026-04-19.md](trace/v0.14.0_2026-04-19.md) |
 | v0.15.0 | 2026-04-23 | 93 | [trace/v0.15.0_2026-04-23.md](trace/v0.15.0_2026-04-23.md) |
 | v0.16.0 | 2026-04-25 | 102 | [trace/v0.16.0_2026-04-25.md](trace/v0.16.0_2026-04-25.md) |
+| v0.17.0 | 2026-04-28 | 112 | [trace/v0.17.0_2026-04-28.md](trace/v0.17.0_2026-04-28.md) |
 
 ---
 
@@ -496,3 +531,4 @@ graph TB
 | 好友 | [friend/server.md](modules/friend/server.md) [friend/client.md](modules/friend/client.md) | D-14~D-17, F-09, P-20~P-27 |
 | 群聊 | [group/server.md](modules/group/server.md) [group/client.md](modules/group/client.md) | D-18~D-30, I-13, F-10~F-11, P-28~P-29, P-31~P-40 |
 | 在线状态与已读回执 | [presence/server.md](modules/presence/server.md) [presence/client.md](modules/presence/client.md) | D-31~D-34, F-12~F-13, P-41~P-43 |
+| 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |

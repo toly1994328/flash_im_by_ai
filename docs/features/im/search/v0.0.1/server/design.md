@@ -182,7 +182,8 @@ FROM conversations c WHERE c.id = $1
 
 请求参数：
 - `keyword`（必填）：搜索关键词
-- `limit`（可选，默认 50）：返回数量上限
+- `limit`（可选，默认 20）：返回数量上限
+- `offset`（可选，默认 0）：分页偏移量
 
 SQL：
 ```sql
@@ -190,9 +191,9 @@ SELECT m.id AS message_id, m.content, m.seq, m.created_at,
     COALESCE(up.nickname, '?') AS sender_name, up.avatar AS sender_avatar
 FROM messages m
 LEFT JOIN user_profiles up ON up.account_id = m.sender_id
-WHERE m.conversation_id = $1 AND m.type = 0 AND m.content ILIKE $2
+WHERE m.conversation_id = $1 AND m.type = 0 AND m.sender_id != 0 AND m.content ILIKE $2
 ORDER BY m.created_at DESC
-LIMIT $3
+LIMIT $3 OFFSET $4
 ```
 
 成功响应 200：

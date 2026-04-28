@@ -56,11 +56,12 @@ class SearchRepository {
   Future<List<MessageSearchItem>> searchConversationMessages({
     required String conversationId,
     required String keyword,
-    int limit = 50,
+    int limit = 20,
+    int offset = 0,
   }) async {
     final res = await _dio.get(
       '/conversations/$conversationId/messages/search',
-      queryParameters: {'keyword': keyword, 'limit': limit},
+      queryParameters: {'keyword': keyword, 'limit': limit, 'offset': offset},
     );
     final List data = res.data['data'] as List;
     return data
