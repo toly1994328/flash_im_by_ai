@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.1_search（综合搜索）
+最后更新：v0.0.1_cache（本地缓存与离线同步）
 
 ---
 
@@ -28,6 +28,7 @@
 | I-11 | 文件上传 API | app-storage (api) | 后端 | v0.0.4_media | ✅ |
 | I-12 | 静态文件服务 | main.rs (tower-http) | 后端 | v0.0.4_media | ✅ |
 | I-13 | AppError 统一错误处理 | flash-core | 后端 | v0.0.3_group | ✅ |
+| I-14 | 本地数据库 | flash_im_cache (drift + SQLite) | 前端 | v0.0.1_cache | ✅ |
 
 ### 领域层（D）
 
@@ -71,6 +72,7 @@
 | D-36 | 已加入群搜索 | im-conversation (routes) | 后端 | v0.0.1_search | ✅ |
 | D-37 | 消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
 | D-38 | 会话内消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
+| D-39 | 增量消息查询 | im-message (routes) | 后端 | v0.0.1_cache | ✅ |
 
 ### 前端基础层（F）
 
@@ -90,6 +92,8 @@
 | F-12 | 在线状态 WS 帧分发 | flash_im_core | v0.0.1_presence | ✅ |
 | F-13 | 已读回执 WS 帧分发 | flash_im_core | v0.0.1_presence | ✅ |
 | F-14 | 搜索模块 | flash_im_search | v0.0.1_search | ✅ |
+| F-15 | LocalStore | flash_im_cache (local_store) | v0.0.1_cache | ✅ |
+| F-16 | SyncEngine | flash_im_cache (sync_engine) | v0.0.1_cache | ✅ |
 
 ### 前端业务层（P）
 
@@ -163,10 +167,11 @@ Level 4: main.rs → 组装所有模块
 
 ```
 Level 0: flash_shared (F-07) | flash_starter (F-03)
-Level 1: flash_auth (F-01) | flash_session (F-02) | flash_im_core (F-04~F-06,F-10~F-11)
-Level 2: flash_im_conversation (P-01~P-05,P-10) → 依赖 flash_session + flash_im_core
-         flash_im_chat (F-08,P-06~P-09,P-11~P-19) → 依赖 flash_im_core + flash_shared
-         flash_im_friend (F-09,P-20~P-27) → 依赖 flash_im_core + flash_shared + flash_session
+Level 1: flash_auth (F-01) | flash_session (F-02) | flash_im_core (F-04~F-06,F-10~F-13)
+Level 2: flash_im_cache (I-14,F-15~F-16) → 依赖 flash_im_core + drift
+         flash_im_conversation (P-01~P-05,P-10) → 依赖 flash_session + flash_im_core + flash_im_cache
+         flash_im_chat (F-08,P-06~P-09,P-11~P-19) → 依赖 flash_im_core + flash_shared + flash_im_cache
+         flash_im_friend (F-09,P-20~P-27) → 依赖 flash_im_core + flash_shared + flash_session + flash_im_cache
          flash_im_group (P-28~P-29,P-34~P-40) → 依赖 flash_shared + flash_im_conversation + flutter_bloc
 Level 3: main.dart → 组装所有模块
 ```
@@ -294,6 +299,12 @@ graph TB
         P46[P-46 会话内搜索页]
         P47[P-47 单条消息详情页]
     end
+
+    %% 本地缓存 v0.0.1_cache：新增节点
+    I14[I-14 本地数据库]
+    D39[D-39 增量消息查询]
+    F15[F-15 LocalStore]
+    F16[F-16 SyncEngine]
 
     %% 后端：模块间依赖
     I02 --> I01
@@ -487,6 +498,16 @@ graph TB
     P45 --> F14
     P46 --> F14
     P47 --> P46
+
+    %% 本地缓存 v0.0.1_cache：依赖
+    F15 --> I14
+    F16 --> F15
+    F16 --> F06
+    F16 -.->|HTTP after_seq| D39
+    D39 --> D06
+    P01 --> F15
+    P06 --> F15
+    P20 --> F15
 ```
 
 ---
@@ -514,6 +535,7 @@ graph TB
 | v0.15.0 | 2026-04-23 | 93 | [trace/v0.15.0_2026-04-23.md](trace/v0.15.0_2026-04-23.md) |
 | v0.16.0 | 2026-04-25 | 102 | [trace/v0.16.0_2026-04-25.md](trace/v0.16.0_2026-04-25.md) |
 | v0.17.0 | 2026-04-28 | 112 | [trace/v0.17.0_2026-04-28.md](trace/v0.17.0_2026-04-28.md) |
+| v0.18.0 | 2026-05-01 | 116 | [trace/v0.18.0_2026-05-01.md](trace/v0.18.0_2026-05-01.md) |
 
 ---
 
@@ -532,3 +554,4 @@ graph TB
 | 群聊 | [group/server.md](modules/group/server.md) [group/client.md](modules/group/client.md) | D-18~D-30, I-13, F-10~F-11, P-28~P-29, P-31~P-40 |
 | 在线状态与已读回执 | [presence/server.md](modules/presence/server.md) [presence/client.md](modules/presence/client.md) | D-31~D-34, F-12~F-13, P-41~P-43 |
 | 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |
+| 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
