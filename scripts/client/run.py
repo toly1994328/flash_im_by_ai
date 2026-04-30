@@ -5,6 +5,8 @@
   python scripts/client/run.py              # 默认第 1 个模拟器
   python scripts/client/run.py 2            # 第 2 个模拟器
   python scripts/client/run.py --platform windows
+  adb shell run-as com.toly1994.flash_im cat app_flutter/im_cache_1.db > im_cache_1.db
+
 """
 
 import argparse

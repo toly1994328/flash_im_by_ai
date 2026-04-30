@@ -9,6 +9,7 @@ import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
 import 'package:flash_im_search/flash_im_search.dart';
+import '../../../main.dart' show globalSyncEngine;
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
 
@@ -35,6 +36,13 @@ class _HomePageState extends State<HomePage> {
       wsClient: context.read<WsClient>(),
     )..loadConversations();
     context.read<FriendCubit>().loadFriends();
+
+    // 注册 SyncEngine 回调：同步完成后自动刷新
+    final se = globalSyncEngine;
+    if (se != null) {
+      se.onConversationChanged = () => _convCubit.loadConversations();
+      se.onFriendListChanged = () => context.read<FriendCubit>().loadFriends();
+    }
     _groupNotifCubit = GroupNotificationCubit(
       repository: context.read<GroupRepository>(),
       groupJoinRequestStream: context.read<WsClient>().groupJoinRequestStream,

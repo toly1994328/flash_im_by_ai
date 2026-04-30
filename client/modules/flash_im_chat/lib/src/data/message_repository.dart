@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:dio/dio.dart';
+import 'package:flash_im_cache/flash_im_cache.dart';
 import 'message.dart';
 
 class ImageUploadResult {
@@ -81,14 +84,24 @@ class FileUploadResult {
 
 class MessageRepository {
   final Dio _dio;
+  LocalStore? _store;
 
   MessageRepository({required Dio dio}) : _dio = dio;
+
+  /// 登录后注入本地存储
+  void setStore(LocalStore store) => _store = store;
 
   Future<List<Message>> getMessages(
     String conversationId, {
     int? beforeSeq,
     int limit = 50,
   }) async {
+    if (_store != null) {
+      final cached = await _store!.getMessages(conversationId,
+          beforeSeq: beforeSeq, limit: limit);
+      if (cached.isNotEmpty) return cached.map(_fromCached).toList();
+      // 本地为空，fallback HTTP
+    }
     final params = <String, dynamic>{'limit': limit};
     if (beforeSeq != null) params['before_seq'] = beforeSeq;
     final res = await _dio.get(
@@ -194,5 +207,33 @@ class MessageRepository {
       },
     );
     return savePath;
+  }
+
+  /// CachedMessage → Message
+  Message _fromCached(CachedMessage c) {
+    final parsedType = switch (c.msgType) {
+      1 => MessageType.image,
+      2 => MessageType.video,
+      3 => MessageType.file,
+      _ => MessageType.text,
+    };
+    Map<String, dynamic>? extra;
+    if (c.extra != null && c.extra!.isNotEmpty) {
+      try {
+        extra = jsonDecode(c.extra!) as Map<String, dynamic>?;
+      } catch (_) {}
+    }
+    return Message(
+      id: c.id,
+      conversationId: c.conversationId,
+      senderId: c.senderId,
+      senderName: c.senderName,
+      senderAvatar: c.senderAvatar,
+      seq: c.seq,
+      content: c.content,
+      createdAt: DateTime.fromMillisecondsSinceEpoch(c.createdAt),
+      type: parsedType,
+      extra: extra,
+    );
   }
 }

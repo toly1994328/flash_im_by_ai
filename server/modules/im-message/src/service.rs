@@ -184,12 +184,14 @@ impl MessageService {
         &self,
         conversation_id: Uuid,
         before_seq: Option<i64>,
+        after_seq: Option<i64>,
         limit: i32,
     ) -> Result<Vec<MessageWithSender>, StatusCode> {
         let limit = limit.min(100).max(1);
-        let messages = match before_seq {
-            Some(seq) => self.repo.find_before_with_sender(conversation_id, seq, limit).await,
-            None => self.repo.find_latest_with_sender(conversation_id, limit).await,
+        let messages = match (after_seq, before_seq) {
+            (Some(seq), _) => self.repo.find_after_with_sender(conversation_id, seq, limit).await,
+            (_, Some(seq)) => self.repo.find_before_with_sender(conversation_id, seq, limit).await,
+            _ => self.repo.find_latest_with_sender(conversation_id, limit).await,
         };
         messages.map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)
     }

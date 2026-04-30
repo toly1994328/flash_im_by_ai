@@ -63,6 +63,7 @@ pub fn generate_preview(content: &str, msg_type: i16) -> String {
 #[derive(Debug, Deserialize)]
 pub struct MessageQuery {
     pub before_seq: Option<i64>,
+    pub after_seq: Option<i64>,
     #[serde(default = "default_limit")]
     pub limit: i32,
 }

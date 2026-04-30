@@ -166,7 +166,6 @@ class WsClient {
     // 已认证：处理帧
     if (frame.type == WsFrameType.PONG) {
       _missedPongs = 0;
-      print('💓 [WsClient] PONG received ${DateTime.now()}');
       return;
     }
 
@@ -215,7 +214,6 @@ class WsClient {
         ..type = WsFrameType.PING
         ..payload = [];
       sendFrame(ping);
-      print('💓 [WsClient] PING sent (missed: $_missedPongs) ${DateTime.now()}');
 
       _missedPongs++;
       if (_missedPongs >= _config.heartbeatTimeout) {

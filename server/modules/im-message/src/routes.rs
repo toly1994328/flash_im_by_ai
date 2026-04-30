@@ -32,7 +32,7 @@ async fn get_messages(
     let conv_id = Uuid::parse_str(&conversation_id)
         .map_err(|_| StatusCode::BAD_REQUEST)?;
 
-    let messages = service.get_history(conv_id, query.before_seq, query.limit).await?;
+    let messages = service.get_history(conv_id, query.before_seq, query.after_seq, query.limit).await?;
     Ok(Json(serde_json::to_value(messages).unwrap()))
 }
 

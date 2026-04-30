@@ -18,6 +18,8 @@ dependencies:
     path: ../flash_im_core
   flash_shared:
     path: ../flash_shared
+  flash_im_cache:
+    path: ../flash_im_cache
   image_picker: ^1.1.2
   file_picker: ^8.1.7
   video_player: ^2.9.2

@@ -61,6 +61,8 @@ dependencies:
     path: modules/flash_shared
   flash_im_search:
     path: modules/flash_im_search
+  flash_im_cache:
+    path: modules/flash_im_cache
 
 dev_dependencies:
   flutter_test:
@@ -75,6 +77,11 @@ dev_dependencies:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+hooks:
+  user_defines:
+    sqlite3:
+      source: system
 
 # The following section is specific to Flutter packages.
 flutter:

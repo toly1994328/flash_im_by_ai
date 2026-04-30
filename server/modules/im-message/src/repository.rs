@@ -50,6 +50,29 @@ impl MessageRepository {
         .await
     }
 
+    pub async fn find_after_with_sender(
+        &self,
+        conversation_id: Uuid,
+        after_seq: i64,
+        limit: i32,
+    ) -> Result<Vec<MessageWithSender>, sqlx::Error> {
+        sqlx::query_as(
+            "SELECT m.id, m.conversation_id, m.sender_id, \
+                    COALESCE(p.nickname, '?') as sender_name, \
+                    p.avatar as sender_avatar, \
+                    m.seq, m.type as msg_type, m.content, m.extra, m.status, m.created_at \
+             FROM messages m \
+             LEFT JOIN user_profiles p ON m.sender_id = p.account_id \
+             WHERE m.conversation_id = $1 AND m.seq > $2 AND m.status != 2 \
+             ORDER BY m.seq ASC LIMIT $3",
+        )
+        .bind(conversation_id)
+        .bind(after_seq)
+        .bind(limit)
+        .fetch_all(&self.pool)
+        .await
+    }
+
     pub async fn find_latest_with_sender(
         &self,
         conversation_id: Uuid,

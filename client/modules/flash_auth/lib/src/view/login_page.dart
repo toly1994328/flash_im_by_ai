@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/auth_repository.dart';
 import '../data/login_result.dart';
@@ -47,7 +48,9 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
           child: Column(
             children: [
               const SizedBox(height: 60),
-              const _BrandHeader(),
+              _BrandHeader(onDebugDoubleTap: () {
+                smsStrategy.phoneCtrl.text = '13800010001';
+              }),
               const SizedBox(height: 48),
               if (isSmsMode)
                 SmsLoginForm(
@@ -93,13 +96,17 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
 }
 
 class _BrandHeader extends StatelessWidget {
-  const _BrandHeader();
+  final VoidCallback? onDebugDoubleTap;
+  const _BrandHeader({this.onDebugDoubleTap});
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
-        Image.asset('assets/images/logo.png', width: 72, height: 72),
+        GestureDetector(
+          onDoubleTap: onDebugDoubleTap,
+          child: Image.asset('assets/images/logo.png', width: 72, height: 72),
+        ),
         const SizedBox(height: 8),
         const Text(
           'FLASH IM',

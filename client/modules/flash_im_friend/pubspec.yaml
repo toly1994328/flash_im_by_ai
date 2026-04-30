@@ -20,6 +20,10 @@ dependencies:
     path: ../flash_im_core
   flash_shared:
     path: ../flash_shared
+  flash_im_cache:
+    path: ../flash_im_cache
+  flash_session:
+    path: ../flash_session
 
 dev_dependencies:
   flutter_test:
