@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from proto/ws.proto.
+// Generated from ws.proto.
 
 // @dart = 3.3
 

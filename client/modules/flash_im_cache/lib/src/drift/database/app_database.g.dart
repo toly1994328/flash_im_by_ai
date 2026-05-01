@@ -1829,6 +1829,278 @@ class CachedFriendsTableCompanion
   }
 }
 
+class $LocalTrashTableTable extends LocalTrashTable
+    with TableInfo<$LocalTrashTableTable, LocalTrashTableData> {
+  @override
+  final GeneratedDatabase attachedDatabase;
+  final String? _alias;
+  $LocalTrashTableTable(this.attachedDatabase, [this._alias]);
+  static const VerificationMeta _entityIdMeta = const VerificationMeta(
+    'entityId',
+  );
+  @override
+  late final GeneratedColumn<String> entityId = GeneratedColumn<String>(
+    'entity_id',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _entityTypeMeta = const VerificationMeta(
+    'entityType',
+  );
+  @override
+  late final GeneratedColumn<String> entityType = GeneratedColumn<String>(
+    'entity_type',
+    aliasedName,
+    false,
+    type: DriftSqlType.string,
+    requiredDuringInsert: true,
+  );
+  static const VerificationMeta _deletedAtMeta = const VerificationMeta(
+    'deletedAt',
+  );
+  @override
+  late final GeneratedColumn<int> deletedAt = GeneratedColumn<int>(
+    'deleted_at',
+    aliasedName,
+    false,
+    type: DriftSqlType.int,
+    requiredDuringInsert: true,
+  );
+  @override
+  List<GeneratedColumn> get $columns => [entityId, entityType, deletedAt];
+  @override
+  String get aliasedName => _alias ?? actualTableName;
+  @override
+  String get actualTableName => $name;
+  static const String $name = 'local_trash_table';
+  @override
+  VerificationContext validateIntegrity(
+    Insertable<LocalTrashTableData> instance, {
+    bool isInserting = false,
+  }) {
+    final context = VerificationContext();
+    final data = instance.toColumns(true);
+    if (data.containsKey('entity_id')) {
+      context.handle(
+        _entityIdMeta,
+        entityId.isAcceptableOrUnknown(data['entity_id']!, _entityIdMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityIdMeta);
+    }
+    if (data.containsKey('entity_type')) {
+      context.handle(
+        _entityTypeMeta,
+        entityType.isAcceptableOrUnknown(data['entity_type']!, _entityTypeMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_entityTypeMeta);
+    }
+    if (data.containsKey('deleted_at')) {
+      context.handle(
+        _deletedAtMeta,
+        deletedAt.isAcceptableOrUnknown(data['deleted_at']!, _deletedAtMeta),
+      );
+    } else if (isInserting) {
+      context.missing(_deletedAtMeta);
+    }
+    return context;
+  }
+
+  @override
+  Set<GeneratedColumn> get $primaryKey => {entityId};
+  @override
+  LocalTrashTableData map(Map<String, dynamic> data, {String? tablePrefix}) {
+    final effectivePrefix = tablePrefix != null ? '$tablePrefix.' : '';
+    return LocalTrashTableData(
+      entityId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_id'],
+      )!,
+      entityType: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}entity_type'],
+      )!,
+      deletedAt: attachedDatabase.typeMapping.read(
+        DriftSqlType.int,
+        data['${effectivePrefix}deleted_at'],
+      )!,
+    );
+  }
+
+  @override
+  $LocalTrashTableTable createAlias(String alias) {
+    return $LocalTrashTableTable(attachedDatabase, alias);
+  }
+}
+
+class LocalTrashTableData extends DataClass
+    implements Insertable<LocalTrashTableData> {
+  final String entityId;
+  final String entityType;
+  final int deletedAt;
+  const LocalTrashTableData({
+    required this.entityId,
+    required this.entityType,
+    required this.deletedAt,
+  });
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    map['entity_id'] = Variable<String>(entityId);
+    map['entity_type'] = Variable<String>(entityType);
+    map['deleted_at'] = Variable<int>(deletedAt);
+    return map;
+  }
+
+  LocalTrashTableCompanion toCompanion(bool nullToAbsent) {
+    return LocalTrashTableCompanion(
+      entityId: Value(entityId),
+      entityType: Value(entityType),
+      deletedAt: Value(deletedAt),
+    );
+  }
+
+  factory LocalTrashTableData.fromJson(
+    Map<String, dynamic> json, {
+    ValueSerializer? serializer,
+  }) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return LocalTrashTableData(
+      entityId: serializer.fromJson<String>(json['entityId']),
+      entityType: serializer.fromJson<String>(json['entityType']),
+      deletedAt: serializer.fromJson<int>(json['deletedAt']),
+    );
+  }
+  @override
+  Map<String, dynamic> toJson({ValueSerializer? serializer}) {
+    serializer ??= driftRuntimeOptions.defaultSerializer;
+    return <String, dynamic>{
+      'entityId': serializer.toJson<String>(entityId),
+      'entityType': serializer.toJson<String>(entityType),
+      'deletedAt': serializer.toJson<int>(deletedAt),
+    };
+  }
+
+  LocalTrashTableData copyWith({
+    String? entityId,
+    String? entityType,
+    int? deletedAt,
+  }) => LocalTrashTableData(
+    entityId: entityId ?? this.entityId,
+    entityType: entityType ?? this.entityType,
+    deletedAt: deletedAt ?? this.deletedAt,
+  );
+  LocalTrashTableData copyWithCompanion(LocalTrashTableCompanion data) {
+    return LocalTrashTableData(
+      entityId: data.entityId.present ? data.entityId.value : this.entityId,
+      entityType: data.entityType.present
+          ? data.entityType.value
+          : this.entityType,
+      deletedAt: data.deletedAt.present ? data.deletedAt.value : this.deletedAt,
+    );
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalTrashTableData(')
+          ..write('entityId: $entityId, ')
+          ..write('entityType: $entityType, ')
+          ..write('deletedAt: $deletedAt')
+          ..write(')'))
+        .toString();
+  }
+
+  @override
+  int get hashCode => Object.hash(entityId, entityType, deletedAt);
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      (other is LocalTrashTableData &&
+          other.entityId == this.entityId &&
+          other.entityType == this.entityType &&
+          other.deletedAt == this.deletedAt);
+}
+
+class LocalTrashTableCompanion extends UpdateCompanion<LocalTrashTableData> {
+  final Value<String> entityId;
+  final Value<String> entityType;
+  final Value<int> deletedAt;
+  final Value<int> rowid;
+  const LocalTrashTableCompanion({
+    this.entityId = const Value.absent(),
+    this.entityType = const Value.absent(),
+    this.deletedAt = const Value.absent(),
+    this.rowid = const Value.absent(),
+  });
+  LocalTrashTableCompanion.insert({
+    required String entityId,
+    required String entityType,
+    required int deletedAt,
+    this.rowid = const Value.absent(),
+  }) : entityId = Value(entityId),
+       entityType = Value(entityType),
+       deletedAt = Value(deletedAt);
+  static Insertable<LocalTrashTableData> custom({
+    Expression<String>? entityId,
+    Expression<String>? entityType,
+    Expression<int>? deletedAt,
+    Expression<int>? rowid,
+  }) {
+    return RawValuesInsertable({
+      if (entityId != null) 'entity_id': entityId,
+      if (entityType != null) 'entity_type': entityType,
+      if (deletedAt != null) 'deleted_at': deletedAt,
+      if (rowid != null) 'rowid': rowid,
+    });
+  }
+
+  LocalTrashTableCompanion copyWith({
+    Value<String>? entityId,
+    Value<String>? entityType,
+    Value<int>? deletedAt,
+    Value<int>? rowid,
+  }) {
+    return LocalTrashTableCompanion(
+      entityId: entityId ?? this.entityId,
+      entityType: entityType ?? this.entityType,
+      deletedAt: deletedAt ?? this.deletedAt,
+      rowid: rowid ?? this.rowid,
+    );
+  }
+
+  @override
+  Map<String, Expression> toColumns(bool nullToAbsent) {
+    final map = <String, Expression>{};
+    if (entityId.present) {
+      map['entity_id'] = Variable<String>(entityId.value);
+    }
+    if (entityType.present) {
+      map['entity_type'] = Variable<String>(entityType.value);
+    }
+    if (deletedAt.present) {
+      map['deleted_at'] = Variable<int>(deletedAt.value);
+    }
+    if (rowid.present) {
+      map['rowid'] = Variable<int>(rowid.value);
+    }
+    return map;
+  }
+
+  @override
+  String toString() {
+    return (StringBuffer('LocalTrashTableCompanion(')
+          ..write('entityId: $entityId, ')
+          ..write('entityType: $entityType, ')
+          ..write('deletedAt: $deletedAt, ')
+          ..write('rowid: $rowid')
+          ..write(')'))
+        .toString();
+  }
+}
+
 abstract class _$AppDatabase extends GeneratedDatabase {
   _$AppDatabase(QueryExecutor e) : super(e);
   $AppDatabaseManager get managers => $AppDatabaseManager(this);
@@ -1838,6 +2110,9 @@ abstract class _$AppDatabase extends GeneratedDatabase {
       $CachedConversationsTableTable(this);
   late final $CachedFriendsTableTable cachedFriendsTable =
       $CachedFriendsTableTable(this);
+  late final $LocalTrashTableTable localTrashTable = $LocalTrashTableTable(
+    this,
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -1846,6 +2121,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     cachedMessagesTable,
     cachedConversationsTable,
     cachedFriendsTable,
+    localTrashTable,
   ];
 }
 
@@ -2781,6 +3057,180 @@ typedef $$CachedFriendsTableTableProcessedTableManager =
       CachedFriendsTableData,
       PrefetchHooks Function()
     >;
+typedef $$LocalTrashTableTableCreateCompanionBuilder =
+    LocalTrashTableCompanion Function({
+      required String entityId,
+      required String entityType,
+      required int deletedAt,
+      Value<int> rowid,
+    });
+typedef $$LocalTrashTableTableUpdateCompanionBuilder =
+    LocalTrashTableCompanion Function({
+      Value<String> entityId,
+      Value<String> entityType,
+      Value<int> deletedAt,
+      Value<int> rowid,
+    });
+
+class $$LocalTrashTableTableFilterComposer
+    extends Composer<_$AppDatabase, $LocalTrashTableTable> {
+  $$LocalTrashTableTableFilterComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnFilters<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnFilters(column),
+  );
+}
+
+class $$LocalTrashTableTableOrderingComposer
+    extends Composer<_$AppDatabase, $LocalTrashTableTable> {
+  $$LocalTrashTableTableOrderingComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  ColumnOrderings<String> get entityId => $composableBuilder(
+    column: $table.entityId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => ColumnOrderings(column),
+  );
+
+  ColumnOrderings<int> get deletedAt => $composableBuilder(
+    column: $table.deletedAt,
+    builder: (column) => ColumnOrderings(column),
+  );
+}
+
+class $$LocalTrashTableTableAnnotationComposer
+    extends Composer<_$AppDatabase, $LocalTrashTableTable> {
+  $$LocalTrashTableTableAnnotationComposer({
+    required super.$db,
+    required super.$table,
+    super.joinBuilder,
+    super.$addJoinBuilderToRootComposer,
+    super.$removeJoinBuilderFromRootComposer,
+  });
+  GeneratedColumn<String> get entityId =>
+      $composableBuilder(column: $table.entityId, builder: (column) => column);
+
+  GeneratedColumn<String> get entityType => $composableBuilder(
+    column: $table.entityType,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<int> get deletedAt =>
+      $composableBuilder(column: $table.deletedAt, builder: (column) => column);
+}
+
+class $$LocalTrashTableTableTableManager
+    extends
+        RootTableManager<
+          _$AppDatabase,
+          $LocalTrashTableTable,
+          LocalTrashTableData,
+          $$LocalTrashTableTableFilterComposer,
+          $$LocalTrashTableTableOrderingComposer,
+          $$LocalTrashTableTableAnnotationComposer,
+          $$LocalTrashTableTableCreateCompanionBuilder,
+          $$LocalTrashTableTableUpdateCompanionBuilder,
+          (
+            LocalTrashTableData,
+            BaseReferences<
+              _$AppDatabase,
+              $LocalTrashTableTable,
+              LocalTrashTableData
+            >,
+          ),
+          LocalTrashTableData,
+          PrefetchHooks Function()
+        > {
+  $$LocalTrashTableTableTableManager(
+    _$AppDatabase db,
+    $LocalTrashTableTable table,
+  ) : super(
+        TableManagerState(
+          db: db,
+          table: table,
+          createFilteringComposer: () =>
+              $$LocalTrashTableTableFilterComposer($db: db, $table: table),
+          createOrderingComposer: () =>
+              $$LocalTrashTableTableOrderingComposer($db: db, $table: table),
+          createComputedFieldComposer: () =>
+              $$LocalTrashTableTableAnnotationComposer($db: db, $table: table),
+          updateCompanionCallback:
+              ({
+                Value<String> entityId = const Value.absent(),
+                Value<String> entityType = const Value.absent(),
+                Value<int> deletedAt = const Value.absent(),
+                Value<int> rowid = const Value.absent(),
+              }) => LocalTrashTableCompanion(
+                entityId: entityId,
+                entityType: entityType,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          createCompanionCallback:
+              ({
+                required String entityId,
+                required String entityType,
+                required int deletedAt,
+                Value<int> rowid = const Value.absent(),
+              }) => LocalTrashTableCompanion.insert(
+                entityId: entityId,
+                entityType: entityType,
+                deletedAt: deletedAt,
+                rowid: rowid,
+              ),
+          withReferenceMapper: (p0) => p0
+              .map((e) => (e.readTable(table), BaseReferences(db, table, e)))
+              .toList(),
+          prefetchHooksCallback: null,
+        ),
+      );
+}
+
+typedef $$LocalTrashTableTableProcessedTableManager =
+    ProcessedTableManager<
+      _$AppDatabase,
+      $LocalTrashTableTable,
+      LocalTrashTableData,
+      $$LocalTrashTableTableFilterComposer,
+      $$LocalTrashTableTableOrderingComposer,
+      $$LocalTrashTableTableAnnotationComposer,
+      $$LocalTrashTableTableCreateCompanionBuilder,
+      $$LocalTrashTableTableUpdateCompanionBuilder,
+      (
+        LocalTrashTableData,
+        BaseReferences<
+          _$AppDatabase,
+          $LocalTrashTableTable,
+          LocalTrashTableData
+        >,
+      ),
+      LocalTrashTableData,
+      PrefetchHooks Function()
+    >;
 
 class $AppDatabaseManager {
   final _$AppDatabase _db;
@@ -2794,4 +3244,6 @@ class $AppDatabaseManager {
       );
   $$CachedFriendsTableTableTableManager get cachedFriendsTable =>
       $$CachedFriendsTableTableTableManager(_db, _db.cachedFriendsTable);
+  $$LocalTrashTableTableTableManager get localTrashTable =>
+      $$LocalTrashTableTableTableManager(_db, _db.localTrashTable);
 }

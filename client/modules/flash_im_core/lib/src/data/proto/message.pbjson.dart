@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from proto/message.proto.
+// Generated from message.proto.
 
 // @dart = 3.3
 
@@ -241,3 +241,20 @@ final $typed_data.Uint8List readReceiptNotificationDescriptor = $convert.base64D
     'ChdSZWFkUmVjZWlwdE5vdGlmaWNhdGlvbhInCg9jb252ZXJzYXRpb25faWQYASABKAlSDmNvbn'
     'ZlcnNhdGlvbklkEhcKB3VzZXJfaWQYAiABKAlSBnVzZXJJZBIZCghyZWFkX3NlcRgDIAEoA1IH'
     'cmVhZFNlcQ==');
+
+@$core.Deprecated('Use messageRecalledDescriptor instead')
+const MessageRecalled$json = {
+  '1': 'MessageRecalled',
+  '2': [
+    {'1': 'message_id', '3': 1, '4': 1, '5': 9, '10': 'messageId'},
+    {'1': 'conversation_id', '3': 2, '4': 1, '5': 9, '10': 'conversationId'},
+    {'1': 'sender_id', '3': 3, '4': 1, '5': 9, '10': 'senderId'},
+    {'1': 'sender_name', '3': 4, '4': 1, '5': 9, '10': 'senderName'},
+  ],
+};
+
+/// Descriptor for `MessageRecalled`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List messageRecalledDescriptor = $convert.base64Decode(
+    'Cg9NZXNzYWdlUmVjYWxsZWQSHQoKbWVzc2FnZV9pZBgBIAEoCVIJbWVzc2FnZUlkEicKD2Nvbn'
+    'ZlcnNhdGlvbl9pZBgCIAEoCVIOY29udmVyc2F0aW9uSWQSGwoJc2VuZGVyX2lkGAMgASgJUghz'
+    'ZW5kZXJJZBIfCgtzZW5kZXJfbmFtZRgEIAEoCVIKc2VuZGVyTmFtZQ==');

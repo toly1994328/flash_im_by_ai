@@ -2,13 +2,14 @@ use axum::{
     Router, Json,
     extract::{Path, State, Query},
     http::{HeaderMap, StatusCode},
-    routing::get,
+    routing::{get, post},
 };
 use std::sync::Arc;
 use uuid::Uuid;
 use sqlx;
 
 use flash_core::jwt::extract_user_id;
+use flash_core::AppError;
 
 use crate::models::{MessageQuery, NewMessage};
 use crate::service::MessageService;
@@ -273,11 +274,94 @@ async fn search_conversation_messages(
     Ok(Json(serde_json::json!({ "data": data })))
 }
 
+/// POST /conversations/{conv_id}/messages/{msg_id}/recall — 消息撤回
+async fn recall_message(
+    State(service): State<Arc<MessageService>>,
+    headers: HeaderMap,
+    Path((conv_id_str, msg_id_str)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+    let conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| AppError::bad_request("无效的会话 ID"))?;
+    let msg_id = Uuid::parse_str(&msg_id_str).map_err(|_| AppError::bad_request("无效的消息 ID"))?;
+
+    // 1. 查消息
+    let msg: Option<(i64, i16, chrono::DateTime<chrono::Utc>)> = sqlx::query_as(
+        "SELECT sender_id, status, created_at FROM messages WHERE id = $1 AND conversation_id = $2"
+    )
+    .bind(msg_id)
+    .bind(conv_id)
+    .fetch_optional(service.db())
+    .await?;
+
+    let (sender_id, status, created_at) = msg.ok_or_else(|| AppError::not_found("消息不存在"))?;
+
+    // 2. 校验是否本人发送
+    if sender_id != user_id {
+        return Err(AppError::forbidden("只能撤回自己的消息"));
+    }
+
+    // 3. 校验时间窗口（2 分钟）
+    let elapsed = chrono::Utc::now() - created_at;
+    if elapsed.num_seconds() > 120 {
+        return Err(AppError::forbidden("超过撤回时限"));
+    }
+
+    // 4. 校验是否已撤回
+    if status == 1 {
+        return Err(AppError::bad_request("消息已撤回"));
+    }
+
+    // 5. 标记撤回
+    sqlx::query("UPDATE messages SET status = 1 WHERE id = $1")
+        .bind(msg_id)
+        .execute(service.db())
+        .await?;
+
+    // 6. 更新会话预览
+    sqlx::query(
+        "UPDATE conversations SET last_message_preview = \
+         COALESCE((SELECT CASE WHEN m.status = 1 THEN '撤回了一条消息' \
+         ELSE CASE m.type WHEN 1 THEN '[图片]' WHEN 2 THEN '[视频]' WHEN 3 THEN '[文件]' \
+         ELSE SUBSTRING(m.content, 1, 50) END END \
+         FROM messages m WHERE m.conversation_id = $1 ORDER BY m.seq DESC LIMIT 1), ''), \
+         updated_at = NOW() WHERE id = $1"
+    )
+    .bind(conv_id)
+    .execute(service.db())
+    .await?;
+
+    // 7. 查询发送者昵称
+    let sender_name: String = sqlx::query_as::<_, (String,)>(
+        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
+    )
+    .bind(user_id)
+    .fetch_optional(service.db())
+    .await?
+    .map(|(n,)| n)
+    .unwrap_or("?".to_string());
+
+    // 8. 获取会话成员并广播
+    let member_rows: Vec<(i64,)> = sqlx::query_as(
+        "SELECT user_id FROM conversation_members WHERE conversation_id = $1 AND is_deleted = false"
+    )
+    .bind(conv_id)
+    .fetch_all(service.db())
+    .await?;
+    let member_ids: Vec<i64> = member_rows.into_iter().map(|(id,)| id).collect();
+
+    service.broadcaster().broadcast_recalled(
+        msg_id, conv_id, user_id, &sender_name, &member_ids,
+    ).await;
+
+    Ok(Json(serde_json::json!({ "message": "ok" })))
+}
+
 pub fn router(service: Arc<MessageService>) -> Router {
     Router::new()
         .route("/conversations/{id}/messages", get(get_messages).post(send_message))
         .route("/conversations/{conv_id}/read-seq", get(get_read_seq))
         .route("/conversations/{conv_id}/messages/{msg_id}/read-status", get(get_read_status))
+        .route("/conversations/{conv_id}/messages/{msg_id}/recall", post(recall_message))
         .route("/api/messages/search", get(search_messages))
         .route("/conversations/{conv_id}/messages/search", get(search_conversation_messages))
         .with_state(service)

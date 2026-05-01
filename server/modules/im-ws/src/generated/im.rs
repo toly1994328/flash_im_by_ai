@@ -87,6 +87,7 @@ pub enum WsFrameType {
     UserOffline = 13,
     OnlineList = 14,
     ReadReceipt = 15,
+    MessageRecalled = 16,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -111,6 +112,7 @@ impl WsFrameType {
             Self::UserOffline => "USER_OFFLINE",
             Self::OnlineList => "ONLINE_LIST",
             Self::ReadReceipt => "READ_RECEIPT",
+            Self::MessageRecalled => "MESSAGE_RECALLED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -132,6 +134,7 @@ impl WsFrameType {
             "USER_OFFLINE" => Some(Self::UserOffline),
             "ONLINE_LIST" => Some(Self::OnlineList),
             "READ_RECEIPT" => Some(Self::ReadReceipt),
+            "MESSAGE_RECALLED" => Some(Self::MessageRecalled),
             _ => None,
         }
     }
@@ -232,6 +235,17 @@ pub struct ReadReceiptNotification {
     pub user_id: ::prost::alloc::string::String,
     #[prost(int64, tag = "3")]
     pub read_seq: i64,
+}
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct MessageRecalled {
+    #[prost(string, tag = "1")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub sender_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub sender_name: ::prost::alloc::string::String,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]

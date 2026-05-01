@@ -18,6 +18,7 @@ enum WsFrameType {
   USER_OFFLINE = 13;
   ONLINE_LIST = 14;
   READ_RECEIPT = 15;
+  MESSAGE_RECALLED = 16;
 }
 
 message WsFrame {

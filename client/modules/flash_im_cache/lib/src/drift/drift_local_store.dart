@@ -8,6 +8,7 @@ import 'database/app_database.dart';
 import 'dao/message_dao.dart';
 import 'dao/conversation_dao.dart';
 import 'dao/friend_dao.dart';
+import 'dao/trash_dao.dart';
 import 'converters.dart';
 
 /// LocalStore 的 drift 实现
@@ -19,6 +20,7 @@ class DriftLocalStore implements LocalStore {
   late final MessageDao _messageDao;
   late final ConversationDao _conversationDao;
   late final FriendDao _friendDao;
+  late final TrashDao _trashDao;
   final _changeController = StreamController<CacheChangeEvent>.broadcast();
 
   @override
@@ -28,6 +30,7 @@ class DriftLocalStore implements LocalStore {
     _messageDao = MessageDao(_db);
     _conversationDao = ConversationDao(_db);
     _friendDao = FriendDao(_db);
+    _trashDao = TrashDao(_db);
   }
 
   /// 按 userId 打开独立数据库
@@ -146,6 +149,21 @@ class DriftLocalStore implements LocalStore {
   @override
   Future<bool> isFirstLogin() {
     return _conversationDao.isEmpty();
+  }
+
+  @override
+  Future<void> moveToTrash(String entityId, String entityType) {
+    return _trashDao.moveToTrash(entityId, entityType);
+  }
+
+  @override
+  Future<void> restoreFromTrash(String entityId) {
+    return _trashDao.restoreFromTrash(entityId);
+  }
+
+  @override
+  Future<List<String>> getTrashIds({String? entityType}) {
+    return _trashDao.getTrashIds(entityType: entityType);
   }
 
   @override

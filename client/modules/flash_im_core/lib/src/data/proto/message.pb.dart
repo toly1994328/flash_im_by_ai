@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from proto/message.proto.
+// Generated from message.proto.
 
 // @dart = 3.3
 
@@ -819,6 +819,96 @@ class ReadReceiptNotification extends $pb.GeneratedMessage {
   $core.bool hasReadSeq() => $_has(2);
   @$pb.TagNumber(3)
   void clearReadSeq() => $_clearField(3);
+}
+
+class MessageRecalled extends $pb.GeneratedMessage {
+  factory MessageRecalled({
+    $core.String? messageId,
+    $core.String? conversationId,
+    $core.String? senderId,
+    $core.String? senderName,
+  }) {
+    final result = create();
+    if (messageId != null) result.messageId = messageId;
+    if (conversationId != null) result.conversationId = conversationId;
+    if (senderId != null) result.senderId = senderId;
+    if (senderName != null) result.senderName = senderName;
+    return result;
+  }
+
+  MessageRecalled._();
+
+  factory MessageRecalled.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory MessageRecalled.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'MessageRecalled',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'messageId')
+    ..aOS(2, _omitFieldNames ? '' : 'conversationId')
+    ..aOS(3, _omitFieldNames ? '' : 'senderId')
+    ..aOS(4, _omitFieldNames ? '' : 'senderName')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MessageRecalled clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  MessageRecalled copyWith(void Function(MessageRecalled) updates) =>
+      super.copyWith((message) => updates(message as MessageRecalled))
+          as MessageRecalled;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static MessageRecalled create() => MessageRecalled._();
+  @$core.override
+  MessageRecalled createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static MessageRecalled getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<MessageRecalled>(create);
+  static MessageRecalled? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get messageId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set messageId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasMessageId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearMessageId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get conversationId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set conversationId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasConversationId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearConversationId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get senderId => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set senderId($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasSenderId() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearSenderId() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get senderName => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set senderName($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasSenderName() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearSenderName() => $_clearField(4);
 }
 
 const $core.bool _omitFieldNames =

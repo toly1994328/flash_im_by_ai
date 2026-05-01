@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from proto/ws.proto.
+// Generated from ws.proto.
 
 // @dart = 3.3
 
@@ -35,6 +35,7 @@ const WsFrameType$json = {
     {'1': 'USER_OFFLINE', '2': 13},
     {'1': 'ONLINE_LIST', '2': 14},
     {'1': 'READ_RECEIPT', '2': 15},
+    {'1': 'MESSAGE_RECALLED', '2': 16},
   ],
 };
 
@@ -45,7 +46,7 @@ final $typed_data.Uint8List wsFrameTypeDescriptor = $convert.base64Decode(
     'X1VQREFURRAGEhIKDkZSSUVORF9SRVFVRVNUEAcSEwoPRlJJRU5EX0FDQ0VQVEVEEAgSEgoORl'
     'JJRU5EX1JFTU9WRUQQCRIWChJHUk9VUF9KT0lOX1JFUVVFU1QQChIVChFHUk9VUF9JTkZPX1VQ'
     'REFURRALEg8KC1VTRVJfT05MSU5FEAwSEAoMVVNFUl9PRkZMSU5FEA0SDwoLT05MSU5FX0xJU1'
-    'QQDhIQCgxSRUFEX1JFQ0VJUFQQDw==');
+    'QQDhIQCgxSRUFEX1JFQ0VJUFQQDxIUChBNRVNTQUdFX1JFQ0FMTEVEEBA=');
 
 @$core.Deprecated('Use wsFrameDescriptor instead')
 const WsFrame$json = {

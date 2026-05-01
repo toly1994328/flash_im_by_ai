@@ -77,6 +77,9 @@ class WsClient {
   Stream<WsFrame> get onlineListStream => _onlineListController.stream;
   Stream<WsFrame> get readReceiptStream => _readReceiptController.stream;
 
+  final _messageRecalledController = StreamController<WsFrame>.broadcast();
+  Stream<WsFrame> get messageRecalledStream => _messageRecalledController.stream;
+
   final Set<String> _onlineUserIds = {};
 
   bool isUserOnline(String userId) => _onlineUserIds.contains(userId);
@@ -198,6 +201,8 @@ class WsClient {
         _onlineListController.add(frame);
       case WsFrameType.READ_RECEIPT:
         _readReceiptController.add(frame);
+      case WsFrameType.MESSAGE_RECALLED:
+        _messageRecalledController.add(frame);
       default:
         break;
     }
@@ -328,5 +333,6 @@ class WsClient {
     _userOfflineController.close();
     _onlineListController.close();
     _readReceiptController.close();
+    _messageRecalledController.close();
   }
 }

@@ -50,6 +50,7 @@ class SyncEngine {
         _wsClient.conversationUpdateStream.listen(_handleConversationUpdate));
     _subs.add(_wsClient.friendAcceptedStream.listen(_handleFriendAccepted));
     _subs.add(_wsClient.friendRemovedStream.listen(_handleFriendRemoved));
+    _subs.add(_wsClient.messageRecalledStream.listen(_handleMessageRecalled));
 
     // 如果已经认证（恢复会话场景），立即同步
     if (_wsClient.state == WsConnectionState.authenticated) {
@@ -232,6 +233,17 @@ class SyncEngine {
       _store.deleteFriend(notif.friendId);
     } catch (e) {
       print('⚠️ [SyncEngine] handleFriendRemoved failed: $e');
+    }
+  }
+
+  void _handleMessageRecalled(WsFrame frame) {
+    try {
+      final recalled = MessageRecalled.fromBuffer(frame.payload);
+      print('🔄 [SyncEngine] messageRecalled: ${recalled.messageId} in ${recalled.conversationId}');
+      // 本地缓存中该消息的 status 会在下次增量同步时被覆盖为 1
+      // 这里不需要额外操作，ChatCubit 会通过自己的监听处理 UI 更新
+    } catch (e) {
+      print('⚠️ [SyncEngine] handleMessageRecalled failed: $e');
     }
   }
 

@@ -75,3 +75,10 @@ message ReadReceiptNotification {
   string user_id = 2;
   int64 read_seq = 3;
 }
+
+message MessageRecalled {
+  string message_id = 1;
+  string conversation_id = 2;
+  string sender_id = 3;
+  string sender_name = 4;
+}

@@ -80,6 +80,15 @@ abstract class LocalStore {
   /// 是否首次登录（本地无会话数据）
   Future<bool> isFirstLogin();
 
+  /// 将实体移入回收站（本地删除）
+  Future<void> moveToTrash(String entityId, String entityType);
+
+  /// 从回收站恢复
+  Future<void> restoreFromTrash(String entityId);
+
+  /// 获取回收站中的 ID 列表
+  Future<List<String>> getTrashIds({String? entityType});
+
   /// 清空所有缓存
   Future<void> clearAll();
 

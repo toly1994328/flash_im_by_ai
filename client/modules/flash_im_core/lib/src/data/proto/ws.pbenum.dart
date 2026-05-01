@@ -1,6 +1,6 @@
 // This is a generated file - do not edit.
 //
-// Generated from proto/ws.proto.
+// Generated from ws.proto.
 
 // @dart = 3.3
 
@@ -47,6 +47,8 @@ class WsFrameType extends $pb.ProtobufEnum {
       WsFrameType._(14, _omitEnumNames ? '' : 'ONLINE_LIST');
   static const WsFrameType READ_RECEIPT =
       WsFrameType._(15, _omitEnumNames ? '' : 'READ_RECEIPT');
+  static const WsFrameType MESSAGE_RECALLED =
+      WsFrameType._(16, _omitEnumNames ? '' : 'MESSAGE_RECALLED');
 
   static const $core.List<WsFrameType> values = <WsFrameType>[
     PING,
@@ -65,10 +67,11 @@ class WsFrameType extends $pb.ProtobufEnum {
     USER_OFFLINE,
     ONLINE_LIST,
     READ_RECEIPT,
+    MESSAGE_RECALLED,
   ];
 
   static final $core.List<WsFrameType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 15);
+      $pb.ProtobufEnum.$_initByValueList(values, 16);
   static WsFrameType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

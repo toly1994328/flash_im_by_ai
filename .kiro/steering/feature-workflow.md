@@ -40,13 +40,14 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Designer
 输出：`server/design.md`
-参考规范：#[[file:.kiro/steering/rust-error-handling.md]]
+参考规范：#[[file:.kiro/steering/feature-designer.md]] #[[file:.kiro/steering/rust-error-handling.md]]
 
 包含：
 - 数据模型（SQL + ER 图 + 设计决策表）
 - 接口契约（请求/响应 JSON + 错误码）
 - 核心流程（时序图）
 - 技术决策（方案 + 理由）
+- 文件结构（新建/修改的文件清单，标注每个文件的单一职责）
 
 ### 第 3 步：后端任务
 
@@ -82,9 +83,16 @@ docs/features/{模块}/{版本}/
 
 ### 第 7 步：前端设计
 
-和后端一样：
-- `client/design.md`：页面结构、技术决策、变更范围
-参考规范：#[[file:.kiro/steering/flash-im-ui-style.md]]
+角色：Feature Designer
+输出：`client/design.md`
+参考规范：#[[file:.kiro/steering/feature-designer.md]] #[[file:.kiro/steering/flash-im-ui-style.md]]
+
+包含：
+- 文件结构（新建/修改的文件清单，标注每个文件的单一职责）
+- 职责隔离（每个文件只做一件事：组件只管渲染，Cubit 只管状态，Repository 只管数据。不要把逻辑塞进 UI，不要让 Cubit 直接操作 Widget）
+- 页面结构、交互流程（mermaid 流程图）
+- 技术决策（方案 + 理由）
+- 变更范围（新建文件 + 修改文件，明确边界）
 
 ### 第 8 步：前端任务
 

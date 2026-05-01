@@ -29,6 +29,10 @@ impl MessageService {
         &self.db
     }
 
+    pub fn broadcaster(&self) -> &dyn MessageBroadcaster {
+        self.broadcaster.as_ref()
+    }
+
     /// 发送消息（核心方法）
     pub async fn send(&self, msg: NewMessage) -> Result<Message, StatusCode> {
         if msg.content.trim().is_empty() {

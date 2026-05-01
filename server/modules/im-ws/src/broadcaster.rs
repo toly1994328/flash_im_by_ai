@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use im_message::{MessageBroadcaster, models::Message};
 
-use crate::proto::{ChatMessage, ConversationUpdate, WsFrame, WsFrameType};
+use crate::proto::{ChatMessage, ConversationUpdate, MessageRecalled, WsFrame, WsFrameType};
 use crate::state::WsState;
 
 pub struct WsBroadcaster {
@@ -110,5 +110,28 @@ impl MessageBroadcaster for WsBroadcaster {
             };
             self.ws_state.send_to_user(uid, frame.encode_to_vec()).await;
         }
+    }
+
+    async fn broadcast_recalled(
+        &self,
+        message_id: Uuid,
+        conversation_id: Uuid,
+        sender_id: i64,
+        sender_name: &str,
+        member_ids: &[i64],
+    ) {
+        let recalled = MessageRecalled {
+            message_id: message_id.to_string(),
+            conversation_id: conversation_id.to_string(),
+            sender_id: sender_id.to_string(),
+            sender_name: sender_name.to_string(),
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::MessageRecalled as i32,
+            payload: recalled.encode_to_vec(),
+        };
+        let data = frame.encode_to_vec();
+        println!("📢 [broadcaster] sending MessageRecalled to {:?}", member_ids);
+        self.ws_state.send_to_users(member_ids, data).await;
     }
 }
