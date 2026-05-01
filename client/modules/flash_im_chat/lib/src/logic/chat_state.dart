@@ -53,6 +53,9 @@ class ChatLoaded extends ChatState {
   final double? uploadProgress;
   final Map<String, FileDownloadInfo> fileDownloads;
   final int readSeqVersion;
+  final Message? replyTo;
+  final bool isMultiSelect;
+  final Set<String> selectedIds;
 
   const ChatLoaded({
     required this.messages,
@@ -61,6 +64,9 @@ class ChatLoaded extends ChatState {
     this.uploadProgress,
     this.fileDownloads = const {},
     this.readSeqVersion = 0,
+    this.replyTo,
+    this.isMultiSelect = false,
+    this.selectedIds = const {},
   });
 
   ChatLoaded copyWith({
@@ -71,6 +77,10 @@ class ChatLoaded extends ChatState {
     bool clearUploadProgress = false,
     Map<String, FileDownloadInfo>? fileDownloads,
     int? readSeqVersion,
+    Message? replyTo,
+    bool clearReplyTo = false,
+    bool? isMultiSelect,
+    Set<String>? selectedIds,
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
@@ -79,11 +89,14 @@ class ChatLoaded extends ChatState {
       uploadProgress: clearUploadProgress ? null : (uploadProgress ?? this.uploadProgress),
       fileDownloads: fileDownloads ?? this.fileDownloads,
       readSeqVersion: readSeqVersion ?? this.readSeqVersion,
+      replyTo: clearReplyTo ? null : (replyTo ?? this.replyTo),
+      isMultiSelect: isMultiSelect ?? this.isMultiSelect,
+      selectedIds: selectedIds ?? this.selectedIds,
     );
   }
 
   @override
-  List<Object?> get props => [messages, hasMore, isLoadingMore, uploadProgress, fileDownloads, readSeqVersion];
+  List<Object?> get props => [messages, hasMore, isLoadingMore, uploadProgress, fileDownloads, readSeqVersion, replyTo, isMultiSelect, selectedIds];
 }
 
 class ChatError extends ChatState {

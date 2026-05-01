@@ -15,3 +15,6 @@ export 'src/view/file_preview_page.dart';
 export 'src/data/video_thumbnail_service.dart';
 export 'src/view/private_chat_info_page.dart';
 export 'src/view/read_receipt_detail.dart';
+export 'src/view/message_action_menu.dart';
+export 'src/view/bubble/reply_bubble.dart';
+export 'src/view/reply_preview_bar.dart';

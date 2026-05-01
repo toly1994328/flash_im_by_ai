@@ -91,6 +91,14 @@ class MessageRepository {
   /// 登录后注入本地存储
   void setStore(LocalStore store) => _store = store;
 
+  /// 获取当前本地存储
+  LocalStore? get store => _store;
+
+  /// 消息撤回
+  Future<void> recallMessage(String conversationId, String messageId) async {
+    await _dio.post('/conversations/$conversationId/messages/$messageId/recall');
+  }
+
   Future<List<Message>> getMessages(
     String conversationId, {
     int? beforeSeq,
@@ -99,7 +107,12 @@ class MessageRepository {
     if (_store != null) {
       final cached = await _store!.getMessages(conversationId,
           beforeSeq: beforeSeq, limit: limit);
-      if (cached.isNotEmpty) return cached.map(_fromCached).toList();
+      if (cached.isNotEmpty) {
+        final trashIds = await _store!.getTrashIds(entityType: 'message');
+        final trashSet = trashIds.toSet();
+        final filtered = cached.where((m) => !trashSet.contains(m.id)).toList();
+        if (filtered.isNotEmpty) return filtered.map(_fromCached).toList();
+      }
       // 本地为空，fallback HTTP
     }
     final params = <String, dynamic>{'limit': limit};

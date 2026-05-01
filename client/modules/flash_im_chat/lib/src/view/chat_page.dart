@@ -9,6 +9,8 @@ import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
 import 'bubble/message_bubble.dart';
 import 'chat_input.dart';
+import 'message_action_menu.dart';
+import 'reply_preview_bar.dart';
 import 'image_preview_page.dart';
 import 'video_player_page.dart';
 import 'file_preview_page.dart';
@@ -261,19 +263,42 @@ class _ChatPageState extends State<ChatPage> {
                   ),
                 )
               else
-                ChatInput(
-                  onSend: (content) => context.read<ChatCubit>().sendMessage(content),
-                  onSendImage: (path) => context.read<ChatCubit>().sendImageFromFile(path),
-                  onSendVideo: (path) async {
-                    final info = await VideoThumbnailService().extractVideoInfo(path);
-                    if (context.mounted) {
-                      context.read<ChatCubit>().sendVideoFromFile(
-                        path, info.thumbnailPath, info.durationMs,
-                        width: info.width, height: info.height,
-                      );
+                BlocBuilder<ChatCubit, ChatState>(
+                  builder: (context, chatState) {
+                    final cubit = context.read<ChatCubit>();
+                    if (chatState is ChatLoaded && chatState.isMultiSelect) {
+                      return _buildMultiSelectBar(context, chatState, cubit);
                     }
+                    return Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (chatState is ChatLoaded && chatState.replyTo != null)
+                          ReplyPreviewBar(
+                            senderName: chatState.replyTo!.senderName,
+                            content: chatState.replyTo!.isText
+                                ? chatState.replyTo!.content
+                                : chatState.replyTo!.isImage ? '[图片]'
+                                : chatState.replyTo!.isVideo ? '[视频]'
+                                : '[文件]',
+                            onClose: () => cubit.clearReplyTo(),
+                          ),
+                        ChatInput(
+                          onSend: (content) => cubit.sendMessage(content),
+                          onSendImage: (path) => cubit.sendImageFromFile(path),
+                          onSendVideo: (path) async {
+                            final info = await VideoThumbnailService().extractVideoInfo(path);
+                            if (context.mounted) {
+                              cubit.sendVideoFromFile(
+                                path, info.thumbnailPath, info.durationMs,
+                                width: info.width, height: info.height,
+                              );
+                            }
+                          },
+                          onSendFile: (path) => cubit.sendFileFromPicker(path),
+                        ),
+                      ],
+                    );
                   },
-                  onSendFile: (path) => context.read<ChatCubit>().sendFileFromPicker(path),
                 ),
             ],
           ),
@@ -324,6 +349,10 @@ class _ChatPageState extends State<ChatPage> {
           membersReadSeq: chatCubit.membersReadSeq,
           currentUserId: chatCubit.currentUserId,
           isGroup: widget.isGroup,
+          isMultiSelect: (chatState is ChatLoaded) ? chatState.isMultiSelect : false,
+          isSelected: (chatState is ChatLoaded) ? chatState.selectedIds.contains(msg.id) : false,
+          onToggleSelect: () => chatCubit.toggleSelect(msg.id),
+          onLongPress: () => _showMessageMenu(context, msg, isMe),
           onReadCountTap: widget.isGroup ? () {
             _showReadReceiptDetail(msg.id);
           } : null,
@@ -359,6 +388,72 @@ class _ChatPageState extends State<ChatPage> {
       list = Align(alignment: Alignment.topCenter, child: list);
     }
     return list;
+  }
+
+  Widget _buildMultiSelectBar(BuildContext context, ChatLoaded chatState, ChatCubit cubit) {
+    final count = chatState.selectedIds.length;
+    return SafeArea(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(top: BorderSide(color: Color(0xFFE0E0E0), width: 0.5)),
+        ),
+        child: Row(
+          children: [
+            TextButton(
+              onPressed: () => cubit.exitMultiSelect(),
+              child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+            ),
+            const Spacer(),
+            Text('已选择 $count 条', style: const TextStyle(fontSize: 14, color: Color(0xFF333333))),
+            const Spacer(),
+            TextButton(
+              onPressed: count > 0 ? () => cubit.deleteSelected() : null,
+              child: Text('删除', style: TextStyle(
+                color: count > 0 ? Colors.red : const Color(0xFFCCCCCC),
+              )),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showMessageMenu(BuildContext context, Message msg, bool isMe) {
+    final chatCubit = context.read<ChatCubit>();
+    final chatState = chatCubit.state;
+    if (chatState is ChatLoaded && chatState.isMultiSelect) return;
+
+    // 获取手指位置（用消息中心作为近似）
+    final renderBox = context.findRenderObject() as RenderBox?;
+    if (renderBox == null) return;
+    final size = renderBox.size;
+    final position = renderBox.localToGlobal(Offset(size.width / 2, 0));
+
+    MessageActionMenu.show(
+      context: context,
+      position: position,
+      message: msg,
+      isMe: isMe,
+      onAction: (action) {
+        switch (action) {
+          case MenuAction.copy:
+            chatCubit.copyMessage(msg.content);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('已复制'), duration: Duration(seconds: 1)),
+            );
+          case MenuAction.reply:
+            chatCubit.setReplyTo(msg);
+          case MenuAction.recall:
+            chatCubit.recallMessage(msg.id);
+          case MenuAction.delete:
+            chatCubit.deleteMessage(msg.id);
+          case MenuAction.multiSelect:
+            chatCubit.enterMultiSelect(msg.id);
+        }
+      },
+    );
   }
 
   void _showReadReceiptDetail(String messageId) {

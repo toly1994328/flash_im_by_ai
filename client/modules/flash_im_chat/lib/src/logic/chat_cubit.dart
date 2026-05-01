@@ -1,10 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
-import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
+import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType, MessageRecalled;
+import 'package:flash_im_cache/flash_im_cache.dart';
 import '../data/message.dart';
 import '../data/message_repository.dart';
 import 'chat_state.dart';
@@ -20,8 +22,10 @@ class ChatCubit extends Cubit<ChatState> {
 
   StreamSubscription? _chatMessageSub;
   StreamSubscription? _messageAckSub;
+  StreamSubscription? _messageRecalledSub;
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
+  LocalStore? _store;
 
   int _peerReadSeq = 0;
   Map<String, int> _membersReadSeq = {};
@@ -40,11 +44,14 @@ class ChatCubit extends Cubit<ChatState> {
     required this.currentUserName,
     this.currentUserAvatar,
     this.isGroup = false,
+    LocalStore? store,
   })  : _repository = repository,
         _wsClient = wsClient,
+        _store = store,
         super(const ChatInitial()) {
     _chatMessageSub = _wsClient.chatMessageStream.listen(_handleIncomingMessage);
     _messageAckSub = _wsClient.messageAckStream.listen(_handleMessageAck);
+    _messageRecalledSub = _wsClient.messageRecalledStream.listen(_handleMessageRecalled);
     _readReceiptSub = _wsClient.readReceiptStream.listen((frame) {
       final notif = ReadReceiptNotification.fromBuffer(frame.payload);
       if (notif.conversationId != conversationId) return;
@@ -105,6 +112,21 @@ class ChatCubit extends Cubit<ChatState> {
     final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
     final localId = 'local_${++_localIdCounter}';
 
+    // 构建引用回复 extra
+    Map<String, dynamic>? extra;
+    if (current.replyTo != null) {
+      final reply = current.replyTo!;
+      extra = {
+        'reply_to': {
+          'message_id': reply.id,
+          'sender_name': reply.senderName,
+          'content': reply.isText ? (reply.content.length > 30 ? '${reply.content.substring(0, 30)}...' : reply.content)
+              : reply.isImage ? '[图片]' : reply.isVideo ? '[视频]' : reply.isFile ? '[文件]' : reply.content,
+          'msg_type': reply.type.index,
+        },
+      };
+    }
+
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
@@ -112,11 +134,19 @@ class ChatCubit extends Cubit<ChatState> {
       senderName: currentUserName,
       senderAvatar: currentUserAvatar,
       content: content,
+      extra: extra,
     );
 
-    emit(current.copyWith(messages: [...current.messages, localMessage]));
+    emit(current.copyWith(messages: [...current.messages, localMessage], clearReplyTo: true));
     _pendingMessages[clientId] = localId;
-    _wsClient.sendMessage(conversationId: conversationId, content: content, clientId: clientId);
+
+    final List<int>? extraBytes = extra != null ? utf8.encode(jsonEncode(extra)) : null;
+    _wsClient.sendMessage(
+      conversationId: conversationId,
+      content: content,
+      clientId: clientId,
+      extra: extraBytes,
+    );
 
     Future.delayed(const Duration(seconds: 10), () {
       if (_pendingMessages.containsKey(clientId)) {
@@ -467,10 +497,107 @@ class ChatCubit extends Cubit<ChatState> {
     return dir.path;
   }
 
+  // ─── 消息撤回 ───
+
+  Future<void> recallMessage(String messageId) async {
+    try {
+      await _repository.recallMessage(conversationId, messageId);
+      _replaceWithRecalled(messageId, isMe: true);
+    } catch (_) {}
+  }
+
+  void _handleMessageRecalled(WsFrame frame) {
+    try {
+      final recalled = proto.MessageRecalled.fromBuffer(frame.payload);
+      if (recalled.conversationId != conversationId) return;
+      _replaceWithRecalled(recalled.messageId,
+          isMe: recalled.senderId == currentUserId);
+    } catch (_) {}
+  }
+
+  void _replaceWithRecalled(String messageId, {required bool isMe}) {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final updated = s.messages.map((m) {
+      if (m.id == messageId) {
+        return m.copyWith(
+          content: isMe ? '你撤回了一条消息' : '${m.senderName}撤回了一条消息',
+          type: MessageType.text,
+          extra: {'_recalled': true},
+        );
+      }
+      return m;
+    }).toList();
+    emit(s.copyWith(messages: updated));
+  }
+
+  // ─── 引用回复 ───
+
+  void setReplyTo(Message message) {
+    final s = state;
+    if (s is ChatLoaded) emit(s.copyWith(replyTo: message));
+  }
+
+  void clearReplyTo() {
+    final s = state;
+    if (s is ChatLoaded) emit(s.copyWith(clearReplyTo: true));
+  }
+
+  // ─── 多选模式 ───
+
+  void enterMultiSelect(String initialId) {
+    final s = state;
+    if (s is ChatLoaded) {
+      emit(s.copyWith(isMultiSelect: true, selectedIds: {initialId}));
+    }
+  }
+
+  void exitMultiSelect() {
+    final s = state;
+    if (s is ChatLoaded) {
+      emit(s.copyWith(isMultiSelect: false, selectedIds: const {}));
+    }
+  }
+
+  void toggleSelect(String messageId) {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final ids = Set<String>.from(s.selectedIds);
+    if (ids.contains(messageId)) {
+      ids.remove(messageId);
+    } else {
+      ids.add(messageId);
+    }
+    emit(s.copyWith(selectedIds: ids));
+  }
+
+  Future<void> deleteSelected() async {
+    final s = state;
+    if (s is! ChatLoaded || _store == null) return;
+    for (final id in s.selectedIds) {
+      await _store!.moveToTrash(id, 'message');
+    }
+    exitMultiSelect();
+    await loadMessages();
+  }
+
+  // ─── 复制与删除 ───
+
+  void copyMessage(String content) {
+    Clipboard.setData(ClipboardData(text: content));
+  }
+
+  Future<void> deleteMessage(String messageId) async {
+    if (_store == null) return;
+    await _store!.moveToTrash(messageId, 'message');
+    await loadMessages();
+  }
+
   @override
   Future<void> close() {
     _chatMessageSub?.cancel();
     _messageAckSub?.cancel();
+    _messageRecalledSub?.cancel();
     _readReceiptSub?.cancel();
     _readReceiptTimer?.cancel();
     return super.close();

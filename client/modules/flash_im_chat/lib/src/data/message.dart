@@ -192,6 +192,9 @@ class Message {
   /// 是否系统消息（sender_id=0）
   bool get isSystem => senderId == '0';
 
+  /// 是否已撤回（status=1）
+  bool get isRecalled => extra?['_recalled'] == true;
+
   VideoExtra? get videoExtra {
     if (extra == null || !isVideo) return null;
     try { return VideoExtra.fromJson(extra!); } catch (_) { return null; }

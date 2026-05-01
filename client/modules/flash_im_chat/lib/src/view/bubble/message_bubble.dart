@@ -6,6 +6,7 @@ import 'text_bubble.dart';
 import 'image_bubble.dart';
 import 'video_bubble.dart';
 import 'file_bubble.dart';
+import 'reply_bubble.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -21,6 +22,10 @@ class MessageBubble extends StatelessWidget {
   final String? currentUserId;
   final bool isGroup;
   final VoidCallback? onReadCountTap;
+  final VoidCallback? onLongPress;
+  final bool isMultiSelect;
+  final bool isSelected;
+  final VoidCallback? onToggleSelect;
 
   const MessageBubble({
     super.key,
@@ -37,6 +42,10 @@ class MessageBubble extends StatelessWidget {
     this.currentUserId,
     this.isGroup = false,
     this.onReadCountTap,
+    this.onLongPress,
+    this.isMultiSelect = false,
+    this.isSelected = false,
+    this.onToggleSelect,
   });
 
   @override
@@ -61,18 +70,51 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          if (!isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
-          if (!isMe) const SizedBox(width: 8),
-          Flexible(child: _buildContent()),
-          if (isMe) const SizedBox(width: 8),
-          if (isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
-        ],
+    // 已撤回消息：居中灰色标签
+    if (message.isRecalled) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(vertical: 6),
+        child: Center(
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+            decoration: BoxDecoration(
+              color: const Color(0xFFE8E8E8),
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Text(
+              message.content,
+              style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+            ),
+          ),
+        ),
+      );
+    }
+
+    return GestureDetector(
+      onLongPressStart: onLongPress != null ? (_) => onLongPress!() : null,
+      onTap: isMultiSelect ? onToggleSelect : null,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        child: Row(
+          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (isMultiSelect)
+              Padding(
+                padding: const EdgeInsets.only(right: 8, top: 4),
+                child: Icon(
+                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFCCCCCC),
+                  size: 22,
+                ),
+              ),
+            if (!isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
+            if (!isMe) const SizedBox(width: 8),
+            Flexible(child: _buildContent()),
+            if (isMe) const SizedBox(width: 8),
+            if (isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
+          ],
+        ),
       ),
     );
   }
@@ -142,7 +184,18 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildBubble() {
-    return switch (message.type) {
+    // 引用气泡
+    final replyTo = message.extra?['reply_to'] as Map<String, dynamic>?;
+    Widget? replyWidget;
+    if (replyTo != null) {
+      replyWidget = ReplyBubble(
+        senderName: replyTo['sender_name'] as String? ?? '?',
+        content: replyTo['content'] as String? ?? '',
+        msgType: replyTo['msg_type'] as int? ?? 0,
+      );
+    }
+
+    final bubble = switch (message.type) {
       MessageType.image => ImageBubble(
         message: message,
         baseUrl: baseUrl,
@@ -164,6 +217,15 @@ class MessageBubble extends StatelessWidget {
       ),
       _ => TextBubble(message: message, isMe: isMe),
     };
+
+    if (replyWidget != null) {
+      return Column(
+        crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [replyWidget, bubble],
+      );
+    }
+    return bubble;
   }
 
   Widget _buildStatusIcon() {
