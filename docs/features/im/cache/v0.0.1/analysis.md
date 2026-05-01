@@ -56,9 +56,21 @@ flowchart LR
 
 ### 场景 4：实时消息写入本地
 
-**用户故事**：作为用户，收到新消息时，消息同时存到本地，下次打开不用重新拉取。
+**用户故事**：作为用户，收到新消息或自己发送的消息确认后，消息同时存到本地，下次打开不用重新拉取。
 
-WS 推来的 CHAT_MESSAGE 帧，SyncEngine 解析后写入本地 SQLite。ChatPage 从本地读取消息列表，新消息自动出现。
+WS 推来的 CHAT_MESSAGE 帧（他人消息），SyncEngine 解析后写入本地 SQLite。自己发送的消息收到 MessageAck 后，ChatCubit 将已确认的消息（含真实 ID 和 seq）写入本地 SQLite。两条路径都保证消息持久化，退出聊天页再进入时消息仍在。
+
+```mermaid
+flowchart LR
+    subgraph 他人消息
+        A1[WS CHAT_MESSAGE] --> B1[SyncEngine 解析]
+        B1 --> C1[写入 SQLite]
+    end
+    subgraph 自发消息
+        A2[发送消息] --> B2[收到 MessageAck]
+        B2 --> C2[ChatCubit 写入 SQLite]
+    end
+```
 
 ### 场景 5：首次登录全量拉取
 
@@ -90,11 +102,23 @@ WS 推来的 CHAT_MESSAGE 帧，SyncEngine 解析后写入本地 SQLite。ChatPa
 
 ### 事件流：实时消息写入
 
+**他人消息（SyncEngine 处理）**：
+
 | 时刻 | 事件 | 处理 | 产生的新事件 |
 |------|------|------|-------------|
 | T1 | WS 收到 CHAT_MESSAGE | SyncEngine 解析 protobuf | — |
 | T2 | 写入本地 SQLite | upsert by id（幂等） | CacheChangeEvent |
 | T3 | UI 收到变更通知 | 从 SQLite 重新查询 | UI 刷新 |
+
+**自发消息（ChatCubit 处理）**：
+
+| 时刻 | 事件 | 处理 | 产生的新事件 |
+|------|------|------|-------------|
+| T1 | WS 收到 MessageAck | ChatCubit 解析 ACK | — |
+| T2 | 更新内存消息（赋予真实 ID 和 seq） | 替换 localId | UI 刷新 |
+| T3 | 通过 Repository.store 写入 SQLite | Message → CachedMessage 转换后 cacheMessages | — |
+
+> SyncEngine 只监听 chatMessageStream（他人消息），不监听 messageAckStream。自发消息的缓存写入由 ChatCubit 在 ACK 回调中完成，因为只有 ChatCubit 持有完整的消息内容。
 
 ```mermaid
 sequenceDiagram

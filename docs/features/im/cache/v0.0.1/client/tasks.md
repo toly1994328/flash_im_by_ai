@@ -22,7 +22,7 @@
 12. ✅ 任务 12 — SyncEngine（含回调机制）
 13. ✅ 任务 13 — barrel file
 14. ✅ 任务 14 — Repository 改造（ConversationRepository）
-15. ✅ 任务 15 — Repository 改造（MessageRepository）
+15. ✅ 任务 15 — Repository 改造（MessageRepository）+ 自发消息 ACK 缓存写入
 16. ✅ 任务 16 — Repository 改造（FriendRepository）
 17. ✅ 任务 17 — main.dart 初始化流程 + home_page 回调注册
 18. ✅ 任务 18 — 上层模块 pubspec 依赖更新 + sqlite3 hooks 配置
