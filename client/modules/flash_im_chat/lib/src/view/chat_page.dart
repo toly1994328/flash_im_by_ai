@@ -339,7 +339,10 @@ class _ChatPageState extends State<ChatPage> {
         String fullUrl(String url) =>
             (widget.baseUrl != null && url.startsWith('/')) ? '${widget.baseUrl}$url' : url;
 
-        return MessageBubble(
+        final isInMultiSelect = (chatState is ChatLoaded) && chatState.isMultiSelect;
+        final isSelected = (chatState is ChatLoaded) && chatState.selectedIds.contains(msg.id);
+
+        final bubble = MessageBubble(
           message: msg,
           isMe: isMe,
           baseUrl: widget.baseUrl,
@@ -349,10 +352,10 @@ class _ChatPageState extends State<ChatPage> {
           membersReadSeq: chatCubit.membersReadSeq,
           currentUserId: chatCubit.currentUserId,
           isGroup: widget.isGroup,
-          isMultiSelect: (chatState is ChatLoaded) ? chatState.isMultiSelect : false,
-          isSelected: (chatState is ChatLoaded) ? chatState.selectedIds.contains(msg.id) : false,
+          isMultiSelect: isInMultiSelect,
+          isSelected: isSelected,
           onToggleSelect: () => chatCubit.toggleSelect(msg.id),
-          onLongPress: () => _showMessageMenu(context, msg, isMe),
+          onLongPress: (bubbleCtx) => _showMessageMenu(context, bubbleCtx, msg, isMe),
           onReadCountTap: widget.isGroup ? () {
             _showReadReceiptDetail(msg.id);
           } : null,
@@ -380,6 +383,35 @@ class _ChatPageState extends State<ChatPage> {
               ));
             }
           },
+        );
+
+        return GestureDetector(
+          behavior: isInMultiSelect ? HitTestBehavior.opaque : HitTestBehavior.deferToChild,
+          onTap: isInMultiSelect ? () => chatCubit.toggleSelect(msg.id) : null,
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+                width: isInMultiSelect ? 44 : 0,
+                child: isInMultiSelect
+                    ? Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 200),
+                          child: Icon(
+                            isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
+                            key: ValueKey(isSelected),
+                            color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFCCCCCC),
+                            size: 24,
+                          ),
+                        ),
+                      )
+                    : null,
+              ),
+              Expanded(child: bubble),
+            ],
+          ),
         );
       },
     );
@@ -420,20 +452,23 @@ class _ChatPageState extends State<ChatPage> {
     );
   }
 
-  void _showMessageMenu(BuildContext context, Message msg, bool isMe) {
+  void _showMessageMenu(BuildContext context, BuildContext bubbleContext, Message msg, bool isMe) {
     final chatCubit = context.read<ChatCubit>();
     final chatState = chatCubit.state;
     if (chatState is ChatLoaded && chatState.isMultiSelect) return;
 
-    // 获取手指位置（用消息中心作为近似）
-    final renderBox = context.findRenderObject() as RenderBox?;
+    // 获取气泡的位置和尺寸
+    final renderBox = bubbleContext.findRenderObject() as RenderBox?;
     if (renderBox == null) return;
-    final size = renderBox.size;
-    final position = renderBox.localToGlobal(Offset(size.width / 2, 0));
+    final bubbleSize = renderBox.size;
+    final bubbleOffset = renderBox.localToGlobal(Offset.zero);
+
+    print('📐 [menu] bubbleOffset=$bubbleOffset, bubbleSize=$bubbleSize, isMe=$isMe');
 
     MessageActionMenu.show(
       context: context,
-      position: position,
+      position: Offset(bubbleOffset.dx, bubbleOffset.dy),
+      bubbleSize: bubbleSize,
       message: msg,
       isMe: isMe,
       onAction: (action) {

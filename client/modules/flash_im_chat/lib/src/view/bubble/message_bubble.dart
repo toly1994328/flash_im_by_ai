@@ -22,7 +22,7 @@ class MessageBubble extends StatelessWidget {
   final String? currentUserId;
   final bool isGroup;
   final VoidCallback? onReadCountTap;
-  final VoidCallback? onLongPress;
+  final void Function(BuildContext bubbleContext)? onLongPress;
   final bool isMultiSelect;
   final bool isSelected;
   final VoidCallback? onToggleSelect;
@@ -90,31 +90,18 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
-    return GestureDetector(
-      onLongPressStart: onLongPress != null ? (_) => onLongPress!() : null,
-      onTap: isMultiSelect ? onToggleSelect : null,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-        child: Row(
-          mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            if (isMultiSelect)
-              Padding(
-                padding: const EdgeInsets.only(right: 8, top: 4),
-                child: Icon(
-                  isSelected ? Icons.check_circle : Icons.radio_button_unchecked,
-                  color: isSelected ? const Color(0xFF3B82F6) : const Color(0xFFCCCCCC),
-                  size: 22,
-                ),
-              ),
-            if (!isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
-            if (!isMe) const SizedBox(width: 8),
-            Flexible(child: _buildContent()),
-            if (isMe) const SizedBox(width: 8),
-            if (isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      child: Row(
+        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (!isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
+          if (!isMe) const SizedBox(width: 8),
+          Flexible(child: _buildContent()),
+          if (isMe) const SizedBox(width: 8),
+          if (isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
+        ],
       ),
     );
   }
@@ -139,7 +126,12 @@ class MessageBubble extends StatelessWidget {
               _buildReadReceiptIndicator(),
             ],
             if (isMe) const SizedBox(width: 4),
-            Flexible(child: _buildBubble()),
+            Flexible(child: Builder(
+              builder: (bubbleCtx) => GestureDetector(
+                onLongPressStart: onLongPress != null ? (_) => onLongPress!(bubbleCtx) : null,
+                child: _buildBubble(),
+              ),
+            )),
           ],
         ),
       ],
