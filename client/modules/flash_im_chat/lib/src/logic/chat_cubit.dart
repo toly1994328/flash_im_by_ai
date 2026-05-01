@@ -421,7 +421,6 @@ class ChatCubit extends Cubit<ChatState> {
       final localId = entry.value;
       _pendingMessages.remove(entry.key);
 
-      // 找到本地消息，赋予真实 ID 和 seq
       Message? confirmedMessage;
       final updated = current.messages.map((m) {
         if (m.id == localId) {
@@ -433,8 +432,8 @@ class ChatCubit extends Cubit<ChatState> {
       updated.sort((a, b) => a.seq.compareTo(b.seq));
       emit(current.copyWith(messages: updated));
 
-      // 写入本地缓存，确保退出重进后消息不丢失
-      final store = _store ?? _repository.store;
+      // 写入本地缓存，确保退出重进后自发消息不丢失
+      final store = _repository.store;
       if (confirmedMessage != null && store != null) {
         final msg = confirmedMessage!;
         final cached = CachedMessage(
@@ -450,9 +449,6 @@ class ChatCubit extends Cubit<ChatState> {
           createdAt: msg.createdAt.millisecondsSinceEpoch,
         );
         store.cacheMessages([cached], conversationId: msg.conversationId);
-        print('💾 [ChatCubit] ACK cached: id=${msg.id}, seq=${msg.seq}');
-      } else {
-        print('⚠️ [ChatCubit] ACK not cached: confirmedMessage=${confirmedMessage != null}, store=${store != null}');
       }
     } catch (_) {}
   }

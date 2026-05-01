@@ -364,6 +364,8 @@ CachedMessage fromMessageRow(CachedMessagesTableData row) { ... }
    - `friendAcceptedStream` → 新增好友
    - `friendRemovedStream` → 删除好友
 
+> 注意：SyncEngine 只处理他人发来的消息（chatMessageStream）。自发消息的缓存写入由 ChatCubit 在收到 MessageAck 后完成——因为 ACK 只包含 messageId 和 seq，完整的消息内容（content、extra、senderName 等）只有 ChatCubit 内存中有。
+
 2. **重连同步**：监听连接状态，disconnected → authenticated 时触发
    - 拉取会话列表，和本地 diff
    - 拉取好友列表，和本地 diff
@@ -389,6 +391,25 @@ sequenceDiagram
     SE->>CB: T3: onConversationChanged 回调
     CB->>DB: T4: reload 最新数据
 ```
+
+### 自发消息 ACK 写入
+
+```mermaid
+sequenceDiagram
+    participant CB as ChatCubit
+    participant WS as WsClient
+    participant Repo as MessageRepository
+    participant DB as LocalStore
+
+    CB->>WS: T1: sendMessage
+    WS-->>CB: T2: MessageAck（id, seq）
+    CB->>CB: T3: 更新内存消息（localId → realId）
+    CB->>Repo: T4: repo.store
+    Repo-->>CB: LocalStore 引用
+    CB->>DB: T5: cacheMessages（已确认的消息）
+```
+
+> ChatCubit 通过 `_repository.store` 获取 LocalStore 引用（MessageRepository 在登录时已被注入 store）。这样 ChatCubit 不需要自己持有 LocalStore 字段，也不需要修改构造函数。
 
 ### 回调机制
 
@@ -628,9 +649,15 @@ hooks:
 | 文件 | 原因 |
 |------|------|
 | WsClient | SyncEngine 订阅它的 Stream，不改它 |
-| ChatCubit | 仍通过 Repository 读数据，Repository 内部切到 LocalStore |
 | ConversationListCubit | WS 事件处理逻辑保留，SyncEngine 通过回调触发 reload |
 | FriendCubit | 同上 |
+
+### 补充修改（自发消息缓存）
+
+| 文件 | 变更 |
+|------|------|
+| `flash_im_chat/message_repository.dart` | 新增 `LocalStore? get store` getter，暴露 store 引用供 ChatCubit 使用 |
+| `flash_im_chat/chat_cubit.dart` | `_handleMessageAck` 中 ACK 确认后通过 `_repository.store` 将消息写入本地缓存；新增 `flash_im_cache` import |
 
 ## 12. 验收标准
 
@@ -639,6 +666,7 @@ hooks:
 | 打开 app 瞬间看到会话列表（不等 HTTP） | 手动测试：断网后打开 app |
 | 进入聊天页瞬间看到历史消息 | 手动测试：断网后进入聊天 |
 | 收到新消息后退出再进入，消息仍在 | 手动测试 |
+| 自己发送的消息退出再进入，消息仍在 | 手动测试：发送消息 → 退出聊天页 → 重新进入 |
 | 离线后重连，自动补齐缺失消息 | 手动测试：断网 → 另一端发消息 → 恢复网络 |
 | 首次登录全量拉取后本地有数据 | 手动测试：清除 app 数据后登录 |
 | 上层模块不 import drift 的任何类型 | 代码审查 |
