@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
+import 'package:flash_im_cache/flash_im_cache.dart';
 import '../data/message.dart';
 import '../data/message_repository.dart';
 import 'chat_state.dart';
@@ -391,14 +392,35 @@ class ChatCubit extends Cubit<ChatState> {
       final localId = entry.value;
       _pendingMessages.remove(entry.key);
 
+      Message? confirmedMessage;
       final updated = current.messages.map((m) {
         if (m.id == localId) {
-          return m.copyWith(id: ack.messageId, seq: ack.seq.toInt(), status: MessageStatus.sent);
+          confirmedMessage = m.copyWith(id: ack.messageId, seq: ack.seq.toInt(), status: MessageStatus.sent);
+          return confirmedMessage!;
         }
         return m;
       }).toList();
       updated.sort((a, b) => a.seq.compareTo(b.seq));
       emit(current.copyWith(messages: updated));
+
+      // 写入本地缓存，确保退出重进后自发消息不丢失
+      final store = _repository.store;
+      if (confirmedMessage != null && store != null) {
+        final msg = confirmedMessage!;
+        final cached = CachedMessage(
+          id: msg.id,
+          conversationId: msg.conversationId,
+          senderId: msg.senderId,
+          senderName: msg.senderName,
+          senderAvatar: msg.senderAvatar,
+          seq: msg.seq,
+          msgType: msg.type.index,
+          content: msg.content,
+          extra: msg.extra != null ? jsonEncode(msg.extra) : null,
+          createdAt: msg.createdAt.millisecondsSinceEpoch,
+        );
+        store.cacheMessages([cached], conversationId: msg.conversationId);
+      }
     } catch (_) {}
   }
 

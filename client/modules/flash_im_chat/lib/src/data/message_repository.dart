@@ -91,6 +91,9 @@ class MessageRepository {
   /// 登录后注入本地存储
   void setStore(LocalStore store) => _store = store;
 
+  /// 获取当前本地存储
+  LocalStore? get store => _store;
+
   Future<List<Message>> getMessages(
     String conversationId, {
     int? beforeSeq,
