@@ -20,6 +20,7 @@ dependencies:
     path: ../flash_shared
   flash_im_cache:
     path: ../flash_im_cache
+  tolyui_feedback_modal: ^0.0.1
   image_picker: ^1.1.2
   file_picker: ^8.1.7
   video_player: ^2.9.2

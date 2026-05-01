@@ -373,6 +373,7 @@ class _HomePageState extends State<HomePage> {
             currentUserName: user.nickname,
             currentUserAvatar: user.avatar,
             isGroup: conversation.isGroup,
+            onConversationChanged: () => _convCubit.loadConversations(),
           )..loadMessages(),
           child: ChatPage(
             conversationId: conversation.id,
@@ -500,6 +501,7 @@ class _HomePageState extends State<HomePage> {
                           currentUserName: user.nickname,
                           currentUserAvatar: user.avatar,
                           isGroup: true,
+                          onConversationChanged: () => _convCubit.loadConversations(),
                         )..loadMessages(),
                         child: ChatPage(
                           conversationId: conversation.id,
@@ -597,6 +599,7 @@ class _HomePageState extends State<HomePage> {
               currentUserId: user.userId.toString(),
               currentUserName: user.nickname,
               currentUserAvatar: user.avatar,
+              onConversationChanged: () => _convCubit.loadConversations(),
             )..loadMessages(),
             child: ChatPage(
               conversationId: conv.id,
@@ -673,6 +676,7 @@ class _HomePageState extends State<HomePage> {
               currentUserName: user.nickname,
               currentUserAvatar: user.avatar,
               isGroup: true,
+              onConversationChanged: () => _convCubit.loadConversations(),
             )..loadMessages(),
             child: ChatPage(
               conversationId: conv.id,

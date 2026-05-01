@@ -16,11 +16,11 @@ class ReplyBubble extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 4),
+      margin: const EdgeInsets.only(top: 4),
       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF0F0F0),
-        borderRadius: BorderRadius.circular(4),
+        color: const Color(0xFFF5F5F5),
+        borderRadius: BorderRadius.circular(6),
         border: const Border(
           left: BorderSide(color: Color(0xFF3B82F6), width: 2),
         ),

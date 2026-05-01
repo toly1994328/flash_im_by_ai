@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, WsFrame, WsFrameType, GroupInfoUpdate, UserStatusNotification;
+import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
@@ -441,7 +442,7 @@ class _ChatPageState extends State<ChatPage> {
             Text('已选择 $count 条', style: const TextStyle(fontSize: 14, color: Color(0xFF333333))),
             const Spacer(),
             TextButton(
-              onPressed: count > 0 ? () => cubit.deleteSelected() : null,
+              onPressed: count > 0 ? () => _confirmDeleteSelected(context, cubit, count) : null,
               child: Text('删除', style: TextStyle(
                 color: count > 0 ? Colors.red : const Color(0xFFCCCCCC),
               )),
@@ -483,11 +484,45 @@ class _ChatPageState extends State<ChatPage> {
           case MenuAction.recall:
             chatCubit.recallMessage(msg.id);
           case MenuAction.delete:
-            chatCubit.deleteMessage(msg.id);
+            _confirmDeleteMessage(context, chatCubit, msg.id);
           case MenuAction.multiSelect:
             chatCubit.enterMultiSelect(msg.id);
         }
       },
+    );
+  }
+
+  void _confirmDeleteMessage(BuildContext context, ChatCubit cubit, String messageId) {
+    showTolyPopPicker<bool>(
+      context: context,
+      title: const Text('确定删除这条消息？'),
+      tasks: [
+        TolyMenuItem(
+          info: '删除',
+          content: const Text('删除', style: TextStyle(color: Color(0xFFFF4D4F), fontSize: 16)),
+          task: () {
+            cubit.deleteMessage(messageId);
+            return true;
+          },
+        ),
+      ],
+    );
+  }
+
+  void _confirmDeleteSelected(BuildContext context, ChatCubit cubit, int count) {
+    showTolyPopPicker<bool>(
+      context: context,
+      title: Text('确定删除选中的 $count 条消息？'),
+      tasks: [
+        TolyMenuItem(
+          info: '删除',
+          content: const Text('删除', style: TextStyle(color: Color(0xFFFF4D4F), fontSize: 16)),
+          task: () {
+            cubit.deleteSelected();
+            return true;
+          },
+        ),
+      ],
     );
   }
 

@@ -214,7 +214,7 @@ class MessageBubble extends StatelessWidget {
       return Column(
         crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
         mainAxisSize: MainAxisSize.min,
-        children: [replyWidget, bubble],
+        children: [bubble, replyWidget],
       );
     }
     return bubble;

@@ -138,6 +138,7 @@ class _MenuOverlayState extends State<_MenuOverlay>
       children: widget.actions.map((action) {
         final (icon, label) = _actionInfo(action);
         return GestureDetector(
+          behavior: HitTestBehavior.opaque,
           onTap: () => widget.onAction(action),
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 14),

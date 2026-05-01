@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.1_cache（本地缓存与离线同步）
+最后更新：v0.0.1_operation（消息操作）
 
 ---
 
@@ -73,6 +73,7 @@
 | D-37 | 消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
 | D-38 | 会话内消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
 | D-39 | 增量消息查询 | im-message (routes) | 后端 | v0.0.1_cache | ✅ |
+| D-40 | 消息撤回 | im-message (routes) | 后端 | v0.0.1_operation | ✅ |
 
 ### 前端基础层（F）
 
@@ -94,6 +95,7 @@
 | F-14 | 搜索模块 | flash_im_search | v0.0.1_search | ✅ |
 | F-15 | LocalStore | flash_im_cache (local_store) | v0.0.1_cache | ✅ |
 | F-16 | SyncEngine | flash_im_cache (sync_engine) | v0.0.1_cache | ✅ |
+| F-17 | MESSAGE_RECALLED WS 帧分发 | flash_im_core | v0.0.1_operation | ✅ |
 
 ### 前端业务层（P）
 
@@ -145,6 +147,12 @@
 | P-45 | 消息搜索详情页 | flash_im_search (message_detail_page) | v0.0.1_search | ✅ |
 | P-46 | 会话内搜索页 | flash_im_search (conversation_search_page) | v0.0.1_search | ✅ |
 | P-47 | 单条消息详情页 | flash_im_search (single_message_page) | v0.0.1_search | ✅ |
+| P-48 | 长按菜单 | flash_im_chat (message_action_menu) | v0.0.1_operation | ✅ |
+| P-49 | 消息撤回展示 | flash_im_chat (chat_cubit) | v0.0.1_operation | ✅ |
+| P-50 | 引用回复 | flash_im_chat (reply_bubble + reply_preview_bar) | v0.0.1_operation | ✅ |
+| P-51 | 多选模式 | flash_im_chat (chat_cubit + chat_page) | v0.0.1_operation | ✅ |
+| P-52 | 本地删除 | flash_im_chat (chat_cubit) + flash_im_cache (local_trash) | v0.0.1_operation | ✅ |
+| P-53 | 删除确认弹窗 | flash_im_chat (chat_page) + tolyui_feedback_modal | v0.0.1_operation | ✅ |
 
 
 ---
@@ -234,6 +242,7 @@ graph TB
         D36[D-36 已加入群搜索]
         D37[D-37 消息搜索]
         D38[D-38 会话内消息搜索]
+        D40[D-40 消息撤回]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -250,6 +259,7 @@ graph TB
         F12[F-12 在线状态WS帧分发]
         F13[F-13 已读回执WS帧分发]
         F14[F-14 搜索模块]
+        F17[F-17 MESSAGE_RECALLED帧分发]
     end
     subgraph 前端业务层
         P01[P-01 会话列表]
@@ -298,6 +308,12 @@ graph TB
         P45[P-45 消息搜索详情页]
         P46[P-46 会话内搜索页]
         P47[P-47 单条消息详情页]
+        P48[P-48 长按菜单]
+        P49[P-49 消息撤回展示]
+        P50[P-50 引用回复]
+        P51[P-51 多选模式]
+        P52[P-52 本地删除]
+        P53[P-53 删除确认弹窗]
     end
 
     %% 本地缓存 v0.0.1_cache：新增节点
@@ -508,6 +524,21 @@ graph TB
     P01 --> F15
     P06 --> F15
     P20 --> F15
+
+    %% 消息操作 v0.0.1_operation：后端依赖
+    D40 --> D06
+    D40 --> I08
+
+    %% 消息操作 v0.0.1_operation：前端依赖
+    F17 --> F06
+    P48 --> P06
+    P49 --> F17
+    P49 -.->|HTTP| D40
+    P49 --> F15
+    P50 --> P07
+    P51 --> P48
+    P52 --> F15
+    P53 --> P52
 ```
 
 ---
@@ -536,6 +567,7 @@ graph TB
 | v0.16.0 | 2026-04-25 | 102 | [trace/v0.16.0_2026-04-25.md](trace/v0.16.0_2026-04-25.md) |
 | v0.17.0 | 2026-04-28 | 112 | [trace/v0.17.0_2026-04-28.md](trace/v0.17.0_2026-04-28.md) |
 | v0.18.0 | 2026-05-01 | 116 | [trace/v0.18.0_2026-05-01.md](trace/v0.18.0_2026-05-01.md) |
+| v0.19.0 | 2026-05-02 | 124 | [trace/v0.19.0_2026-05-02.md](trace/v0.19.0_2026-05-02.md) |
 
 ---
 
@@ -555,3 +587,4 @@ graph TB
 | 在线状态与已读回执 | [presence/server.md](modules/presence/server.md) [presence/client.md](modules/presence/client.md) | D-31~D-34, F-12~F-13, P-41~P-43 |
 | 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |
 | 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
+| 消息操作 | [operation/client.md](modules/operation/client.md) | D-40, F-17, P-48~P-53 |

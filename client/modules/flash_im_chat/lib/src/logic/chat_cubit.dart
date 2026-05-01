@@ -19,6 +19,7 @@ class ChatCubit extends Cubit<ChatState> {
   final String currentUserName;
   final String? currentUserAvatar;
   final bool isGroup;
+  final VoidCallback? onConversationChanged;
 
   StreamSubscription? _chatMessageSub;
   StreamSubscription? _messageAckSub;
@@ -44,6 +45,7 @@ class ChatCubit extends Cubit<ChatState> {
     required this.currentUserName,
     this.currentUserAvatar,
     this.isGroup = false,
+    this.onConversationChanged,
     LocalStore? store,
   })  : _repository = repository,
         _wsClient = wsClient,
@@ -539,17 +541,43 @@ class ChatCubit extends Cubit<ChatState> {
   void _replaceWithRecalled(String messageId, {required bool isMe}) {
     final s = state;
     if (s is! ChatLoaded) return;
+    Message? recalledMessage;
     final updated = s.messages.map((m) {
       if (m.id == messageId) {
-        return m.copyWith(
+        recalledMessage = m.copyWith(
           content: isMe ? '你撤回了一条消息' : '${m.senderName}撤回了一条消息',
           type: MessageType.text,
           extra: {'_recalled': true},
         );
+        return recalledMessage!;
       }
       return m;
     }).toList();
     emit(s.copyWith(messages: updated));
+
+    // 同步写入本地缓存
+    final store = _repository.store;
+    if (recalledMessage != null && store != null) {
+      final msg = recalledMessage!;
+      final cached = CachedMessage(
+        id: msg.id,
+        conversationId: msg.conversationId,
+        senderId: msg.senderId,
+        senderName: msg.senderName,
+        senderAvatar: msg.senderAvatar,
+        seq: msg.seq,
+        msgType: msg.type.index,
+        content: msg.content,
+        extra: msg.extra != null ? jsonEncode(msg.extra) : null,
+        createdAt: msg.createdAt.millisecondsSinceEpoch,
+      );
+      store.cacheMessages([cached], conversationId: msg.conversationId);
+      // 如果撤回的是最后一条消息，更新会话预览
+      final s2 = state;
+      if (s2 is ChatLoaded) {
+        _syncConversationPreview(store, s2.messages);
+      }
+    }
   }
 
   // ─── 引用回复 ───
@@ -596,11 +624,13 @@ class ChatCubit extends Cubit<ChatState> {
     final s = state;
     final store = _store ?? _repository.store;
     if (s is! ChatLoaded || store == null) return;
-    for (final id in s.selectedIds) {
+    final idsToDelete = Set<String>.from(s.selectedIds);
+    for (final id in idsToDelete) {
       await store.moveToTrash(id, 'message');
     }
-    exitMultiSelect();
-    await loadMessages();
+    final updated = s.messages.where((m) => !idsToDelete.contains(m.id)).toList();
+    emit(s.copyWith(messages: updated, isMultiSelect: false, selectedIds: const {}));
+    _syncConversationPreview(store, updated);
   }
 
   // ─── 复制与删除 ───
@@ -610,10 +640,35 @@ class ChatCubit extends Cubit<ChatState> {
   }
 
   Future<void> deleteMessage(String messageId) async {
+    final s = state;
     final store = _store ?? _repository.store;
-    if (store == null) return;
+    if (s is! ChatLoaded || store == null) return;
     await store.moveToTrash(messageId, 'message');
-    await loadMessages();
+    final updated = s.messages.where((m) => m.id != messageId).toList();
+    emit(s.copyWith(messages: updated));
+    _syncConversationPreview(store, updated);
+  }
+
+  /// 根据当前消息列表更新会话的最后一条消息预览
+  void _syncConversationPreview(LocalStore store, List<Message> messages) {
+    if (messages.isEmpty) {
+      store.updateConversation(conversationId, lastMessagePreview: '');
+      onConversationChanged?.call();
+      return;
+    }
+    final last = messages.last;
+    final preview = last.isRecalled
+        ? (last.senderId == currentUserId ? '你撤回了一条消息' : '${last.senderName}撤回了一条消息')
+        : last.isText ? last.content
+        : last.isImage ? '[图片]'
+        : last.isVideo ? '[视频]'
+        : last.isFile ? '[文件]'
+        : last.content;
+    store.updateConversation(conversationId,
+      lastMessagePreview: preview,
+      lastMessageAt: last.createdAt.millisecondsSinceEpoch,
+    );
+    onConversationChanged?.call();
   }
 
   @override
