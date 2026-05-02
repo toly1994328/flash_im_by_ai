@@ -19,7 +19,7 @@
 
 ```bash
 curl -s -X GET "http://127.0.0.1:9600/api/messages/search?keyword=签到"
-  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzc3ODE5ODgwLCJpYXQiOjE3NzcyMTUwODB9.G3K0pR5JybdqIG7bzZP6WloATsEl1_ujoxoX4pztqZA"
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIxIiwiZXhwIjoxNzc4MzcwNDk3LCJpYXQiOjE3Nzc3NjU2OTd9.3woan6cwSZSYb0105mBe1_EocZxGU8-yquq11g8W7ak"
 ```
 
 > 每个会话分组包含 conversation_name/avatar/conv_type/match_count + 最近 3 条匹配消息。
