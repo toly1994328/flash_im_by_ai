@@ -4,7 +4,7 @@ import '../data/message.dart';
 enum MenuAction { copy, reply, recall, delete, multiSelect }
 
 class MessageActionMenu {
-  static void show({
+  static VoidCallback? show({
     required BuildContext context,
     required Offset position,
     required Size bubbleSize,
@@ -14,9 +14,17 @@ class MessageActionMenu {
   }) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
+    bool removed = false;
 
     final actions = _getActions(message, isMe);
-    if (actions.isEmpty) return;
+    if (actions.isEmpty) return null;
+
+    void dismiss() {
+      if (!removed) {
+        removed = true;
+        entry.remove();
+      }
+    }
 
     entry = OverlayEntry(
       builder: (ctx) => _MenuOverlay(
@@ -25,14 +33,15 @@ class MessageActionMenu {
         actions: actions,
         isMe: isMe,
         onAction: (action) {
-          entry.remove();
+          dismiss();
           onAction(action);
         },
-        onDismiss: () => entry.remove(),
+        onDismiss: dismiss,
       ),
     );
 
     overlay.insert(entry);
+    return dismiss;
   }
 
   static List<MenuAction> _getActions(Message message, bool isMe) {
@@ -111,21 +120,17 @@ class _MenuOverlayState extends State<_MenuOverlay>
 
     return Stack(
       children: [
-        Positioned.fill(
-          child: GestureDetector(
-            onTap: widget.onDismiss,
-            behavior: HitTestBehavior.opaque,
-            child: const SizedBox.expand(),
-          ),
-        ),
         Positioned(
           left: widget.isMe ? null : widget.position.dx,
           right: widget.isMe ? screenSize.width - bubbleRight : null,
           top: showAbove ? null : bubbleBottom + 4,
           bottom: showAbove ? screenSize.height - bubbleTop + 4 : null,
-          child: FadeTransition(
-            opacity: _opacity,
-            child: _buildMenu(showAbove),
+          child: TapRegion(
+            onTapOutside: (_) => widget.onDismiss(),
+            child: FadeTransition(
+              opacity: _opacity,
+              child: _buildMenu(showAbove),
+            ),
           ),
         ),
       ],

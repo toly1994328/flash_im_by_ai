@@ -466,7 +466,7 @@ class _ChatPageState extends State<ChatPage> {
 
     print('📐 [menu] bubbleOffset=$bubbleOffset, bubbleSize=$bubbleSize, isMe=$isMe');
 
-    MessageActionMenu.show(
+    final dismiss = MessageActionMenu.show(
       context: context,
       position: Offset(bubbleOffset.dx, bubbleOffset.dy),
       bubbleSize: bubbleSize,
@@ -490,6 +490,15 @@ class _ChatPageState extends State<ChatPage> {
         }
       },
     );
+
+    // 滑动时自动关闭菜单
+    if (dismiss != null) {
+      void onScroll() {
+        dismiss();
+        _scrollController.removeListener(onScroll);
+      }
+      _scrollController.addListener(onScroll);
+    }
   }
 
   void _confirmDeleteMessage(BuildContext context, ChatCubit cubit, String messageId) {
