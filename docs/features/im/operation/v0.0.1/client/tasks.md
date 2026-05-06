@@ -328,10 +328,17 @@ void _syncConversationPreview(LocalStore store, List<Message> messages)
 
 ```dart
 void _replaceWithRecalled(String messageId, {required bool isMe})
+// 幂等：如果 m.isRecalled 直接跳过
+// 自己撤回的文本消息：extra['_original_content'] = m.content
 // 更新内存 + emit
 // 通过 _repository.store 将撤回后的消息写入本地缓存（cacheMessages）
 // 调 _syncConversationPreview 更新会话预览
 ```
+
+### 9.7 撤回重新编辑 `⬜`
+
+撤回文本消息后，MessageBubble 检测 `extra['_original_content']` 显示"重新编辑"按钮。
+点击后通过 `onReEdit` 回调将原始内容填入 ChatInput 的 TextEditingController。
 
 ---
 
@@ -339,13 +346,14 @@ void _replaceWithRecalled(String messageId, {required bool isMe})
 
 文件：`client/modules/flash_im_chat/lib/src/view/message_action_menu.dart`（新建）
 
-职责：长按菜单 Overlay 组件，只管渲染和定位，通过回调通知外部。
+职责：长按菜单 Overlay 组件，只管渲染和定位，通过回调通知外部。使用 TapRegion 实现区域外关闭（不拦截滚动手势）。
 
 ```dart
 class MessageActionMenu {
-  static void show({
+  static VoidCallback? show({
     required BuildContext context,
-    required LayerLink layerLink,
+    required Offset position,
+    required Size bubbleSize,
     required Message message,
     required bool isMe,
     required void Function(MenuAction action) onAction,
@@ -477,6 +485,11 @@ ChatCubit(
 ### 15.2 发送时携带 replyTo `⬜`
 
 onSend 回调改为携带 replyTo 信息，或由 ChatCubit 在 sendMessage 时自动读取 state.replyTo。
+
+### 15.3 外部 TextEditingController 支持 `⬜`
+
+新增可选 `controller` 参数。外部传入则使用外部的，不传则内部自建。
+用于"重新编辑"功能：ChatPage 持有 controller，撤回重新编辑时直接设置 text。
 
 ---
 

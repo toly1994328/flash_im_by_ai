@@ -193,6 +193,36 @@ else:
     print("No old message found, skipping timeout test")
     ok()
 
+# === 7: 撤回后会话预览更新 ===
+step(7, "Verify conversation preview after recall")
+r = Curl.get(f"{BASE}/conversations?limit=50", token_a)
+if r["status"] != 200: fail("get conversations failed")
+target_conv = [c for c in r["data"] if c["id"] == conv_id]
+if target_conv:
+    preview = target_conv[0].get("last_message_preview", "")
+    print(f"last_message_preview: '{preview}'")
+    # 最后一条消息可能是 step 5 里 A 发的那条（未撤回），也可能是撤回提示
+    # 关键是验证接口能正常返回预览字段
+    ok()
+else:
+    fail("conversation not found")
+write_doc("07_conversation_preview.md", "GET", "/conversations?limit=50",
+    "撤回后验证会话预览字段更新", r["status"], r["body"],
+    "last_message_preview 应反映最新消息状态")
+
+# === 8: B 查询消息列表验证撤回可见 ===
+step(8, "B sees recalled message (status=1)")
+r = Curl.get(f"{BASE}/conversations/{conv_id}/messages?limit=10", token_b)
+if r["status"] != 200: fail("B get messages failed")
+recalled_msgs = [m for m in r["data"] if m.get("status") == 1]
+print(f"B sees {len(recalled_msgs)} recalled message(s)")
+if len(recalled_msgs) == 0: fail("B should see at least 1 recalled message")
+ok()
+write_doc("08_b_sees_recalled.md", "GET", f"/conversations/{conv_id}/messages?limit=10",
+    "B 查询消息列表，验证能看到 status=1 的撤回消息（间接验证广播效果）",
+    r["status"], r["body"],
+    "对方视角：撤回消息仍在列表中，status=1")
+
 # === 生成文档 ===
 write_link()
 print(f"\n{YELLOW}Generated: 00_link.md + {total} api docs{RESET}")

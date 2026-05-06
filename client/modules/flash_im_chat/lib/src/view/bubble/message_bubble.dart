@@ -26,6 +26,7 @@ class MessageBubble extends StatelessWidget {
   final bool isMultiSelect;
   final bool isSelected;
   final VoidCallback? onToggleSelect;
+  final void Function(String content)? onReEdit;
 
   const MessageBubble({
     super.key,
@@ -46,6 +47,7 @@ class MessageBubble extends StatelessWidget {
     this.isMultiSelect = false,
     this.isSelected = false,
     this.onToggleSelect,
+    this.onReEdit,
   });
 
   @override
@@ -72,6 +74,8 @@ class MessageBubble extends StatelessWidget {
 
     // 已撤回消息：居中灰色标签
     if (message.isRecalled) {
+      final originalContent = message.extra?['_original_content'] as String?;
+      final showReEdit = isMe && originalContent != null && onReEdit != null;
       return Padding(
         padding: const EdgeInsets.symmetric(vertical: 6),
         child: Center(
@@ -81,9 +85,24 @@ class MessageBubble extends StatelessWidget {
               color: const Color(0xFFE8E8E8),
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Text(
-              message.content,
-              style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  message.content,
+                  style: const TextStyle(fontSize: 12, color: Color(0xFF888888)),
+                ),
+                if (showReEdit) ...[
+                  const SizedBox(width: 6),
+                  GestureDetector(
+                    onTap: () => onReEdit!(originalContent),
+                    child: const Text(
+                      '重新编辑',
+                      style: TextStyle(fontSize: 12, color: Color(0xFF3B82F6)),
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
         ),

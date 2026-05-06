@@ -58,6 +58,7 @@ class ChatPage extends StatefulWidget {
 
 class _ChatPageState extends State<ChatPage> {
   final _scrollController = ScrollController();
+  final _inputController = TextEditingController();
   late String _title;
   late bool _isDisband;
   String? _announcement;
@@ -127,6 +128,7 @@ class _ChatPageState extends State<ChatPage> {
     _onlineSub?.cancel();
     _offlineSub?.cancel();
     _scrollController.dispose();
+    _inputController.dispose();
     super.dispose();
   }
 
@@ -284,6 +286,7 @@ class _ChatPageState extends State<ChatPage> {
                             onClose: () => cubit.clearReplyTo(),
                           ),
                         ChatInput(
+                          controller: _inputController,
                           onSend: (content) => cubit.sendMessage(content),
                           onSendImage: (path) => cubit.sendImageFromFile(path),
                           onSendVideo: (path) async {
@@ -357,6 +360,10 @@ class _ChatPageState extends State<ChatPage> {
           isSelected: isSelected,
           onToggleSelect: () => chatCubit.toggleSelect(msg.id),
           onLongPress: (bubbleCtx) => _showMessageMenu(context, bubbleCtx, msg, isMe),
+          onReEdit: (content) {
+            _inputController.text = content;
+            _inputController.selection = TextSelection.collapsed(offset: content.length);
+          },
           onReadCountTap: widget.isGroup ? () {
             _showReadReceiptDetail(msg.id);
           } : null,

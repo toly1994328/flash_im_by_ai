@@ -544,15 +544,23 @@ class ChatCubit extends Cubit<ChatState> {
     Message? recalledMessage;
     final updated = s.messages.map((m) {
       if (m.id == messageId) {
+        // 已经被替换过了（幂等），跳过
+        if (m.isRecalled) return m;
+        final extra = <String, dynamic>{'_recalled': true};
+        // 自己撤回的文本消息，保存原始内容供"重新编辑"
+        if (isMe && m.type == MessageType.text) {
+          extra['_original_content'] = m.content;
+        }
         recalledMessage = m.copyWith(
           content: isMe ? '你撤回了一条消息' : '${m.senderName}撤回了一条消息',
           type: MessageType.text,
-          extra: {'_recalled': true},
+          extra: extra,
         );
         return recalledMessage!;
       }
       return m;
     }).toList();
+    if (recalledMessage == null) return; // 已经处理过，无需后续操作
     emit(s.copyWith(messages: updated));
 
     // 同步写入本地缓存

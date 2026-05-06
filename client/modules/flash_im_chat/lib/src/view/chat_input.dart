@@ -7,6 +7,7 @@ class ChatInput extends StatefulWidget {
   final ValueChanged<String>? onSendImage;
   final ValueChanged<String>? onSendVideo;
   final ValueChanged<String>? onSendFile;
+  final TextEditingController? controller;
 
   const ChatInput({
     super.key,
@@ -14,6 +15,7 @@ class ChatInput extends StatefulWidget {
     this.onSendImage,
     this.onSendVideo,
     this.onSendFile,
+    this.controller,
   });
 
   @override
@@ -21,13 +23,20 @@ class ChatInput extends StatefulWidget {
 }
 
 class _ChatInputState extends State<ChatInput> {
-  final _controller = TextEditingController();
+  late final TextEditingController _controller;
+  bool _ownController = false;
   bool _hasText = false;
   bool _showMorePanel = false;
 
   @override
   void initState() {
     super.initState();
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+    } else {
+      _controller = TextEditingController();
+      _ownController = true;
+    }
     _controller.addListener(() {
       final has = _controller.text.trim().isNotEmpty;
       if (has != _hasText) setState(() => _hasText = has);
@@ -36,7 +45,7 @@ class _ChatInputState extends State<ChatInput> {
 
   @override
   void dispose() {
-    _controller.dispose();
+    if (_ownController) _controller.dispose();
     super.dispose();
   }
 
