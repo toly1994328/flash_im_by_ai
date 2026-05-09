@@ -88,6 +88,9 @@ class MessageRepository {
 
   MessageRepository({required Dio dio}) : _dio = dio;
 
+  /// 暴露 Dio 实例（会话选择器等需要直接调用其他接口）
+  Dio get dio => _dio;
+
   /// 登录后注入本地存储
   void setStore(LocalStore store) => _store = store;
 
@@ -228,6 +231,7 @@ class MessageRepository {
       1 => MessageType.image,
       2 => MessageType.video,
       3 => MessageType.file,
+      5 => MessageType.forward,
       _ => MessageType.text,
     };
     Map<String, dynamic>? extra;
@@ -248,5 +252,43 @@ class MessageRepository {
       type: parsedType,
       extra: extra,
     );
+  }
+
+  // ─── 转发 ───
+
+  /// 转发消息（单条/合并）
+  Future<Map<String, dynamic>> forwardMessage({
+    required String sourceConvId,
+    required List<String> messageIds,
+    required String targetConvId,
+    required String forwardType,
+  }) async {
+    final res = await _dio.post('/conversations/$sourceConvId/messages/forward', data: {
+      'message_ids': messageIds,
+      'target_conversation_id': targetConvId,
+      'forward_type': forwardType,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  // ─── 置顶 ───
+
+  /// 置顶消息
+  Future<Map<String, dynamic>> pinMessage(String convId, String messageId) async {
+    final res = await _dio.post('/conversations/$convId/messages/pin', data: {
+      'message_id': messageId,
+    });
+    return res.data as Map<String, dynamic>;
+  }
+
+  /// 取消置顶
+  Future<void> unpinMessage(String convId, String pinId) async {
+    await _dio.delete('/conversations/$convId/messages/pin/$pinId');
+  }
+
+  /// 查询置顶列表
+  Future<List<Map<String, dynamic>>> getPinnedMessages(String convId) async {
+    final res = await _dio.get('/conversations/$convId/messages/pinned');
+    return (res.data as List).cast<Map<String, dynamic>>();
   }
 }

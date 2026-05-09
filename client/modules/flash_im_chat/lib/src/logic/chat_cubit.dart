@@ -24,6 +24,7 @@ class ChatCubit extends Cubit<ChatState> {
   StreamSubscription? _chatMessageSub;
   StreamSubscription? _messageAckSub;
   StreamSubscription? _messageRecalledSub;
+  StreamSubscription? _pinChangedSub;
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
   LocalStore? _store;
@@ -54,6 +55,7 @@ class ChatCubit extends Cubit<ChatState> {
     _chatMessageSub = _wsClient.chatMessageStream.listen(_handleIncomingMessage);
     _messageAckSub = _wsClient.messageAckStream.listen(_handleMessageAck);
     _messageRecalledSub = _wsClient.messageRecalledStream.listen(_handleMessageRecalled);
+    _pinChangedSub = _wsClient.pinChangedStream.listen((_) => loadPinnedMessages());
     _readReceiptSub = _wsClient.readReceiptStream.listen((frame) {
       final notif = ReadReceiptNotification.fromBuffer(frame.payload);
       if (notif.conversationId != conversationId) return;
@@ -74,6 +76,7 @@ class ChatCubit extends Cubit<ChatState> {
       messages.sort((a, b) => a.seq.compareTo(b.seq));
       emit(ChatLoaded(messages: messages, hasMore: messages.length >= 50));
       _loadReadSeq();
+      loadPinnedMessages();
       final maxSeq = messages.isNotEmpty ? messages.last.seq : 0;
       _reportReadSeq(maxSeq);
     } catch (e) {
@@ -106,7 +109,7 @@ class ChatCubit extends Cubit<ChatState> {
     }
   }
 
-  void sendMessage(String content) {
+  void sendMessage(String content, {List<Map<String, dynamic>>? mentions}) {
     if (content.trim().isEmpty) return;
     final current = state;
     if (current is! ChatLoaded) return;
@@ -127,6 +130,11 @@ class ChatCubit extends Cubit<ChatState> {
           'msg_type': reply.type.index,
         },
       };
+    }
+
+    // 合并 @mentions
+    if (mentions != null && mentions.isNotEmpty) {
+      extra = (extra ?? {})..['mentions'] = mentions;
     }
 
     final localMessage = Message.sending(
@@ -381,6 +389,7 @@ class ChatCubit extends Cubit<ChatState> {
         1 => MessageType.image,
         2 => MessageType.video,
         3 => MessageType.file,
+        5 => MessageType.forward,
         _ => MessageType.text,
       };
 
@@ -641,6 +650,42 @@ class ChatCubit extends Cubit<ChatState> {
     _syncConversationPreview(store, updated);
   }
 
+  // ─── 转发 ───
+
+  Future<void> forwardMessages({
+    required List<String> messageIds,
+    required String targetConvId,
+    required String forwardType,
+  }) async {
+    await _repository.forwardMessage(
+      sourceConvId: conversationId,
+      messageIds: messageIds,
+      targetConvId: targetConvId,
+      forwardType: forwardType,
+    );
+  }
+
+  // ─── 置顶 ───
+
+  Future<void> loadPinnedMessages() async {
+    try {
+      final data = await _repository.getPinnedMessages(conversationId);
+      final pinned = data.map((e) => PinnedMessage.fromJson(e)).toList();
+      final s = state;
+      if (s is ChatLoaded) emit(s.copyWith(pinnedMessages: pinned));
+    } catch (_) {}
+  }
+
+  Future<void> pinMessage(String messageId) async {
+    await _repository.pinMessage(conversationId, messageId);
+    await loadPinnedMessages();
+  }
+
+  Future<void> unpinMessage(String pinId) async {
+    await _repository.unpinMessage(conversationId, pinId);
+    await loadPinnedMessages();
+  }
+
   // ─── 复制与删除 ───
 
   void copyMessage(String content) {
@@ -684,6 +729,7 @@ class ChatCubit extends Cubit<ChatState> {
     _chatMessageSub?.cancel();
     _messageAckSub?.cancel();
     _messageRecalledSub?.cancel();
+    _pinChangedSub?.cancel();
     _readReceiptSub?.cancel();
     _readReceiptTimer?.cancel();
     return super.close();

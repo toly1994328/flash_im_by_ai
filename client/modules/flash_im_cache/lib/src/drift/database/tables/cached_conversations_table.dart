@@ -10,6 +10,7 @@ class CachedConversationsTable extends Table {
   TextColumn get peerAvatar => text().nullable()();
   IntColumn get lastMessageAt => integer().nullable()();
   TextColumn get lastMessagePreview => text().nullable()();
+  TextColumn get lastMessageExtra => text().nullable()();
   IntColumn get unreadCount => integer().withDefault(const Constant(0))();
   IntColumn get isPinned => integer().withDefault(const Constant(0))();
   IntColumn get isMuted => integer().withDefault(const Constant(0))();

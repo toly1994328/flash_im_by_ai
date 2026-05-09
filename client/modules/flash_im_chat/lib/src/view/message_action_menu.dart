@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/message.dart';
 
-enum MenuAction { copy, reply, recall, delete, multiSelect }
+enum MenuAction { copy, reply, recall, delete, multiSelect, forward, pin, unpin }
 
 class MessageActionMenu {
   static VoidCallback? show({
@@ -10,13 +10,15 @@ class MessageActionMenu {
     required Size bubbleSize,
     required Message message,
     required bool isMe,
+    bool isGroup = false,
+    bool isPinned = false,
     required void Function(MenuAction action) onAction,
   }) {
     final overlay = Overlay.of(context);
     late OverlayEntry entry;
     bool removed = false;
 
-    final actions = _getActions(message, isMe);
+    final actions = _getActions(message, isMe, isGroup: isGroup, isPinned: isPinned);
     if (actions.isEmpty) return null;
 
     void dismiss() {
@@ -44,12 +46,15 @@ class MessageActionMenu {
     return dismiss;
   }
 
-  static List<MenuAction> _getActions(Message message, bool isMe) {
+  static List<MenuAction> _getActions(Message message, bool isMe, {bool isGroup = false, bool isPinned = false}) {
     if (message.isSystem || message.isRecalled) return [];
     return [
       if (message.isText) MenuAction.copy,
       MenuAction.reply,
       if (isMe && _isWithinRecallWindow(message)) MenuAction.recall,
+      MenuAction.forward,
+      if (isGroup && isPinned) MenuAction.unpin,
+      if (isGroup && !isPinned) MenuAction.pin,
       MenuAction.delete,
       MenuAction.multiSelect,
     ];
@@ -138,29 +143,37 @@ class _MenuOverlayState extends State<_MenuOverlay>
   }
 
   Widget _buildMenu(bool showAbove) {
-    final menuItems = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: widget.actions.map((action) {
-        final (icon, label) = _actionInfo(action);
-        return GestureDetector(
-          behavior: HitTestBehavior.opaque,
-          onTap: () => widget.onAction(action),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(icon, color: Colors.white, size: 20),
-                const SizedBox(height: 4),
-                Text(label,
-                    style:
-                        const TextStyle(color: Colors.white, fontSize: 12)),
-              ],
-            ),
+    final items = widget.actions.map((action) {
+      final (icon, label) = _actionInfo(action);
+      return GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => widget.onAction(action),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, color: Colors.white, size: 20),
+              const SizedBox(height: 4),
+              Text(label,
+                  style: const TextStyle(color: Colors.white, fontSize: 12)),
+            ],
           ),
-        );
-      }).toList(),
-    );
+        ),
+      );
+    }).toList();
+
+    final menuItems = widget.actions.length <= 5
+        ? Row(mainAxisSize: MainAxisSize.min, children: items)
+        : Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(mainAxisSize: MainAxisSize.min, children: items.sublist(0, 5)),
+              const SizedBox(height: 14),
+              Row(mainAxisSize: MainAxisSize.min, children: items.sublist(5)),
+            ],
+          );
 
     return Material(
       color: Colors.transparent,
@@ -191,8 +204,11 @@ class _MenuOverlayState extends State<_MenuOverlay>
       MenuAction.copy => (Icons.copy, '复制'),
       MenuAction.reply => (Icons.format_quote, '引用'),
       MenuAction.recall => (Icons.undo, '撤回'),
+      MenuAction.forward => (Icons.shortcut, '转发'),
       MenuAction.delete => (Icons.delete_outline, '删除'),
       MenuAction.multiSelect => (Icons.checklist, '多选'),
+      MenuAction.pin => (Icons.push_pin, '置顶'),
+      MenuAction.unpin => (Icons.push_pin_outlined, '取消置顶'),
     };
   }
 }

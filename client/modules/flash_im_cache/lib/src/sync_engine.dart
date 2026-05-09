@@ -203,6 +203,7 @@ class SyncEngine {
         update.conversationId,
         lastMessagePreview: update.lastMessagePreview,
         lastMessageAt: update.lastMessageAt.toInt(),
+        lastMessageExtra: update.lastMessageExtra.isNotEmpty ? update.lastMessageExtra : null,
       );
       onConversationChanged?.call();
     } catch (e) {

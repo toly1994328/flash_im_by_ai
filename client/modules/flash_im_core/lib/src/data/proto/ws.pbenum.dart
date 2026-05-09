@@ -49,6 +49,8 @@ class WsFrameType extends $pb.ProtobufEnum {
       WsFrameType._(15, _omitEnumNames ? '' : 'READ_RECEIPT');
   static const WsFrameType MESSAGE_RECALLED =
       WsFrameType._(16, _omitEnumNames ? '' : 'MESSAGE_RECALLED');
+  static const WsFrameType PIN_CHANGED =
+      WsFrameType._(17, _omitEnumNames ? '' : 'PIN_CHANGED');
 
   static const $core.List<WsFrameType> values = <WsFrameType>[
     PING,
@@ -68,10 +70,11 @@ class WsFrameType extends $pb.ProtobufEnum {
     ONLINE_LIST,
     READ_RECEIPT,
     MESSAGE_RECALLED,
+    PIN_CHANGED,
   ];
 
   static final $core.List<WsFrameType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 16);
+      $pb.ProtobufEnum.$_initByValueList(values, 17);
   static WsFrameType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

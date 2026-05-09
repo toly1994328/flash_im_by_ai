@@ -374,6 +374,7 @@ class ConversationUpdate extends $pb.GeneratedMessage {
     $fixnum.Int64? lastMessageAt,
     $core.int? unreadCount,
     $core.int? totalUnread,
+    $core.String? lastMessageExtra,
   }) {
     final result = create();
     if (conversationId != null) result.conversationId = conversationId;
@@ -382,6 +383,7 @@ class ConversationUpdate extends $pb.GeneratedMessage {
     if (lastMessageAt != null) result.lastMessageAt = lastMessageAt;
     if (unreadCount != null) result.unreadCount = unreadCount;
     if (totalUnread != null) result.totalUnread = totalUnread;
+    if (lastMessageExtra != null) result.lastMessageExtra = lastMessageExtra;
     return result;
   }
 
@@ -403,6 +405,7 @@ class ConversationUpdate extends $pb.GeneratedMessage {
     ..aInt64(3, _omitFieldNames ? '' : 'lastMessageAt')
     ..aI(4, _omitFieldNames ? '' : 'unreadCount')
     ..aI(5, _omitFieldNames ? '' : 'totalUnread')
+    ..aOS(6, _omitFieldNames ? '' : 'lastMessageExtra')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -468,6 +471,15 @@ class ConversationUpdate extends $pb.GeneratedMessage {
   $core.bool hasTotalUnread() => $_has(4);
   @$pb.TagNumber(5)
   void clearTotalUnread() => $_clearField(5);
+
+  @$pb.TagNumber(6)
+  $core.String get lastMessageExtra => $_getSZ(5);
+  @$pb.TagNumber(6)
+  set lastMessageExtra($core.String value) => $_setString(5, value);
+  @$pb.TagNumber(6)
+  $core.bool hasLastMessageExtra() => $_has(5);
+  @$pb.TagNumber(6)
+  void clearLastMessageExtra() => $_clearField(6);
 }
 
 class GroupInfoUpdate extends $pb.GeneratedMessage {

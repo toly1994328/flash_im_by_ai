@@ -88,6 +88,7 @@ pub enum WsFrameType {
     OnlineList = 14,
     ReadReceipt = 15,
     MessageRecalled = 16,
+    PinChanged = 17,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -113,6 +114,7 @@ impl WsFrameType {
             Self::OnlineList => "ONLINE_LIST",
             Self::ReadReceipt => "READ_RECEIPT",
             Self::MessageRecalled => "MESSAGE_RECALLED",
+            Self::PinChanged => "PIN_CHANGED",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -135,6 +137,7 @@ impl WsFrameType {
             "ONLINE_LIST" => Some(Self::OnlineList),
             "READ_RECEIPT" => Some(Self::ReadReceipt),
             "MESSAGE_RECALLED" => Some(Self::MessageRecalled),
+            "PIN_CHANGED" => Some(Self::PinChanged),
             _ => None,
         }
     }
@@ -196,6 +199,8 @@ pub struct ConversationUpdate {
     pub unread_count: i32,
     #[prost(int32, tag = "5")]
     pub total_unread: i32,
+    #[prost(string, tag = "6")]
+    pub last_message_extra: ::prost::alloc::string::String,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GroupInfoUpdate {
@@ -247,6 +252,17 @@ pub struct MessageRecalled {
     #[prost(string, tag = "4")]
     pub sender_name: ::prost::alloc::string::String,
 }
+#[derive(Clone, PartialEq, ::prost::Message)]
+pub struct PinChangedNotification {
+    #[prost(string, tag = "1")]
+    pub conversation_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "2")]
+    pub message_id: ::prost::alloc::string::String,
+    #[prost(string, tag = "3")]
+    pub action: ::prost::alloc::string::String,
+    #[prost(string, tag = "4")]
+    pub pinned_by: ::prost::alloc::string::String,
+}
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
 pub enum MessageType {
@@ -254,6 +270,7 @@ pub enum MessageType {
     Image = 1,
     Video = 2,
     File = 3,
+    Forward = 5,
 }
 impl MessageType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -266,6 +283,7 @@ impl MessageType {
             Self::Image => "IMAGE",
             Self::Video => "VIDEO",
             Self::File => "FILE",
+            Self::Forward => "FORWARD",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -275,6 +293,7 @@ impl MessageType {
             "IMAGE" => Some(Self::Image),
             "VIDEO" => Some(Self::Video),
             "FILE" => Some(Self::File),
+            "FORWARD" => Some(Self::Forward),
             _ => None,
         }
     }

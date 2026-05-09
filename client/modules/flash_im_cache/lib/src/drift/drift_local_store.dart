@@ -94,11 +94,13 @@ class DriftLocalStore implements LocalStore {
   Future<void> updateConversation(String id,
       {int? unreadCount,
       String? lastMessagePreview,
-      int? lastMessageAt}) async {
+      int? lastMessageAt,
+      String? lastMessageExtra}) async {
     await _conversationDao.updateFields(id,
         unreadCount: unreadCount,
         lastMessagePreview: lastMessagePreview,
-        lastMessageAt: lastMessageAt);
+        lastMessageAt: lastMessageAt,
+        lastMessageExtra: lastMessageExtra);
     _changeController
         .add(const CacheChangeEvent(CacheChangeType.conversations));
   }

@@ -35,7 +35,8 @@ class ConversationDao {
   Future<void> updateFields(String id,
       {int? unreadCount,
       String? lastMessagePreview,
-      int? lastMessageAt}) async {
+      int? lastMessageAt,
+      String? lastMessageExtra}) async {
     await (_db.update(_db.cachedConversationsTable)
           ..where((t) => t.id.equals(id)))
         .write(
@@ -48,6 +49,9 @@ class ConversationDao {
             : const Value.absent(),
         lastMessageAt:
             lastMessageAt != null ? Value(lastMessageAt) : const Value.absent(),
+        lastMessageExtra: lastMessageExtra != null
+            ? Value(lastMessageExtra)
+            : const Value.absent(),
       ),
     );
   }

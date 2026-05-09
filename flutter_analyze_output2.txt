@@ -1,0 +1,118 @@
+﻿Analyzing flash_im_v1...                                        
+
+   info - Don't invoke 'print' in production code - client\lib\main.dart:51:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\lib\main.dart:53:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\lib\main.dart:58:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\lib\main.dart:63:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\lib\main.dart:71:5 - avoid_print
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\lib\playground\auth\view\login_page.dart:243:11 - use_null_aware_elements
+   info - Unnecessary use of multiple underscores - client\lib\playground\conversation\view\conversation_tile.dart:29:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\lib\playground\conversation\view\conversation_tile.dart:29:37 - unnecessary_underscores
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - client\lib\playground\firework\firework_painter.dart:16:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - client\lib\playground\firework\firework_painter.dart:36:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - client\lib\playground\firework\star_sky.dart:51:34 - deprecated_member_use
+warning - Unused import: 'dart:convert' - client\lib\playground\ws_auth\view\ws_auth_page.dart:2:8 - unused_import
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\lib\playground\ws_auth\view\ws_auth_page.dart:291:11 - use_null_aware_elements
+   info - Unnecessary use of multiple underscores - client\lib\playground\ws_auth\view\ws_auth_page.dart:576:39 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\lib\playground\ws_auth\view\ws_auth_page.dart:576:43 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\lib\src\application\router.dart:17:22 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\lib\src\application\router.dart:24:22 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\lib\src\application\router.dart:31:22 - unnecessary_underscores
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - client\lib\src\home\view\home_page.dart:351:17 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - client\lib\src\home\view\home_page.dart:588:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - client\lib\src\home\view\home_page.dart:660:23 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - client\lib\src\home\view\home_page.dart:664:20 - use_build_context_synchronously
+   info - Don't use 'BuildContext's across async gaps, guarded by an unrelated 'mounted' check - client\lib\src\home\view\home_page.dart:721:30 - use_build_context_synchronously
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\modules\flash_auth\lib\src\view\components\labeled_input.dart:37:11 - use_null_aware_elements
+   info - The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/material.dart' - client\modules\flash_auth\lib\src\view\login_page.dart:1:8 - unnecessary_import
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:46:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:57:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:63:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:73:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:79:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:83:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:85:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:96:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:101:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:110:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:115:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:124:9 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:131:9 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:138:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:148:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:152:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:162:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:166:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:175:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:194:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:201:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:210:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:217:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:226:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:233:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:236:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:243:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_cache\lib\src\sync_engine.dart:247:7 - avoid_print
+   info - The private field _store could be 'final' - client\modules\flash_im_chat\lib\src\logic\chat_cubit.dart:30:15 - prefer_final_fields
+   info - Don't invoke 'print' in production code - client\modules\flash_im_chat\lib\src\logic\chat_cubit.dart:191:9 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_chat\lib\src\logic\chat_cubit.dart:261:11 - avoid_print
+   info - Don't invoke 'print' in production code - client\modules\flash_im_chat\lib\src\logic\chat_cubit.dart:330:9 - avoid_print
+warning - The '!' will have no effect because the receiver can't be null - client\modules\flash_im_chat\lib\src\view\bubble\file_bubble.dart:58:34 - unnecessary_non_null_assertion
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\image_bubble.dart:54:27 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\image_bubble.dart:54:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\image_bubble.dart:60:29 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\image_bubble.dart:60:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\video_bubble.dart:52:27 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\video_bubble.dart:52:31 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\video_bubble.dart:58:29 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\bubble\video_bubble.dart:58:33 - unnecessary_underscores
+warning - The name WsFrame is shown, but isn't used - client\modules\flash_im_chat\lib\src\view\chat_page.dart:6:66 - unused_shown_name
+warning - The name WsFrameType is shown, but isn't used - client\modules\flash_im_chat\lib\src\view\chat_page.dart:6:75 - unused_shown_name
+warning - Unnecessary cast - client\modules\flash_im_chat\lib\src\view\chat_page.dart:237:22 - unnecessary_cast
+warning - Unnecessary cast - client\modules\flash_im_chat\lib\src\view\chat_page.dart:237:61 - unnecessary_cast
+warning - The value of the local variable 'isLoadingMore' isn't used - client\modules\flash_im_chat\lib\src\view\chat_page.dart:268:74 - unused_local_variable
+   info - Don't invoke 'print' in production code - client\modules\flash_im_chat\lib\src\view\chat_page.dart:524:5 - avoid_print
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\conversation_picker_page.dart:112:47 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\image_preview_page.dart:24:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_chat\lib\src\view\image_preview_page.dart:24:37 - unnecessary_underscores
+warning - The value of the local variable 'menuPadding' isn't used - client\modules\flash_im_chat\lib\src\view\message_action_menu.dart:114:11 - unused_local_variable
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\modules\flash_im_conversation\lib\src\data\conversation_repository.dart:31:7 - use_null_aware_elements
+   info - The import of '../data/proto/ws.pbenum.dart' is unnecessary because all of the used elements are also provided by the import of '../data/proto/ws.pb.dart' - client\modules\flash_im_core\lib\src\logic\ws_client.dart:10:8 - unnecessary_import
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\modules\flash_im_friend\lib\src\data\friend_repository.dart:29:7 - use_null_aware_elements
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_friend\lib\src\view\friend_request_page.dart:94:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_friend\lib\src\view\friend_request_page.dart:198:33 - unnecessary_underscores
+   info - The import of '../utils/pinyin_helper.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flash_shared/flash_shared.dart' - client\modules\flash_im_friend\lib\src\view\indexed_contact_list.dart:4:8 - unnecessary_import
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_friend\lib\src\view\user_search_page.dart:144:29 - unnecessary_underscores
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\modules\flash_im_group\lib\src\data\group_repository.dart:34:7 - use_null_aware_elements
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\modules\flash_im_group\lib\src\data\group_repository.dart:101:7 - use_null_aware_elements
+   info - Use the null-aware marker '?' rather than a null check via an 'if' - client\modules\flash_im_group\lib\src\data\group_repository.dart:102:7 - use_null_aware_elements
+warning - The declaration '_showEditAvatar' isn't referenced - client\modules\flash_im_group\lib\src\view\group_chat_info_page.dart:459:8 - unused_element
+warning - The declaration '_showManageSheet' isn't referenced - client\modules\flash_im_group\lib\src\view\group_chat_info_page.dart:473:8 - unused_element
+warning - A value for optional parameter 'strokeWidth' isn't ever given - client\modules\flash_im_group\lib\src\view\group_chat_info_page.dart:888:10 - unused_element_parameter
+warning - A value for optional parameter 'dashWidth' isn't ever given - client\modules\flash_im_group\lib\src\view\group_chat_info_page.dart:889:10 - unused_element_parameter
+warning - A value for optional parameter 'dashSpace' isn't ever given - client\modules\flash_im_group\lib\src\view\group_chat_info_page.dart:890:10 - unused_element_parameter
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_group\lib\src\view\group_notifications_page.dart:134:31 - unnecessary_underscores
+warning - Unused import: '../data/group_models.dart' - client\modules\flash_im_group\lib\src\view\my_groups_page.dart:4:8 - unused_import
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_search\lib\src\view\conversation_search_page.dart:141:29 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_im_search\lib\src\view\message_detail_page.dart:121:41 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_session\lib\src\view\widget\user_card.dart:43:29 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_session\lib\src\view\widget\user_card.dart:43:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_shared\lib\src\avatar_widget.dart:43:29 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_shared\lib\src\avatar_widget.dart:43:33 - unnecessary_underscores
+   info - Unnecessary use of multiple underscores - client\modules\flash_shared\lib\src\member_picker_page.dart:247:39 - unnecessary_underscores
+   info - Dangling library doc comment - client\test\login_for_test.dart:1:1 - dangling_library_doc_comments
+   info - Don't invoke 'print' in production code - client\test\login_for_test.dart:17:3 - avoid_print
+   info - Don't invoke 'print' in production code - client\test\login_for_test.dart:36:7 - avoid_print
+   info - Don't invoke 'print' in production code - client\test\login_for_test.dart:44:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\test\login_for_test.dart:57:5 - avoid_print
+   info - Don't invoke 'print' in production code - client\test\login_for_test.dart:59:5 - avoid_print
+
+flutter : 106 issues found. (ran in 7.6s)
+所在位置 行:1 字符: 1
++ flutter analyze 2>&1 | Out-File -FilePath flutter_analyze_
+output2.txt ...
++ ~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (106 issues fou 
+   nd. (ran in 7.6s):String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 

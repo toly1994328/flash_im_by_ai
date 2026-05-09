@@ -775,6 +775,17 @@ class $CachedConversationsTableTable extends CachedConversationsTable
         type: DriftSqlType.string,
         requiredDuringInsert: false,
       );
+  static const VerificationMeta _lastMessageExtraMeta = const VerificationMeta(
+    'lastMessageExtra',
+  );
+  @override
+  late final GeneratedColumn<String> lastMessageExtra = GeneratedColumn<String>(
+    'last_message_extra',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _unreadCountMeta = const VerificationMeta(
     'unreadCount',
   );
@@ -833,6 +844,7 @@ class $CachedConversationsTableTable extends CachedConversationsTable
     peerAvatar,
     lastMessageAt,
     lastMessagePreview,
+    lastMessageExtra,
     unreadCount,
     isPinned,
     isMuted,
@@ -917,6 +929,15 @@ class $CachedConversationsTableTable extends CachedConversationsTable
         ),
       );
     }
+    if (data.containsKey('last_message_extra')) {
+      context.handle(
+        _lastMessageExtraMeta,
+        lastMessageExtra.isAcceptableOrUnknown(
+          data['last_message_extra']!,
+          _lastMessageExtraMeta,
+        ),
+      );
+    }
     if (data.containsKey('unread_count')) {
       context.handle(
         _unreadCountMeta,
@@ -994,6 +1015,10 @@ class $CachedConversationsTableTable extends CachedConversationsTable
         DriftSqlType.string,
         data['${effectivePrefix}last_message_preview'],
       ),
+      lastMessageExtra: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}last_message_extra'],
+      ),
       unreadCount: attachedDatabase.typeMapping.read(
         DriftSqlType.int,
         data['${effectivePrefix}unread_count'],
@@ -1030,6 +1055,7 @@ class CachedConversationsTableData extends DataClass
   final String? peerAvatar;
   final int? lastMessageAt;
   final String? lastMessagePreview;
+  final String? lastMessageExtra;
   final int unreadCount;
   final int isPinned;
   final int isMuted;
@@ -1044,6 +1070,7 @@ class CachedConversationsTableData extends DataClass
     this.peerAvatar,
     this.lastMessageAt,
     this.lastMessagePreview,
+    this.lastMessageExtra,
     required this.unreadCount,
     required this.isPinned,
     required this.isMuted,
@@ -1075,6 +1102,9 @@ class CachedConversationsTableData extends DataClass
     if (!nullToAbsent || lastMessagePreview != null) {
       map['last_message_preview'] = Variable<String>(lastMessagePreview);
     }
+    if (!nullToAbsent || lastMessageExtra != null) {
+      map['last_message_extra'] = Variable<String>(lastMessageExtra);
+    }
     map['unread_count'] = Variable<int>(unreadCount);
     map['is_pinned'] = Variable<int>(isPinned);
     map['is_muted'] = Variable<int>(isMuted);
@@ -1105,6 +1135,9 @@ class CachedConversationsTableData extends DataClass
       lastMessagePreview: lastMessagePreview == null && nullToAbsent
           ? const Value.absent()
           : Value(lastMessagePreview),
+      lastMessageExtra: lastMessageExtra == null && nullToAbsent
+          ? const Value.absent()
+          : Value(lastMessageExtra),
       unreadCount: Value(unreadCount),
       isPinned: Value(isPinned),
       isMuted: Value(isMuted),
@@ -1129,6 +1162,7 @@ class CachedConversationsTableData extends DataClass
       lastMessagePreview: serializer.fromJson<String?>(
         json['lastMessagePreview'],
       ),
+      lastMessageExtra: serializer.fromJson<String?>(json['lastMessageExtra']),
       unreadCount: serializer.fromJson<int>(json['unreadCount']),
       isPinned: serializer.fromJson<int>(json['isPinned']),
       isMuted: serializer.fromJson<int>(json['isMuted']),
@@ -1148,6 +1182,7 @@ class CachedConversationsTableData extends DataClass
       'peerAvatar': serializer.toJson<String?>(peerAvatar),
       'lastMessageAt': serializer.toJson<int?>(lastMessageAt),
       'lastMessagePreview': serializer.toJson<String?>(lastMessagePreview),
+      'lastMessageExtra': serializer.toJson<String?>(lastMessageExtra),
       'unreadCount': serializer.toJson<int>(unreadCount),
       'isPinned': serializer.toJson<int>(isPinned),
       'isMuted': serializer.toJson<int>(isMuted),
@@ -1165,6 +1200,7 @@ class CachedConversationsTableData extends DataClass
     Value<String?> peerAvatar = const Value.absent(),
     Value<int?> lastMessageAt = const Value.absent(),
     Value<String?> lastMessagePreview = const Value.absent(),
+    Value<String?> lastMessageExtra = const Value.absent(),
     int? unreadCount,
     int? isPinned,
     int? isMuted,
@@ -1183,6 +1219,9 @@ class CachedConversationsTableData extends DataClass
     lastMessagePreview: lastMessagePreview.present
         ? lastMessagePreview.value
         : this.lastMessagePreview,
+    lastMessageExtra: lastMessageExtra.present
+        ? lastMessageExtra.value
+        : this.lastMessageExtra,
     unreadCount: unreadCount ?? this.unreadCount,
     isPinned: isPinned ?? this.isPinned,
     isMuted: isMuted ?? this.isMuted,
@@ -1211,6 +1250,9 @@ class CachedConversationsTableData extends DataClass
       lastMessagePreview: data.lastMessagePreview.present
           ? data.lastMessagePreview.value
           : this.lastMessagePreview,
+      lastMessageExtra: data.lastMessageExtra.present
+          ? data.lastMessageExtra.value
+          : this.lastMessageExtra,
       unreadCount: data.unreadCount.present
           ? data.unreadCount.value
           : this.unreadCount,
@@ -1232,6 +1274,7 @@ class CachedConversationsTableData extends DataClass
           ..write('peerAvatar: $peerAvatar, ')
           ..write('lastMessageAt: $lastMessageAt, ')
           ..write('lastMessagePreview: $lastMessagePreview, ')
+          ..write('lastMessageExtra: $lastMessageExtra, ')
           ..write('unreadCount: $unreadCount, ')
           ..write('isPinned: $isPinned, ')
           ..write('isMuted: $isMuted, ')
@@ -1251,6 +1294,7 @@ class CachedConversationsTableData extends DataClass
     peerAvatar,
     lastMessageAt,
     lastMessagePreview,
+    lastMessageExtra,
     unreadCount,
     isPinned,
     isMuted,
@@ -1269,6 +1313,7 @@ class CachedConversationsTableData extends DataClass
           other.peerAvatar == this.peerAvatar &&
           other.lastMessageAt == this.lastMessageAt &&
           other.lastMessagePreview == this.lastMessagePreview &&
+          other.lastMessageExtra == this.lastMessageExtra &&
           other.unreadCount == this.unreadCount &&
           other.isPinned == this.isPinned &&
           other.isMuted == this.isMuted &&
@@ -1286,6 +1331,7 @@ class CachedConversationsTableCompanion
   final Value<String?> peerAvatar;
   final Value<int?> lastMessageAt;
   final Value<String?> lastMessagePreview;
+  final Value<String?> lastMessageExtra;
   final Value<int> unreadCount;
   final Value<int> isPinned;
   final Value<int> isMuted;
@@ -1301,6 +1347,7 @@ class CachedConversationsTableCompanion
     this.peerAvatar = const Value.absent(),
     this.lastMessageAt = const Value.absent(),
     this.lastMessagePreview = const Value.absent(),
+    this.lastMessageExtra = const Value.absent(),
     this.unreadCount = const Value.absent(),
     this.isPinned = const Value.absent(),
     this.isMuted = const Value.absent(),
@@ -1317,6 +1364,7 @@ class CachedConversationsTableCompanion
     this.peerAvatar = const Value.absent(),
     this.lastMessageAt = const Value.absent(),
     this.lastMessagePreview = const Value.absent(),
+    this.lastMessageExtra = const Value.absent(),
     this.unreadCount = const Value.absent(),
     this.isPinned = const Value.absent(),
     this.isMuted = const Value.absent(),
@@ -1335,6 +1383,7 @@ class CachedConversationsTableCompanion
     Expression<String>? peerAvatar,
     Expression<int>? lastMessageAt,
     Expression<String>? lastMessagePreview,
+    Expression<String>? lastMessageExtra,
     Expression<int>? unreadCount,
     Expression<int>? isPinned,
     Expression<int>? isMuted,
@@ -1352,6 +1401,7 @@ class CachedConversationsTableCompanion
       if (lastMessageAt != null) 'last_message_at': lastMessageAt,
       if (lastMessagePreview != null)
         'last_message_preview': lastMessagePreview,
+      if (lastMessageExtra != null) 'last_message_extra': lastMessageExtra,
       if (unreadCount != null) 'unread_count': unreadCount,
       if (isPinned != null) 'is_pinned': isPinned,
       if (isMuted != null) 'is_muted': isMuted,
@@ -1370,6 +1420,7 @@ class CachedConversationsTableCompanion
     Value<String?>? peerAvatar,
     Value<int?>? lastMessageAt,
     Value<String?>? lastMessagePreview,
+    Value<String?>? lastMessageExtra,
     Value<int>? unreadCount,
     Value<int>? isPinned,
     Value<int>? isMuted,
@@ -1386,6 +1437,7 @@ class CachedConversationsTableCompanion
       peerAvatar: peerAvatar ?? this.peerAvatar,
       lastMessageAt: lastMessageAt ?? this.lastMessageAt,
       lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      lastMessageExtra: lastMessageExtra ?? this.lastMessageExtra,
       unreadCount: unreadCount ?? this.unreadCount,
       isPinned: isPinned ?? this.isPinned,
       isMuted: isMuted ?? this.isMuted,
@@ -1424,6 +1476,9 @@ class CachedConversationsTableCompanion
     if (lastMessagePreview.present) {
       map['last_message_preview'] = Variable<String>(lastMessagePreview.value);
     }
+    if (lastMessageExtra.present) {
+      map['last_message_extra'] = Variable<String>(lastMessageExtra.value);
+    }
     if (unreadCount.present) {
       map['unread_count'] = Variable<int>(unreadCount.value);
     }
@@ -1454,6 +1509,7 @@ class CachedConversationsTableCompanion
           ..write('peerAvatar: $peerAvatar, ')
           ..write('lastMessageAt: $lastMessageAt, ')
           ..write('lastMessagePreview: $lastMessagePreview, ')
+          ..write('lastMessageExtra: $lastMessageExtra, ')
           ..write('unreadCount: $unreadCount, ')
           ..write('isPinned: $isPinned, ')
           ..write('isMuted: $isMuted, ')
@@ -2472,6 +2528,7 @@ typedef $$CachedConversationsTableTableCreateCompanionBuilder =
       Value<String?> peerAvatar,
       Value<int?> lastMessageAt,
       Value<String?> lastMessagePreview,
+      Value<String?> lastMessageExtra,
       Value<int> unreadCount,
       Value<int> isPinned,
       Value<int> isMuted,
@@ -2489,6 +2546,7 @@ typedef $$CachedConversationsTableTableUpdateCompanionBuilder =
       Value<String?> peerAvatar,
       Value<int?> lastMessageAt,
       Value<String?> lastMessagePreview,
+      Value<String?> lastMessageExtra,
       Value<int> unreadCount,
       Value<int> isPinned,
       Value<int> isMuted,
@@ -2547,6 +2605,11 @@ class $$CachedConversationsTableTableFilterComposer
 
   ColumnFilters<String> get lastMessagePreview => $composableBuilder(
     column: $table.lastMessagePreview,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get lastMessageExtra => $composableBuilder(
+    column: $table.lastMessageExtra,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2625,6 +2688,11 @@ class $$CachedConversationsTableTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get lastMessageExtra => $composableBuilder(
+    column: $table.lastMessageExtra,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<int> get unreadCount => $composableBuilder(
     column: $table.unreadCount,
     builder: (column) => ColumnOrderings(column),
@@ -2689,6 +2757,11 @@ class $$CachedConversationsTableTableAnnotationComposer
 
   GeneratedColumn<String> get lastMessagePreview => $composableBuilder(
     column: $table.lastMessagePreview,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get lastMessageExtra => $composableBuilder(
+    column: $table.lastMessageExtra,
     builder: (column) => column,
   );
 
@@ -2762,6 +2835,7 @@ class $$CachedConversationsTableTableTableManager
                 Value<String?> peerAvatar = const Value.absent(),
                 Value<int?> lastMessageAt = const Value.absent(),
                 Value<String?> lastMessagePreview = const Value.absent(),
+                Value<String?> lastMessageExtra = const Value.absent(),
                 Value<int> unreadCount = const Value.absent(),
                 Value<int> isPinned = const Value.absent(),
                 Value<int> isMuted = const Value.absent(),
@@ -2777,6 +2851,7 @@ class $$CachedConversationsTableTableTableManager
                 peerAvatar: peerAvatar,
                 lastMessageAt: lastMessageAt,
                 lastMessagePreview: lastMessagePreview,
+                lastMessageExtra: lastMessageExtra,
                 unreadCount: unreadCount,
                 isPinned: isPinned,
                 isMuted: isMuted,
@@ -2794,6 +2869,7 @@ class $$CachedConversationsTableTableTableManager
                 Value<String?> peerAvatar = const Value.absent(),
                 Value<int?> lastMessageAt = const Value.absent(),
                 Value<String?> lastMessagePreview = const Value.absent(),
+                Value<String?> lastMessageExtra = const Value.absent(),
                 Value<int> unreadCount = const Value.absent(),
                 Value<int> isPinned = const Value.absent(),
                 Value<int> isMuted = const Value.absent(),
@@ -2809,6 +2885,7 @@ class $$CachedConversationsTableTableTableManager
                 peerAvatar: peerAvatar,
                 lastMessageAt: lastMessageAt,
                 lastMessagePreview: lastMessagePreview,
+                lastMessageExtra: lastMessageExtra,
                 unreadCount: unreadCount,
                 isPinned: isPinned,
                 isMuted: isMuted,

@@ -56,6 +56,7 @@ class ChatLoaded extends ChatState {
   final Message? replyTo;
   final bool isMultiSelect;
   final Set<String> selectedIds;
+  final List<PinnedMessage> pinnedMessages;
 
   const ChatLoaded({
     required this.messages,
@@ -67,6 +68,7 @@ class ChatLoaded extends ChatState {
     this.replyTo,
     this.isMultiSelect = false,
     this.selectedIds = const {},
+    this.pinnedMessages = const [],
   });
 
   ChatLoaded copyWith({
@@ -81,6 +83,7 @@ class ChatLoaded extends ChatState {
     bool clearReplyTo = false,
     bool? isMultiSelect,
     Set<String>? selectedIds,
+    List<PinnedMessage>? pinnedMessages,
   }) {
     return ChatLoaded(
       messages: messages ?? this.messages,
@@ -92,11 +95,12 @@ class ChatLoaded extends ChatState {
       replyTo: clearReplyTo ? null : (replyTo ?? this.replyTo),
       isMultiSelect: isMultiSelect ?? this.isMultiSelect,
       selectedIds: selectedIds ?? this.selectedIds,
+      pinnedMessages: pinnedMessages ?? this.pinnedMessages,
     );
   }
 
   @override
-  List<Object?> get props => [messages, hasMore, isLoadingMore, uploadProgress, fileDownloads, readSeqVersion, replyTo, isMultiSelect, selectedIds];
+  List<Object?> get props => [messages, hasMore, isLoadingMore, uploadProgress, fileDownloads, readSeqVersion, replyTo, isMultiSelect, selectedIds, pinnedMessages];
 }
 
 class ChatError extends ChatState {

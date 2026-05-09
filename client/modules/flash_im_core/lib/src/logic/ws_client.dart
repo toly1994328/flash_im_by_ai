@@ -80,6 +80,9 @@ class WsClient {
   final _messageRecalledController = StreamController<WsFrame>.broadcast();
   Stream<WsFrame> get messageRecalledStream => _messageRecalledController.stream;
 
+  final _pinChangedController = StreamController<WsFrame>.broadcast();
+  Stream<WsFrame> get pinChangedStream => _pinChangedController.stream;
+
   final Set<String> _onlineUserIds = {};
 
   bool isUserOnline(String userId) => _onlineUserIds.contains(userId);
@@ -203,6 +206,8 @@ class WsClient {
         _readReceiptController.add(frame);
       case WsFrameType.MESSAGE_RECALLED:
         _messageRecalledController.add(frame);
+      case WsFrameType.PIN_CHANGED:
+        _pinChangedController.add(frame);
       default:
         break;
     }
@@ -334,5 +339,6 @@ class WsClient {
     _onlineListController.close();
     _readReceiptController.close();
     _messageRecalledController.close();
+    _pinChangedController.close();
   }
 }

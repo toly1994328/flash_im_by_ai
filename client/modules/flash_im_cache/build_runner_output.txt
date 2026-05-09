@@ -1,0 +1,6 @@
+﻿  0s drift_dev on 68 inputs; lib/flash_im_cache.dart
+  5s drift_dev on 68 inputs: 1 same; spent 4s聽analyzing; lib/src/drift/converters.dart
+  5s drift_dev on 68 inputs: 33 skipped, 4 output, 20 same, 11 no-op; spent 4s聽analyzing
+  0s source_gen:combining_builder on 34 inputs; lib/flash_im_cache.dart
+  0s source_gen:combining_builder on 34 inputs: 33 skipped, 1 output
+  Built with build_runner/aot in 7s; wrote 25 outputs.

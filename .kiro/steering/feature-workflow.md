@@ -105,8 +105,25 @@ docs/features/{模块}/{版本}/
 ### 第 10 步：前端实现
 
 按 tasks.md 顺序实现。
-完成后 `flutter analyze` 验证编译。
 参考规范：#[[file:.kiro/steering/flash-im-ui-style.md]]
+
+**完成后必须执行全量编译分析**：
+
+1. 如果涉及 drift 表定义变更，先运行代码生成：
+   ```bash
+   cd client/modules/flash_im_cache
+   dart run build_runner build --delete-conflicting-outputs
+   ```
+
+2. 全量编译分析（不可跳过）：
+   ```bash
+   cd client
+   flutter analyze
+   ```
+
+3. 必须零错误才能进入下一步。有错误必须修复后重新 analyze。
+
+> 注意：`getDiagnostics` 只检查单个文件的语法，不能替代 `flutter analyze` 的全量类型检查和跨模块依赖验证。
 
 ### 第 11 步：前端测试
 

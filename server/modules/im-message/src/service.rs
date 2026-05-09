@@ -33,6 +33,10 @@ impl MessageService {
         self.broadcaster.as_ref()
     }
 
+    pub fn repo(&self) -> &MessageRepository {
+        &self.repo
+    }
+
     /// 发送消息（核心方法）
     pub async fn send(&self, msg: NewMessage) -> Result<Message, StatusCode> {
         if msg.content.trim().is_empty() {
@@ -118,6 +122,7 @@ impl MessageService {
         // 广播会话更新
         self.broadcaster.broadcast_conversation_update(
             msg.conversation_id, &preview, &member_ids, msg.sender_id,
+            msg.extra.as_ref().map(|v| v.to_string()).unwrap_or_default().as_str(),
         ).await;
 
         Ok(message)
@@ -177,7 +182,7 @@ impl MessageService {
 
         // 广播会话更新
         self.broadcaster.broadcast_conversation_update(
-            conversation_id, &preview, &member_ids, SYSTEM_USER_ID,
+            conversation_id, &preview, &member_ids, SYSTEM_USER_ID, "",
         ).await;
 
         Ok(message)

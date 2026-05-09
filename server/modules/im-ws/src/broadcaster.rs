@@ -7,7 +7,7 @@ use uuid::Uuid;
 
 use im_message::{MessageBroadcaster, models::Message};
 
-use crate::proto::{ChatMessage, ConversationUpdate, MessageRecalled, WsFrame, WsFrameType};
+use crate::proto::{ChatMessage, ConversationUpdate, MessageRecalled, PinChangedNotification, WsFrame, WsFrameType};
 use crate::state::WsState;
 
 pub struct WsBroadcaster {
@@ -79,6 +79,7 @@ impl MessageBroadcaster for WsBroadcaster {
         preview: &str,
         member_ids: &[i64],
         sender_id: i64,
+        msg_extra: &str,
     ) {
         let now_ms = chrono::Utc::now().timestamp_millis();
 
@@ -103,6 +104,7 @@ impl MessageBroadcaster for WsBroadcaster {
                 last_message_at: now_ms,
                 unread_count: unread,
                 total_unread: total,
+                last_message_extra: msg_extra.to_string(),
             };
             let frame = WsFrame {
                 r#type: WsFrameType::ConversationUpdate as i32,
@@ -132,6 +134,29 @@ impl MessageBroadcaster for WsBroadcaster {
         };
         let data = frame.encode_to_vec();
         println!("📢 [broadcaster] sending MessageRecalled to {:?}", member_ids);
+        self.ws_state.send_to_users(member_ids, data).await;
+    }
+
+    async fn broadcast_pin_changed(
+        &self,
+        conversation_id: Uuid,
+        message_id: Uuid,
+        action: &str,
+        pinned_by: i64,
+        member_ids: &[i64],
+    ) {
+        let notification = PinChangedNotification {
+            conversation_id: conversation_id.to_string(),
+            message_id: message_id.to_string(),
+            action: action.to_string(),
+            pinned_by: pinned_by.to_string(),
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::PinChanged as i32,
+            payload: notification.encode_to_vec(),
+        };
+        let data = frame.encode_to_vec();
+        println!("📢 [broadcaster] sending PinChanged({}) to {:?}", action, member_ids);
         self.ws_state.send_to_users(member_ids, data).await;
     }
 }

@@ -6,6 +6,7 @@ enum MessageType {
   IMAGE = 1;
   VIDEO = 2;
   FILE = 3;
+  FORWARD = 5;
 }
 
 enum MessageStatus {
@@ -47,6 +48,7 @@ message ConversationUpdate {
   int64 last_message_at = 3;
   int32 unread_count = 4;
   int32 total_unread = 5;
+  string last_message_extra = 6;
 }
 
 message GroupInfoUpdate {
@@ -81,4 +83,11 @@ message MessageRecalled {
   string conversation_id = 2;
   string sender_id = 3;
   string sender_name = 4;
+}
+
+message PinChangedNotification {
+  string conversation_id = 1;
+  string message_id = 2;
+  string action = 3;
+  string pinned_by = 4;
 }

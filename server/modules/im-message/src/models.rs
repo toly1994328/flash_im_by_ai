@@ -69,3 +69,42 @@ pub struct MessageQuery {
 }
 
 fn default_limit() -> i32 { 50 }
+
+/// 置顶消息
+#[derive(Debug, Clone, Serialize, Deserialize, FromRow)]
+pub struct PinnedMessage {
+    pub id: Uuid,
+    pub conversation_id: Uuid,
+    pub message_id: Uuid,
+    pub pinned_by: i64,
+    pub pinned_at: DateTime<Utc>,
+}
+
+/// 置顶消息（带消息内容，查询用）
+#[derive(Debug, Clone, Serialize, FromRow)]
+pub struct PinnedMessageWithContent {
+    pub pin_id: Uuid,
+    pub message_id: Uuid,
+    pub content: String,
+    pub msg_type: i16,
+    pub sender_name: String,
+    pub pinned_by: i64,
+    pub pinned_at: DateTime<Utc>,
+}
+
+/// 转发请求
+#[derive(Debug, Deserialize)]
+pub struct ForwardRequest {
+    pub message_ids: Vec<String>,
+    pub target_conversation_id: String,
+    #[serde(default = "default_forward_type")]
+    pub forward_type: String,
+}
+
+fn default_forward_type() -> String { "single".to_string() }
+
+/// 置顶请求
+#[derive(Debug, Deserialize)]
+pub struct PinRequest {
+    pub message_id: String,
+}

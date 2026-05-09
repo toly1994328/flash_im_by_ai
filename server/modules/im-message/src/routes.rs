@@ -356,12 +356,244 @@ async fn recall_message(
     Ok(Json(serde_json::json!({ "message": "ok" })))
 }
 
+/// POST /conversations/{conv_id}/messages/forward — 消息转发
+async fn forward_message(
+    State(service): State<Arc<MessageService>>,
+    headers: HeaderMap,
+    Path(conv_id_str): Path<String>,
+    Json(body): Json<crate::models::ForwardRequest>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+    let source_conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| AppError::bad_request("无效的会话 ID"))?;
+    let target_conv_id = Uuid::parse_str(&body.target_conversation_id).map_err(|_| AppError::bad_request("无效的目标会话 ID"))?;
+
+    if body.message_ids.is_empty() {
+        return Err(AppError::bad_request("message_ids 不能为空"));
+    }
+    if body.message_ids.len() > 20 {
+        return Err(AppError::bad_request("最多转发 20 条消息"));
+    }
+
+    // 校验用户是目标会话成员
+    let is_target_member: Option<(i32,)> = sqlx::query_as(
+        "SELECT 1 FROM conversation_members WHERE conversation_id = $1 AND user_id = $2 AND is_deleted = false"
+    )
+    .bind(target_conv_id)
+    .bind(user_id)
+    .fetch_optional(service.db())
+    .await?;
+    if is_target_member.is_none() {
+        return Err(AppError::forbidden("你不是目标会话的成员"));
+    }
+
+    // 解析源消息 ID
+    let msg_ids: Vec<Uuid> = body.message_ids.iter()
+        .map(|s| Uuid::parse_str(s).map_err(|_| AppError::bad_request("无效的消息 ID")))
+        .collect::<Result<Vec<_>, _>>()?;
+
+    // 查询源消息
+    let source_msgs = service.repo().find_by_ids(&msg_ids, source_conv_id).await?;
+    if source_msgs.is_empty() {
+        return Err(AppError::not_found("消息不存在"));
+    }
+
+    // 查询发送者昵称
+    let sender_name: String = sqlx::query_as::<_, (String,)>(
+        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
+    )
+    .bind(user_id)
+    .fetch_optional(service.db())
+    .await?
+    .map(|(n,)| n)
+    .unwrap_or("?".to_string());
+
+    let (new_msg_id, seq) = if body.forward_type == "merge" {
+        // 合并转发：构建 FORWARD 类型消息
+        let title = format!("{}的聊天记录", sender_name);
+        let extra = serde_json::json!({
+            "forward_messages": source_msgs.iter().map(|m| serde_json::json!({
+                "sender_id": m.sender_id,
+                "content": m.content,
+                "msg_type": m.msg_type,
+                "created_at": m.created_at.timestamp_millis(),
+            })).collect::<Vec<_>>()
+        });
+        let new_msg = NewMessage {
+            conversation_id: target_conv_id,
+            sender_id: user_id,
+            content: title,
+            msg_type: 5, // FORWARD
+            extra: Some(extra),
+        };
+        let message = service.send(new_msg).await?;
+        (message.id, message.seq)
+    } else {
+        // 单条转发：逐条复制（取最后一条的 id/seq 返回）
+        let mut last_id = Uuid::nil();
+        let mut last_seq = 0i64;
+        for src in &source_msgs {
+            let new_msg = NewMessage {
+                conversation_id: target_conv_id,
+                sender_id: user_id,
+                content: src.content.clone(),
+                msg_type: src.msg_type,
+                extra: src.extra.clone(),
+            };
+            let message = service.send(new_msg).await?;
+            last_id = message.id;
+            last_seq = message.seq;
+        }
+        (last_id, last_seq)
+    };
+
+    Ok(Json(serde_json::json!({
+        "message_id": new_msg_id.to_string(),
+        "seq": seq
+    })))
+}
+
+/// POST /conversations/{conv_id}/messages/pin — 置顶消息
+async fn pin_message(
+    State(service): State<Arc<MessageService>>,
+    headers: HeaderMap,
+    Path(conv_id_str): Path<String>,
+    Json(body): Json<crate::models::PinRequest>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+    let conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| AppError::bad_request("无效的会话 ID"))?;
+    let msg_id = Uuid::parse_str(&body.message_id).map_err(|_| AppError::bad_request("无效的消息 ID"))?;
+
+    // 校验权限：会话成员即可置顶
+    let is_member: Option<(i32,)> = sqlx::query_as(
+        "SELECT 1 FROM conversation_members WHERE conversation_id = $1 AND user_id = $2 AND is_deleted = false"
+    )
+    .bind(conv_id)
+    .bind(user_id)
+    .fetch_optional(service.db())
+    .await?;
+    if is_member.is_none() {
+        return Err(AppError::forbidden("你不是该会话的成员"));
+    }
+
+    // 校验消息存在
+    let msg_exists: Option<(i32,)> = sqlx::query_as(
+        "SELECT 1 FROM messages WHERE id = $1 AND conversation_id = $2 AND status != 2"
+    )
+    .bind(msg_id)
+    .bind(conv_id)
+    .fetch_optional(service.db())
+    .await?;
+    if msg_exists.is_none() {
+        return Err(AppError::not_found("消息不存在"));
+    }
+
+    // 校验是否已置顶
+    if service.repo().is_pinned(conv_id, msg_id).await? {
+        return Err(AppError::bad_request("消息已置顶"));
+    }
+
+    // 校验上限
+    let count = service.repo().count_pins(conv_id).await?;
+    if count >= 3 {
+        return Err(AppError::bad_request("最多置顶 3 条消息"));
+    }
+
+    // 写入
+    let pin = service.repo().insert_pin(conv_id, msg_id, user_id).await?;
+
+    // 广播 PIN_CHANGED
+    let member_rows: Vec<(i64,)> = sqlx::query_as(
+        "SELECT user_id FROM conversation_members WHERE conversation_id = $1 AND is_deleted = false"
+    )
+    .bind(conv_id)
+    .fetch_all(service.db())
+    .await?;
+    let member_ids: Vec<i64> = member_rows.into_iter().map(|(id,)| id).collect();
+
+    service.broadcaster().broadcast_pin_changed(
+        conv_id, msg_id, "pin", user_id, &member_ids,
+    ).await;
+
+    Ok(Json(serde_json::json!({
+        "pin_id": pin.id.to_string(),
+        "pinned_at": pin.pinned_at.to_rfc3339()
+    })))
+}
+
+/// DELETE /conversations/{conv_id}/messages/pin/{pin_id} — 取消置顶
+async fn unpin_message(
+    State(service): State<Arc<MessageService>>,
+    headers: HeaderMap,
+    Path((conv_id_str, pin_id_str)): Path<(String, String)>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+    let conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| AppError::bad_request("无效的会话 ID"))?;
+    let pin_id = Uuid::parse_str(&pin_id_str).map_err(|_| AppError::bad_request("无效的置顶 ID"))?;
+
+    // 校验权限：会话成员即可取消置顶
+    let is_member: Option<(i32,)> = sqlx::query_as(
+        "SELECT 1 FROM conversation_members WHERE conversation_id = $1 AND user_id = $2 AND is_deleted = false"
+    )
+    .bind(conv_id)
+    .bind(user_id)
+    .fetch_optional(service.db())
+    .await?;
+    if is_member.is_none() {
+        return Err(AppError::forbidden("你不是该会话的成员"));
+    }
+
+    // 查询 pin 记录获取 message_id（广播用）
+    let pin_record: Option<(Uuid,)> = sqlx::query_as(
+        "SELECT message_id FROM pinned_messages WHERE id = $1 AND conversation_id = $2"
+    )
+    .bind(pin_id)
+    .bind(conv_id)
+    .fetch_optional(service.db())
+    .await?;
+    let (msg_id,) = pin_record.ok_or_else(|| AppError::not_found("置顶记录不存在"))?;
+
+    // 删除
+    service.repo().delete_pin(pin_id, conv_id).await?;
+
+    // 广播 PIN_CHANGED
+    let member_rows: Vec<(i64,)> = sqlx::query_as(
+        "SELECT user_id FROM conversation_members WHERE conversation_id = $1 AND is_deleted = false"
+    )
+    .bind(conv_id)
+    .fetch_all(service.db())
+    .await?;
+    let member_ids: Vec<i64> = member_rows.into_iter().map(|(id,)| id).collect();
+
+    service.broadcaster().broadcast_pin_changed(
+        conv_id, msg_id, "unpin", user_id, &member_ids,
+    ).await;
+
+    Ok(Json(serde_json::json!({ "message": "ok" })))
+}
+
+/// GET /conversations/{conv_id}/messages/pinned — 查询置顶列表
+async fn get_pinned_messages(
+    State(service): State<Arc<MessageService>>,
+    headers: HeaderMap,
+    Path(conv_id_str): Path<String>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let _user_id = extract_user_id(&headers)?;
+    let conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| AppError::bad_request("无效的会话 ID"))?;
+
+    let pinned = service.repo().get_pinned_with_content(conv_id).await?;
+    Ok(Json(serde_json::to_value(pinned).unwrap()))
+}
+
 pub fn router(service: Arc<MessageService>) -> Router {
     Router::new()
         .route("/conversations/{id}/messages", get(get_messages).post(send_message))
         .route("/conversations/{conv_id}/read-seq", get(get_read_seq))
         .route("/conversations/{conv_id}/messages/{msg_id}/read-status", get(get_read_status))
         .route("/conversations/{conv_id}/messages/{msg_id}/recall", post(recall_message))
+        .route("/conversations/{conv_id}/messages/forward", post(forward_message))
+        .route("/conversations/{conv_id}/messages/pin", post(pin_message))
+        .route("/conversations/{conv_id}/messages/pin/{pin_id}", axum::routing::delete(unpin_message))
+        .route("/conversations/{conv_id}/messages/pinned", get(get_pinned_messages))
         .route("/api/messages/search", get(search_messages))
         .route("/conversations/{conv_id}/messages/search", get(search_conversation_messages))
         .with_state(service)

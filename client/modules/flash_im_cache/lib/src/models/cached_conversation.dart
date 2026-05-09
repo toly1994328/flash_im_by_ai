@@ -9,6 +9,7 @@ class CachedConversation {
   final String? peerAvatar;
   final int? lastMessageAt; // 毫秒时间戳
   final String? lastMessagePreview;
+  final String? lastMessageExtra; // JSON 字符串，含 mentions 等
   final int unreadCount;
   final bool isPinned;
   final bool isMuted;
@@ -24,6 +25,7 @@ class CachedConversation {
     this.peerAvatar,
     this.lastMessageAt,
     this.lastMessagePreview,
+    this.lastMessageExtra,
     this.unreadCount = 0,
     this.isPinned = false,
     this.isMuted = false,

@@ -53,7 +53,7 @@ abstract class LocalStore {
 
   /// 更新会话部分字段
   Future<void> updateConversation(String id,
-      {int? unreadCount, String? lastMessagePreview, int? lastMessageAt});
+      {int? unreadCount, String? lastMessagePreview, int? lastMessageAt, String? lastMessageExtra});
 
   /// 全量同步会话：删除本地多余的 + upsert 远程数据
   Future<void> syncConversations(List<CachedConversation> remote);

@@ -2,7 +2,7 @@ import 'dart:convert';
 
 enum MessageStatus { sending, sent, failed }
 
-enum MessageType { text, image, video, file }
+enum MessageType { text, image, video, file, forward }
 
 class VideoExtra {
   final String thumbnailUrl;
@@ -111,6 +111,7 @@ class Message {
       1 => MessageType.image,
       2 => MessageType.video,
       3 => MessageType.file,
+      5 => MessageType.forward,
       _ => MessageType.text,
     };
 
@@ -188,6 +189,7 @@ class Message {
   bool get isImage => type == MessageType.image;
   bool get isVideo => type == MessageType.video;
   bool get isFile => type == MessageType.file;
+  bool get isForward => type == MessageType.forward;
 
   /// 是否系统消息（sender_id=0）
   bool get isSystem => senderId == '0';
@@ -204,4 +206,35 @@ class Message {
     if (extra == null || !isFile) return null;
     try { return FileExtra.fromJson(extra!); } catch (_) { return null; }
   }
+}
+
+/// 置顶消息
+class PinnedMessage {
+  final String pinId;
+  final String messageId;
+  final String content;
+  final int msgType;
+  final String senderName;
+  final int pinnedBy;
+  final DateTime pinnedAt;
+
+  const PinnedMessage({
+    required this.pinId,
+    required this.messageId,
+    required this.content,
+    required this.msgType,
+    required this.senderName,
+    required this.pinnedBy,
+    required this.pinnedAt,
+  });
+
+  factory PinnedMessage.fromJson(Map<String, dynamic> json) => PinnedMessage(
+    pinId: json['pin_id'] as String,
+    messageId: json['message_id'] as String,
+    content: json['content'] as String? ?? '',
+    msgType: json['msg_type'] as int? ?? 0,
+    senderName: json['sender_name'] as String? ?? '',
+    pinnedBy: json['pinned_by'] as int? ?? 0,
+    pinnedAt: DateTime.parse(json['pinned_at'] as String),
+  );
 }

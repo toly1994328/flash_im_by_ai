@@ -12,6 +12,9 @@ import 'bubble/message_bubble.dart';
 import 'chat_input.dart';
 import 'message_action_menu.dart';
 import 'reply_preview_bar.dart';
+import 'pinned_message_bar.dart';
+import 'conversation_picker_page.dart';
+import 'mention_picker.dart';
 import 'image_preview_page.dart';
 import 'video_player_page.dart';
 import 'file_preview_page.dart';
@@ -62,6 +65,7 @@ class _ChatPageState extends State<ChatPage> {
   late String _title;
   late bool _isDisband;
   String? _announcement;
+  List<MentionMember>? _groupMembers;
   StreamSubscription? _groupInfoSub;
   StreamSubscription? _onlineSub;
   StreamSubscription? _offlineSub;
@@ -107,6 +111,10 @@ class _ChatPageState extends State<ChatPage> {
     if (widget.isGroup && widget.groupDetailFetcher != null) {
       _loadGroupDetail();
     }
+    // 群聊时加载群成员（@提及用）
+    if (widget.isGroup) {
+      _loadGroupMembers();
+    }
   }
 
   Future<void> _loadGroupDetail() async {
@@ -118,6 +126,23 @@ class _ChatPageState extends State<ChatPage> {
       setState(() {
         _isDisband = status == 1;
         _announcement = announcement;
+      });
+    } catch (_) {}
+  }
+
+  Future<void> _loadGroupMembers() async {
+    try {
+      final dio = context.read<MessageRepository>().dio;
+      final res = await dio.get('/groups/${widget.conversationId}/detail');
+      final data = res.data as Map<String, dynamic>;
+      final List members = data['members'] as List? ?? [];
+      if (!mounted) return;
+      setState(() {
+        _groupMembers = members.map((m) => MentionMember(
+          userId: (m['user_id'] ?? m['id']).toString(),
+          nickname: m['nickname'] as String? ?? '?',
+          avatar: m['avatar'] as String?,
+        )).toList();
       });
     } catch (_) {}
   }
@@ -228,6 +253,19 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ),
                 ),
+              // 置顶消息栏
+              BlocBuilder<ChatCubit, ChatState>(
+                builder: (context, state) {
+                  if (state is ChatLoaded && state.pinnedMessages.isNotEmpty) {
+                    return PinnedMessageBar(
+                      pinnedMessages: state.pinnedMessages,
+                      isOwner: true, // 简化：所有人都能看到取消按钮，后端会校验权限
+                      onUnpin: (pinId) => context.read<ChatCubit>().unpinMessage(pinId),
+                    );
+                  }
+                  return const SizedBox.shrink();
+                },
+              ),
               Expanded(
                 child: BlocBuilder<ChatCubit, ChatState>(
                   builder: (context, state) {
@@ -287,7 +325,21 @@ class _ChatPageState extends State<ChatPage> {
                           ),
                         ChatInput(
                           controller: _inputController,
+                          isGroup: widget.isGroup,
+                          groupMembers: _groupMembers,
+                          membersFetcher: widget.isGroup ? () async {
+                            final dio = context.read<MessageRepository>().dio;
+                            final res = await dio.get('/groups/${widget.conversationId}/detail');
+                            final data = res.data as Map<String, dynamic>;
+                            final List members = data['members'] as List? ?? [];
+                            return members.map((m) => MentionMember(
+                              userId: (m['user_id'] ?? m['id']).toString(),
+                              nickname: m['nickname'] as String? ?? '?',
+                              avatar: m['avatar'] as String?,
+                            )).toList();
+                          } : null,
                           onSend: (content) => cubit.sendMessage(content),
+                          onSendWithMentions: (content, mentions) => cubit.sendMessage(content, mentions: mentions),
                           onSendImage: (path) => cubit.sendImageFromFile(path),
                           onSendVideo: (path) async {
                             final info = await VideoThumbnailService().extractVideoInfo(path);
@@ -449,6 +501,12 @@ class _ChatPageState extends State<ChatPage> {
             Text('已选择 $count 条', style: const TextStyle(fontSize: 14, color: Color(0xFF333333))),
             const Spacer(),
             TextButton(
+              onPressed: count > 0 ? () => _forwardSelected(context, cubit, chatState) : null,
+              child: Text('转发', style: TextStyle(
+                color: count > 0 ? const Color(0xFF3B82F6) : const Color(0xFFCCCCCC),
+              )),
+            ),
+            TextButton(
               onPressed: count > 0 ? () => _confirmDeleteSelected(context, cubit, count) : null,
               child: Text('删除', style: TextStyle(
                 color: count > 0 ? Colors.red : const Color(0xFFCCCCCC),
@@ -458,6 +516,47 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
     );
+  }
+
+  Future<void> _forwardSelected(BuildContext context, ChatCubit cubit, ChatLoaded chatState) async {
+    final selectedIds = chatState.selectedIds.toList();
+    final targetConvId = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        builder: (_) => ConversationPickerPage(
+          excludeConvId: widget.conversationId,
+          dio: context.read<MessageRepository>().dio,
+        ),
+      ),
+    );
+    if (targetConvId != null && context.mounted) {
+      final forwardType = selectedIds.length > 1 ? 'merge' : 'single';
+      await cubit.forwardMessages(
+        messageIds: selectedIds,
+        targetConvId: targetConvId,
+        forwardType: forwardType,
+      );
+      cubit.exitMultiSelect();
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
+        );
+      }
+    }
+  }
+
+  bool _isMessagePinned(String messageId) {
+    final cubit = context.read<ChatCubit>();
+    final s = cubit.state;
+    if (s is! ChatLoaded) return false;
+    return s.pinnedMessages.any((p) => p.messageId == messageId);
+  }
+
+  String? _getPinId(String messageId) {
+    final cubit = context.read<ChatCubit>();
+    final s = cubit.state;
+    if (s is! ChatLoaded) return null;
+    final pin = s.pinnedMessages.where((p) => p.messageId == messageId).firstOrNull;
+    return pin?.pinId;
   }
 
   void _showMessageMenu(BuildContext context, BuildContext bubbleContext, Message msg, bool isMe) {
@@ -479,6 +578,8 @@ class _ChatPageState extends State<ChatPage> {
       bubbleSize: bubbleSize,
       message: msg,
       isMe: isMe,
+      isGroup: widget.isGroup,
+      isPinned: _isMessagePinned(msg.id),
       onAction: (action) {
         switch (action) {
           case MenuAction.copy:
@@ -492,6 +593,31 @@ class _ChatPageState extends State<ChatPage> {
             chatCubit.recallMessage(msg.id);
           case MenuAction.delete:
             _confirmDeleteMessage(context, chatCubit, msg.id);
+          case MenuAction.forward:
+            Navigator.of(context).push<String>(
+              MaterialPageRoute(
+                builder: (_) => ConversationPickerPage(
+                  excludeConvId: widget.conversationId,
+                  dio: context.read<MessageRepository>().dio,
+                ),
+              ),
+            ).then((targetConvId) {
+              if (targetConvId != null) {
+                chatCubit.forwardMessages(
+                  messageIds: [msg.id],
+                  targetConvId: targetConvId,
+                  forwardType: 'single',
+                );
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
+                );
+              }
+            });
+          case MenuAction.pin:
+            chatCubit.pinMessage(msg.id);
+          case MenuAction.unpin:
+            final pinId = _getPinId(msg.id);
+            if (pinId != null) chatCubit.unpinMessage(pinId);
           case MenuAction.multiSelect:
             chatCubit.enterMultiSelect(msg.id);
         }
