@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'identicon_avatar.dart';
+import 'group_avatar_widget.dart';
 
 /// 通用头像组件
 ///
@@ -35,6 +36,16 @@ class AvatarWidget extends StatelessWidget {
         backgroundColor: backgroundColor,
         paddingRatio: paddingRatio,
       );
+    }
+    if (av.startsWith('grid:')) {
+      final avatarList = av.substring(5).split(',');
+      final members = avatarList.asMap().entries.map((e) =>
+        GroupAvatarMember(
+          id: 'member_${e.key}',
+          avatarUrl: e.value.trim().isNotEmpty ? e.value.trim() : null,
+        ),
+      ).toList();
+      return GroupAvatarWidget(members: members, size: size, borderRadius: borderRadius);
     }
     if (av.startsWith('http')) {
       return ClipRRect(

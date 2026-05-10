@@ -3,6 +3,14 @@ import 'selectable_member.dart';
 import 'avatar_widget.dart';
 import 'search_bar.dart';
 
+/// 选择模式
+enum PickerSelectMode {
+  /// 单选：点击直接返回，不显示勾选圆钮
+  single,
+  /// 多选：勾选 + 确认按钮
+  multi,
+}
+
 const _kSectionH = 32.0;
 const _kItemH = 56.0;
 
@@ -33,8 +41,11 @@ class MemberPickerPage extends StatefulWidget {
   /// 锁定的成员 ID（预选中且不可取消，列表中显示灰色勾选）
   final Set<String> lockedIds;
 
-  /// 选中后的回调
+  /// 选中后的回调（同步，立即 pop）
   final void Function(MemberPickerResult result)? onConfirm;
+
+  /// 选中后的异步回调（等待返回 true 才 pop，用于弹确认弹窗等场景）
+  final Future<bool> Function(MemberPickerResult result)? onConfirmAsync;
 
   /// 页面标题
   final String title;
@@ -51,16 +62,29 @@ class MemberPickerPage extends StatefulWidget {
   /// 快速选择 ID 集合：这些 ID 被勾选时立即触发 onConfirm（不等确认按钮）
   final Set<String> quickSelectIds;
 
+  /// 是否显示右侧字母索引栏
+  final bool showIndexBar;
+
+  /// 选择模式：单选（点击直接返回）或多选（勾选 + 确认）
+  final PickerSelectMode selectMode;
+
+  /// AppBar 右侧额外操作按钮
+  final List<Widget>? actions;
+
   const MemberPickerPage({
     super.key,
     required this.members,
     this.lockedIds = const {},
     this.onConfirm,
+    this.onConfirmAsync,
     this.title = '选择联系人',
     this.confirmLabel = '完成',
     this.minNewSelection = 1,
     this.isRemoveMode = false,
     this.quickSelectIds = const {},
+    this.showIndexBar = true,
+    this.selectMode = PickerSelectMode.multi,
+    this.actions,
   });
 
   @override
@@ -132,12 +156,10 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
 
   void _toggleMember(String id) {
     if (widget.lockedIds.contains(id)) return;
-    // 快速选择：直接触发确认，不加入已选列表
-    if (widget.quickSelectIds.contains(id)) {
-      widget.onConfirm?.call(MemberPickerResult(
-        allIds: [id],
-        newIds: [id],
-      ));
+    // 快速选择或单选模式
+    if (widget.quickSelectIds.contains(id) || widget.selectMode == PickerSelectMode.single) {
+      final result = MemberPickerResult(allIds: [id], newIds: [id]);
+      _handleConfirm(result);
       return;
     }
     setState(() {
@@ -149,22 +171,29 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
     });
   }
 
-  void _removeMember(String id) {
-    if (widget.lockedIds.contains(id)) return;
-    setState(() => _selectedIds.remove(id));
-  }
-
   void _submit() {
     if (!_canConfirm) return;
     final result = MemberPickerResult(
       allIds: _selectedIds.toList(),
       newIds: _newlySelected.map((m) => m.id).toList(),
     );
-    if (widget.onConfirm != null) {
+    _handleConfirm(result);
+  }
+
+  Future<void> _handleConfirm(MemberPickerResult result) async {
+    if (widget.onConfirmAsync != null) {
+      final shouldPop = await widget.onConfirmAsync!(result);
+      if (shouldPop && mounted) Navigator.of(context).pop(result);
+    } else if (widget.onConfirm != null) {
       widget.onConfirm!(result);
     } else {
       Navigator.pop(context, result);
     }
+  }
+
+  void _removeMember(String id) {
+    if (widget.lockedIds.contains(id)) return;
+    setState(() => _selectedIds.remove(id));
   }
 
   void _onSearch(String value) {
@@ -211,6 +240,7 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
         title: Text(widget.title),
         centerTitle: true,
         actions: [
+          if (widget.actions != null) ...widget.actions!,
           TextButton(
             onPressed: _canConfirm ? _submit : null,
             child: Text(label, style: TextStyle(color: labelColor)),
@@ -224,7 +254,7 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
             child: Stack(
               children: [
                 _buildGroupedList(),
-                if (_searchKeyword.isEmpty && _letters.isNotEmpty)
+                if (widget.showIndexBar && _searchKeyword.isEmpty && _letters.isNotEmpty)
                   _buildIndexBar(),
                 if (_isTouching && _activeLetter != null)
                   _buildLetterIndicator(),
@@ -339,25 +369,27 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
           padding: const EdgeInsets.symmetric(horizontal: 16),
           child: Row(
             children: [
-              Container(
-                width: 22, height: 22,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: isSelected
-                      ? (isLocked ? const Color(0xFFCCCCCC) : checkColor)
-                      : Colors.transparent,
-                  border: Border.all(
+              if (widget.selectMode == PickerSelectMode.multi && !widget.quickSelectIds.contains(member.id)) ...[
+                Container(
+                  width: 22, height: 22,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
                     color: isSelected
                         ? (isLocked ? const Color(0xFFCCCCCC) : checkColor)
-                        : isLocked ? const Color(0xFFDDDDDD) : const Color(0xFFCCCCCC),
-                    width: 1.5,
+                        : Colors.transparent,
+                    border: Border.all(
+                      color: isSelected
+                          ? (isLocked ? const Color(0xFFCCCCCC) : checkColor)
+                          : isLocked ? const Color(0xFFDDDDDD) : const Color(0xFFCCCCCC),
+                      width: 1.5,
+                    ),
                   ),
+                  child: isSelected
+                      ? const Icon(Icons.check, size: 14, color: Colors.white)
+                      : null,
                 ),
-                child: isSelected
-                    ? const Icon(Icons.check, size: 14, color: Colors.white)
-                    : null,
-              ),
-              const SizedBox(width: 12),
+                const SizedBox(width: 12),
+              ],
               widget.quickSelectIds.contains(member.id) && member.avatar == null
                   ? Container(
                       width: 40, height: 40,
@@ -370,17 +402,34 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
                   : AvatarWidget(avatar: member.avatar, size: 40, borderRadius: 6),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(member.nickname,
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: isLocked ? const Color(0xFF999999) : const Color(0xFF333333),
-                  ),
-                  maxLines: 1, overflow: TextOverflow.ellipsis),
+                child: _buildHighlightedName(member.nickname, isLocked),
               ),
             ],
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildHighlightedName(String name, bool isLocked) {
+    final color = isLocked ? const Color(0xFF999999) : const Color(0xFF333333);
+    if (_searchKeyword.isEmpty) {
+      return Text(name, style: TextStyle(fontSize: 15, color: color), maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+    final lower = name.toLowerCase();
+    final keyLower = _searchKeyword.toLowerCase();
+    final idx = lower.indexOf(keyLower);
+    if (idx == -1) {
+      return Text(name, style: TextStyle(fontSize: 15, color: color), maxLines: 1, overflow: TextOverflow.ellipsis);
+    }
+    return RichText(
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      text: TextSpan(children: [
+        if (idx > 0) TextSpan(text: name.substring(0, idx), style: TextStyle(fontSize: 15, color: color)),
+        TextSpan(text: name.substring(idx, idx + _searchKeyword.length), style: const TextStyle(fontSize: 15, color: Color(0xFF3B82F6), fontWeight: FontWeight.w500)),
+        if (idx + _searchKeyword.length < name.length) TextSpan(text: name.substring(idx + _searchKeyword.length), style: TextStyle(fontSize: 15, color: color)),
+      ]),
     );
   }
 
@@ -406,24 +455,30 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
             child: Container(
               width: 20,
               padding: const EdgeInsets.symmetric(vertical: 2),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: _kIndexLetters.map((l) {
-                  final active = _activeLetter == l;
-                  final has = _offsets.containsKey(l);
-                  return SizedBox(
-                    height: 16,
-                    child: Center(
-                      child: Text(l, style: TextStyle(
-                        fontSize: 10,
-                        fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                        color: active
-                            ? Theme.of(context).primaryColor
-                            : has ? Colors.grey[600] : Colors.grey[400],
-                      )),
-                    ),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final itemH = (constraints.maxHeight - 4) / _kIndexLetters.length;
+                  final clampedH = itemH.clamp(10.0, 16.0);
+                  return Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: _kIndexLetters.map((l) {
+                      final active = _activeLetter == l;
+                      final has = _offsets.containsKey(l);
+                      return SizedBox(
+                        height: clampedH,
+                        child: Center(
+                          child: Text(l, style: TextStyle(
+                            fontSize: clampedH > 12 ? 10 : 8,
+                            fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                            color: active
+                                ? Theme.of(context).primaryColor
+                                : has ? Colors.grey[600] : Colors.grey[400],
+                          )),
+                        ),
+                      );
+                    }).toList(),
                   );
-                }).toList(),
+                },
               ),
             ),
           );

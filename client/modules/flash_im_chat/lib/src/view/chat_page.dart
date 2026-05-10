@@ -4,11 +4,16 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, WsFrame, WsFrameType, GroupInfoUpdate, UserStatusNotification;
+import 'package:flash_shared/flash_shared.dart' show MemberPickerResult;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
 import '../logic/chat_state.dart';
 import 'bubble/message_bubble.dart';
+import 'bubble/image_bubble.dart';
+import 'bubble/video_bubble.dart';
+import 'bubble/file_bubble.dart';
+import 'bubble/text_bubble.dart';
 import 'chat_input.dart';
 import 'message_action_menu.dart';
 import 'reply_preview_bar.dart';
@@ -502,12 +507,6 @@ class _ChatPageState extends State<ChatPage> {
             Text('已选择 $count 条', style: const TextStyle(fontSize: 14, color: Color(0xFF333333))),
             const Spacer(),
             TextButton(
-              onPressed: count > 0 ? () => _forwardSelected(context, cubit, chatState) : null,
-              child: Text('转发', style: TextStyle(
-                color: count > 0 ? const Color(0xFF3B82F6) : const Color(0xFFCCCCCC),
-              )),
-            ),
-            TextButton(
               onPressed: count > 0 ? () => _confirmDeleteSelected(context, cubit, count) : null,
               child: Text('删除', style: TextStyle(
                 color: count > 0 ? Colors.red : const Color(0xFFCCCCCC),
@@ -517,32 +516,6 @@ class _ChatPageState extends State<ChatPage> {
         ),
       ),
     );
-  }
-
-  Future<void> _forwardSelected(BuildContext context, ChatCubit cubit, ChatLoaded chatState) async {
-    final selectedIds = chatState.selectedIds.toList();
-    final targetConvId = await Navigator.of(context).push<String>(
-      MaterialPageRoute(
-        builder: (_) => ConversationPickerPage(
-          excludeConvId: widget.conversationId,
-          dio: context.read<MessageRepository>().dio,
-        ),
-      ),
-    );
-    if (targetConvId != null && context.mounted) {
-      final forwardType = selectedIds.length > 1 ? 'merge' : 'single';
-      await cubit.forwardMessages(
-        messageIds: selectedIds,
-        targetConvId: targetConvId,
-        forwardType: forwardType,
-      );
-      cubit.exitMultiSelect();
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
-        );
-      }
-    }
   }
 
   bool _isMessagePinned(String messageId) {
@@ -595,23 +568,20 @@ class _ChatPageState extends State<ChatPage> {
           case MenuAction.delete:
             _confirmDeleteMessage(context, chatCubit, msg.id);
           case MenuAction.forward:
-            Navigator.of(context).push<String>(
+            print('📤 [Forward] opening picker...');
+            Navigator.of(context).push<MemberPickerResult>(
               MaterialPageRoute(
                 builder: (_) => ConversationPickerPage(
                   excludeConvId: widget.conversationId,
                   dio: context.read<MessageRepository>().dio,
+                  previewBuilder: (_) => _buildForwardPreview(msg),
                 ),
               ),
-            ).then((targetConvId) {
-              if (targetConvId != null) {
-                chatCubit.forwardMessages(
-                  messageIds: [msg.id],
-                  targetConvId: targetConvId,
-                  forwardType: 'single',
-                );
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
-                );
+            ).then((result) {
+              print('📤 [Forward] picker returned: ${result?.allIds}, mounted=${context.mounted}');
+              if (result != null && result.allIds.isNotEmpty && context.mounted) {
+                print('📤 [Forward] showing confirm dialog...');
+                _confirmForward(context, chatCubit, msg, result.allIds);
               }
             });
           case MenuAction.pin:
@@ -633,6 +603,69 @@ class _ChatPageState extends State<ChatPage> {
       }
       _scrollController.addListener(onScroll);
     }
+  }
+
+  void _confirmForward(BuildContext context, ChatCubit cubit, Message msg, List<String> targetIds) {
+    // 延迟一帧确保前一个页面完全 pop 完毕
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        title: Text(
+          targetIds.length > 1 ? '转发给 ${targetIds.length} 个会话' : '转发消息',
+          style: const TextStyle(fontSize: 16),
+        ),
+        content: Container(
+          constraints: const BoxConstraints(maxHeight: 200),
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF8F8F8),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: _buildForwardPreview(msg),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              for (final targetConvId in targetIds) {
+                cubit.forwardMessages(
+                  messageIds: [msg.id],
+                  targetConvId: targetConvId,
+                  forwardType: 'single',
+                );
+              }
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
+              );
+            },
+            child: const Text('发送', style: TextStyle(color: Color(0xFF3B82F6))),
+          ),
+        ],
+      ),
+    );
+    });
+  }
+
+  Widget _buildForwardPreview(Message msg) {
+    final bubble = switch (msg.type) {
+      MessageType.image => ImageBubble(message: msg, baseUrl: widget.baseUrl),
+      MessageType.video => VideoBubble(message: msg, baseUrl: widget.baseUrl),
+      MessageType.file => FileBubble(message: msg, isMe: true),
+      _ => TextBubble(message: msg, isMe: true),
+    };
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [Flexible(child: bubble)],
+    );
   }
 
   void _confirmDeleteMessage(BuildContext context, ChatCubit cubit, String messageId) {
