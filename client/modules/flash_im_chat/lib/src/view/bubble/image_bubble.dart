@@ -64,6 +64,7 @@ class ImageBubble extends StatelessWidget {
     return GestureDetector(
       onTap: isLocal ? null : onTap,
       child: Container(
+        alignment: Alignment.center,
         width: placeholderW, height: placeholderH,
         constraints: const BoxConstraints(maxWidth: 250, maxHeight: 300),
         padding: const EdgeInsets.all(2),

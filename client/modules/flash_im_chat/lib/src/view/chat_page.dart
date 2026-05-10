@@ -580,8 +580,20 @@ class _ChatPageState extends State<ChatPage> {
             ).then((result) {
               print('📤 [Forward] picker returned: ${result?.allIds}, mounted=${context.mounted}');
               if (result != null && result.allIds.isNotEmpty && context.mounted) {
-                print('📤 [Forward] showing confirm dialog...');
-                _confirmForward(context, chatCubit, msg, result.allIds);
+                for (final targetConvId in result.allIds) {
+                  chatCubit.forwardMessages(
+                    messageIds: [msg.id],
+                    targetConvId: targetConvId,
+                    forwardType: 'single',
+                  );
+                  // 如果转发到当前会话，刷新消息列表
+                  if (targetConvId == widget.conversationId) {
+                    chatCubit.loadMessages();
+                  }
+                }
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
+                );
               }
             });
           case MenuAction.pin:
@@ -620,6 +632,7 @@ class _ChatPageState extends State<ChatPage> {
           style: const TextStyle(fontSize: 16),
         ),
         content: Container(
+          alignment:  Alignment.center,
           constraints: const BoxConstraints(maxHeight: 200),
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
@@ -662,10 +675,9 @@ class _ChatPageState extends State<ChatPage> {
       MessageType.file => FileBubble(message: msg, isMe: true),
       _ => TextBubble(message: msg, isMe: true),
     };
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [Flexible(child: bubble)],
-    );
+    return Container(
+        constraints: BoxConstraints(maxHeight: 200),
+        child: bubble);
   }
 
   void _confirmDeleteMessage(BuildContext context, ChatCubit cubit, String messageId) {

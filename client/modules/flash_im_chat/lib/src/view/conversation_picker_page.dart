@@ -111,20 +111,18 @@ class _ConversationPickerPageState extends State<ConversationPickerPage> {
             title: const Text('确认转发', style: TextStyle(fontSize: 16)),
             content: Column(
               mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text('发送给：$names', style: const TextStyle(fontSize: 14, color: Color(0xFF666666))),
+                Align(alignment:Alignment.centerLeft, child: Text('发送给：$names', style: const TextStyle(fontSize: 14, color: Color(0xFF666666)))),
                 if (widget.previewBuilder != null) ...[
                   const SizedBox(height: 12),
-                  Container(
-                    constraints: const BoxConstraints(maxHeight: 150),
-                    alignment: Alignment.center,
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF8F8F8),
-                      borderRadius: BorderRadius.circular(8),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      // constraints: const BoxConstraints(maxHeight: 120, maxWidth: 200),
+                      alignment: Alignment.center,
+                      child: widget.previewBuilder!(context),
                     ),
-                    child: widget.previewBuilder!(context),
                   ),
                 ] else if (widget.previewWidget != null) ...[
                   const SizedBox(height: 12),

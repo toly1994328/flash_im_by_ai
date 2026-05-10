@@ -39,6 +39,15 @@ impl MessageService {
 
     /// 发送消息（核心方法）
     pub async fn send(&self, msg: NewMessage) -> Result<Message, StatusCode> {
+        self.send_inner(msg, true).await
+    }
+
+    /// 发送消息（不排除发送者，用于转发）
+    pub async fn send_include_self(&self, msg: NewMessage) -> Result<Message, StatusCode> {
+        self.send_inner(msg, false).await
+    }
+
+    async fn send_inner(&self, msg: NewMessage, exclude_sender: bool) -> Result<Message, StatusCode> {
         if msg.content.trim().is_empty() {
             return Err(StatusCode::BAD_REQUEST);
         }
@@ -117,7 +126,7 @@ impl MessageService {
         println!("📢 [msg] broadcasting to members: {:?}, sender: {}", member_ids, msg.sender_id);
 
         // 广播消息
-        self.broadcaster.broadcast_message(&message, &member_ids, true).await;
+        self.broadcaster.broadcast_message(&message, &member_ids, exclude_sender).await;
 
         // 广播会话更新
         self.broadcaster.broadcast_conversation_update(

@@ -425,7 +425,7 @@ async fn forward_message(
             msg_type: 5, // FORWARD
             extra: Some(extra),
         };
-        let message = service.send(new_msg).await?;
+        let message = service.send_include_self(new_msg).await?;
         (message.id, message.seq)
     } else {
         // 单条转发：逐条复制（取最后一条的 id/seq 返回）
@@ -439,7 +439,7 @@ async fn forward_message(
                 msg_type: src.msg_type,
                 extra: src.extra.clone(),
             };
-            let message = service.send(new_msg).await?;
+            let message = service.send_include_self(new_msg).await?;
             last_id = message.id;
             last_seq = message.seq;
         }
