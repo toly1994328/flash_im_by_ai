@@ -14,9 +14,8 @@
 
 ### 阶段二：转发功能
 
-4. ⬜ 任务 4 — ConversationPickerPage（会话选择器）
+4. ⬜ 任务 4 — ConversationPickerPage（会话选择器，复用 MemberPickerPage）
 5. ⬜ 任务 5 — ChatCubit 转发逻辑
-6. ⬜ 任务 6 — ForwardBubble + ForwardDetailPage（合并转发展示）
 
 ### 阶段三：@提及功能
 

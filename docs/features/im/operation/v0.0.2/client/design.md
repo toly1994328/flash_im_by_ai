@@ -11,8 +11,8 @@ tags: [消息转发, @提及, 消息置顶, 会话选择器, PIN_CHANGED]
 
 ## 1. 目标
 
-- 消息转发：单条转发 + 多条合并转发，通过会话选择器选择目标
-- 会话选择器：独立页面，展示最近会话 + 好友列表，支持搜索
+- 消息转发：单条转发，通过会话选择器选择目标（支持单选/多选切换）
+- 会话选择器：复用 MemberPickerPage，展示最近会话，支持搜索
 - @提及输入：群聊输入框检测 @ 字符 → 弹出成员选择浮层 → 插入 @昵称 文本 → 构建 mentions 数组
 - @提及展示：消息气泡中 @文本 蓝色高亮（RichText）+ 会话列表红色「有人@我」前缀
 - 消息置顶：ChatPage 顶部置顶消息栏 + 置顶/取消置顶操作 + PIN_CHANGED 帧监听
@@ -150,16 +150,17 @@ flash_im_conversation/lib/src/
 
 | 决策 | 方案 | 理由 |
 |------|------|------|
-| 会话选择器 | 独立页面（push） | 需要搜索和滚动，Overlay 太小 |
+| 会话选择器 | 复用 MemberPickerPage（PickerSelectMode.single/multi 切换 + showIndexBar=false） | 统一选人组件，右上角切换单选/多选 |
 | @检测 | TextEditingController.addListener 监听文本变化 | 检测最后输入的字符是否为 @ |
-| @选择界面 | push MemberPickerPage（多选） | 复用已有的选人组件，支持多选多人 |
+| @选择界面 | push MemberPickerPage（多选 + quickSelectIds 支持"所有人"快速返回） | 复用已有选人组件，@所有人点击直接返回 |
 | @高亮 | RichText + TextSpan | 精确控制每段文字的样式 |
 | @会话列表提示 | SyncEngine 检测 mentions + ConversationListCubit 维护 MentionMeRecord 列表 | 结构化记录，区分 @我/@所有人，优先显示 @我 |
-| 置顶栏 | ChatPage 顶部固定 Widget | 不随消息列表滚动 |
+| 置顶栏 | ChatPage 顶部固定 Widget + 点击展开下拉列表（SizeTransition 动画） | 参考项目风格，蓝色背景 + 分段指示器 |
 | 置顶数据 | 进入聊天页时 GET /pinned 加载 | 不缓存到本地，每次进入实时查询 |
 | PIN_CHANGED 监听 | ChatCubit 订阅 pinChangedStream | 实时更新置顶栏 |
-| 转发确认 | 选择会话后弹确认弹窗 | 防误操作 |
+| 转发确认 | 选择器内 onConfirmAsync 弹确认弹窗（含消息预览），确认后才 pop | 避免时序问题，用户看到预览再确认 |
 | 消息缓存 | HTTP 拉取消息后写入 LocalStore | 下次进入从本地读取，不丢失历史 |
+| MemberPickerPage 扩展 | 新增 selectMode / showIndexBar / quickSelectIds / onConfirmAsync / actions 参数 | 通用选人组件支持更多场景（转发、@提及） |
 
 ### 新增依赖
 

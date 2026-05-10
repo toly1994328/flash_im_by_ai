@@ -280,7 +280,7 @@ server/modules/im-message/src/
 
 | 决策 | 方案 | 理由 |
 |------|------|------|
-| 转发实现 | 复制消息内容重新插入 | 转发后的消息独立于原消息，简单可靠 |
+| 转发实现 | 复制消息内容重新插入，用 send_include_self 广播不排除发送者 | 转发者自己也需要收到消息推送，确保本地缓存同步 |
 | 合并转发存储 | type=5 + extra 存原始消息 JSON | 复用 extra JSONB，不加新表 |
 | 合并转发 extra 大小 | 限制最多 20 条消息 | 防止 extra 过大 |
 | @提及后端处理 | 透传 extra.mentions，ConversationUpdate 携带 last_message_extra | 后端不解析 mentions 内容，只负责传递 |
