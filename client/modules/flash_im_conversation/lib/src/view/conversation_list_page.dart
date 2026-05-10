@@ -87,12 +87,28 @@ class _ConversationListPageState extends State<ConversationListPage> {
                             ),
                           );
                         }
+                        final conv = conversations[index];
+                        final mentionRecords = context.read<ConversationListCubit>().getMentionMeRecords(conv.id);
+                        final displayConv = mentionRecords.isNotEmpty
+                            ? Conversation(
+                                id: conv.id, type: conv.type, name: conv.name,
+                                avatar: conv.avatar, peerUserId: conv.peerUserId,
+                                peerNickname: conv.peerNickname, peerAvatar: conv.peerAvatar,
+                                lastMessageAt: conv.lastMessageAt,
+                                lastMessagePreview: conv.lastMessagePreview,
+                                lastMessageExtra: conv.lastMessageExtra,
+                                mentionMeRecords: mentionRecords,
+                                unreadCount: conv.unreadCount,
+                                isPinned: conv.isPinned, isMuted: conv.isMuted,
+                                createdAt: conv.createdAt,
+                              )
+                            : conv;
                         return ConversationTile(
-                          conversation: conversations[index],
-                          isOnline: !conversations[index].isGroup &&
-                              conversations[index].peerUserId != null &&
-                              widget.onlineUserIds.contains(conversations[index].peerUserId),
-                          onTap: () => widget.onConversationTap?.call(conversations[index]),
+                          conversation: displayConv,
+                          isOnline: !conv.isGroup &&
+                              conv.peerUserId != null &&
+                              widget.onlineUserIds.contains(conv.peerUserId),
+                          onTap: () => widget.onConversationTap?.call(conv),
                         );
                       },
                     ),

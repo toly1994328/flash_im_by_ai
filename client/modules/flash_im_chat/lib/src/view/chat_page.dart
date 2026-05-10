@@ -326,6 +326,7 @@ class _ChatPageState extends State<ChatPage> {
                         ChatInput(
                           controller: _inputController,
                           isGroup: widget.isGroup,
+                          groupAvatar: widget.peerAvatar,
                           groupMembers: _groupMembers,
                           membersFetcher: widget.isGroup ? () async {
                             final dio = context.read<MessageRepository>().dio;

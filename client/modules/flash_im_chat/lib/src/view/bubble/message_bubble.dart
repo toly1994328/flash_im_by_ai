@@ -148,6 +148,7 @@ class MessageBubble extends StatelessWidget {
             Flexible(child: Builder(
               builder: (bubbleCtx) => GestureDetector(
                 onLongPressStart: onLongPress != null ? (_) => onLongPress!(bubbleCtx) : null,
+                onDoubleTap: () => _showDebugInfo(bubbleCtx),
                 child: _buildBubble(),
               ),
             )),
@@ -237,6 +238,39 @@ class MessageBubble extends StatelessWidget {
       );
     }
     return bubble;
+  }
+
+  void _showDebugInfo(BuildContext context) {
+    final info = StringBuffer();
+    info.writeln('id: ${message.id}');
+    info.writeln('conversationId: ${message.conversationId}');
+    info.writeln('senderId: ${message.senderId}');
+    info.writeln('senderName: ${message.senderName}');
+    info.writeln('seq: ${message.seq}');
+    info.writeln('type: ${message.type}');
+    info.writeln('status: ${message.status}');
+    info.writeln('createdAt: ${message.createdAt}');
+    info.writeln('content: ${message.content}');
+    info.writeln('extra: ${message.extra}');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('消息详情', style: TextStyle(fontSize: 14)),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            info.toString(),
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
+    );
   }
 
   Widget _buildStatusIcon() {

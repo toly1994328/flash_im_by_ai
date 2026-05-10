@@ -65,6 +65,7 @@ void main() async {
       store: localStore!,
       wsClient: wsClient,
       dio: httpClient.dio,
+      currentUserId: user.userId.toString(),
     );
     syncEngine!.start();
     globalSyncEngine = syncEngine;

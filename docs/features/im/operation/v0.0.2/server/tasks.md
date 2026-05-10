@@ -1,32 +1,32 @@
-# 消息转发与@提及与置顶 — 服务端任务清单
+# 消息转发与@提及与置�?�?服务端任务清�?
 
-基于 [design.md](design.md) 设计。改动集中在 im-message 模块，新增 pinned_messages 表和 4 个接口。
+基于 [design.md](design.md) 设计。改动集中在 im-message 模块，新�?pinned_messages 表和 4 个接口�?
 
 ---
 
 ## 执行顺序
 
-### 阶段一：协议与数据库
+### 阶段一：协议与数据�?
 
-1. ⬜ 任务 1 — proto 扩展（PIN_CHANGED + FORWARD 类型）
-2. ⬜ 任务 2 — pinned_messages 表迁移
-3. ⬜ 任务 3 — ConversationUpdate proto 扩展（last_message_extra）
+1. �?任务 1 �?proto 扩展（PIN_CHANGED + FORWARD 类型�?
+2. �?任务 2 �?pinned_messages 表迁�?
+3. �?任务 3 �?ConversationUpdate proto 扩展（last_message_extra�?
 
 ### 阶段二：转发接口
 
-4. ⬜ 任务 4 — 转发接口（单条 + 合并）
-5. ⬜ 任务 5 — 转发广播（CHAT_MESSAGE + ConversationUpdate）
+4. �?任务 4 �?转发接口（单�?+ 合并�?
+5. �?任务 5 �?转发广播（CHAT_MESSAGE + ConversationUpdate�?
 
 ### 阶段三：置顶接口
 
-6. ⬜ 任务 6 — 置顶接口（POST /pin）
-7. ⬜ 任务 7 — 取消置顶接口（DELETE /pin/{id}）
-8. ⬜ 任务 8 — 查询置顶列表（GET /pinned）
-9. ⬜ 任务 9 — PIN_CHANGED 广播
+6. �?任务 6 �?置顶接口（POST /pin�?
+7. �?任务 7 �?取消置顶接口（DELETE /pin/{id}�?
+8. �?任务 8 �?查询置顶列表（GET /pinned�?
+9. �?任务 9 �?PIN_CHANGED 广播
 
 ### 阶段四：@提及支持
 
-10. ⬜ 任务 10 — ConversationUpdate 携带 last_message_extra
+10. �?任务 10 �?ConversationUpdate 携带 last_message_extra
 
 ---
 
@@ -58,7 +58,7 @@ enum MessageType {
 message PinChangedNotification {
   string conversation_id = 1;
   string message_id = 2;
-  string action = 3;       // "pin" 或 "unpin"
+  string action = 3;       // "pin" �?"unpin"
   string pinned_by = 4;
 }
 ```
@@ -71,11 +71,11 @@ cargo build
 
 ---
 
-## 任务 2：pinned_messages 表迁移 `⬜`
+## 任务 2：pinned_messages 表迁�?`⬜`
 
 文件：`server/migrations/` 新建迁移文件
 
-### 2.1 创建表 `⬜`
+### 2.1 创建�?`⬜`
 
 ```sql
 CREATE TABLE pinned_messages (
@@ -107,13 +107,13 @@ sqlx migrate run
 ```protobuf
 message ConversationUpdate {
   // ... 已有字段 1~5
-  string last_message_extra = 6;  // JSON 字符串，含 mentions 等
+  string last_message_extra = 6;  // JSON 字符串，�?mentions �?
 }
 ```
 
 ---
 
-## 任务 4：转发接口 `⬜`
+## 任务 4：转发接�?`⬜`
 
 文件：`server/modules/im-message/src/routes.rs`、`service.rs`、`repository.rs`（修改）
 
@@ -134,12 +134,12 @@ async fn forward_message(
     claims: Claims,
     Json(body): Json<ForwardRequest>,
 ) -> Result<Json<Value>, AppError> {
-    // 1. 校验 message_ids 都属于 conv_id（安全校验）
-    // 2. 校验用户是目标会话成员
-    // 3. 查询源消息列表
-    // 4. 根据 forward_type 处理：
-    //    - single: 逐条复制到目标会话
-    //    - merge: 构建 FORWARD 类型消息（type=5, extra=原始消息JSON）
+    // 1. 校验 message_ids 都属�?conv_id（安全校验）
+    // 2. 校验用户是目标会话成�?
+    // 3. 查询源消息列�?
+    // 4. 根据 forward_type 处理�?
+    //    - single: 逐条复制到目标会�?
+    //    - merge: 构建 FORWARD 类型消息（type=5, extra=原始消息JSON�?
     // 5. 分配 seq + 存入 messages
     // 6. 广播 CHAT_MESSAGE + ConversationUpdate
     // 7. 返回 message_id + seq
@@ -158,7 +158,7 @@ pub struct ForwardRequest {
 }
 ```
 
-### 4.4 Service 层 forward_message `⬜`
+### 4.4 Service �?forward_message `⬜`
 
 ```rust
 // ---> service.rs
@@ -174,26 +174,26 @@ pub async fn forward_message(
 // 返回 (new_message_id, seq)
 ```
 
-单条转发：复制 content + type + extra，sender_id 改为转发者。
-合并转发：type=5，content="XXX的聊天记录"，extra=原始消息列表 JSON（最多 20 条）。
+单条转发：复�?content + type + extra，sender_id 改为转发者�?
+合并转发：type=5，content="XXX的聊天记�?，extra=原始消息列表 JSON（最�?20 条）�?
 
 ---
 
-## 任务 5：转发广播 `⬜`
+## 任务 5：转发广�?`⬜`
 
 文件：`server/modules/im-message/src/broadcast.rs`（修改）
 
-### 5.1 转发后广播 CHAT_MESSAGE `⬜`
+### 5.1 转发后广�?CHAT_MESSAGE `⬜`
 
-复用已有的 `broadcast_message` 方法，向目标会话所有成员广播新消息。
+复用已有�?`broadcast_message` 方法，向目标会话所有成员广播新消息�?
 
-### 5.2 转发后广播 ConversationUpdate `⬜`
+### 5.2 转发后广�?ConversationUpdate `⬜`
 
-更新目标会话的 last_message_preview + last_message_at，广播 ConversationUpdate 帧。
+更新目标会话�?last_message_preview + last_message_at，广�?ConversationUpdate 帧�?
 
 ---
 
-## 任务 6：置顶接口 `⬜`
+## 任务 6：置顶接�?`⬜`
 
 文件：`server/modules/im-message/src/routes.rs`、`service.rs`、`repository.rs`（修改）
 
@@ -212,17 +212,17 @@ async fn pin_message(
     claims: Claims,
     Json(body): Json<PinRequest>,
 ) -> Result<Json<Value>, AppError> {
-    // 1. 校验权限（群主/管理员）
+    // 1. 校验权限（群�?管理员）
     // 2. 校验消息存在
-    // 3. 校验未超过 3 条上限
-    // 4. 校验未重复置顶
+    // 3. 校验未超�?3 条上�?
+    // 4. 校验未重复置�?
     // 5. 写入 pinned_messages
-    // 6. 广播 PIN_CHANGED（action=pin）
+    // 6. 广播 PIN_CHANGED（action=pin�?
     // 7. 返回 pin_id + pinned_at
 }
 ```
 
-### 6.3 Repository 层 `⬜`
+### 6.3 Repository �?`⬜`
 
 ```rust
 // ---> repository.rs
@@ -233,7 +233,7 @@ pub async fn is_pinned(&self, conv_id: &str, msg_id: &str) -> Result<bool>
 
 ---
 
-## 任务 7：取消置顶接口 `⬜`
+## 任务 7：取消置顶接�?`⬜`
 
 文件：`server/modules/im-message/src/routes.rs`、`repository.rs`（修改）
 
@@ -251,15 +251,15 @@ async fn unpin_message(
     Path((conv_id, pin_id)): Path<(String, String)>,
     claims: Claims,
 ) -> Result<Json<Value>, AppError> {
-    // 1. 校验权限（群主/管理员）
+    // 1. 校验权限（群�?管理员）
     // 2. 校验 pin_id 存在且属于该会话
     // 3. 删除 pinned_messages 记录
-    // 4. 广播 PIN_CHANGED（action=unpin）
+    // 4. 广播 PIN_CHANGED（action=unpin�?
     // 5. 返回 200
 }
 ```
 
-### 7.3 Repository 层 `⬜`
+### 7.3 Repository �?`⬜`
 
 ```rust
 pub async fn delete_pin(&self, pin_id: &str, conv_id: &str) -> Result<()>
@@ -268,7 +268,7 @@ pub async fn find_pin_by_id(&self, pin_id: &str) -> Result<Option<PinnedMessage>
 
 ---
 
-## 任务 8：查询置顶列表 `⬜`
+## 任务 8：查询置顶列�?`⬜`
 
 文件：`server/modules/im-message/src/routes.rs`、`repository.rs`（修改）
 
@@ -286,12 +286,12 @@ async fn get_pinned_messages(
     Path(conv_id): Path<String>,
     claims: Claims,
 ) -> Result<Json<Vec<PinnedMessageWithContent>>, AppError> {
-    // JOIN messages 表获取消息内容
-    // 按 pinned_at DESC 排序
+    // JOIN messages 表获取消息内�?
+    // �?pinned_at DESC 排序
 }
 ```
 
-### 8.3 Repository 层 `⬜`
+### 8.3 Repository �?`⬜`
 
 ```rust
 pub async fn get_pinned_with_content(&self, conv_id: &str) -> Result<Vec<PinnedMessageWithContent>>
@@ -341,12 +341,12 @@ pub async fn broadcast_pin_changed(
 
 文件：`server/modules/im-message/src/broadcast.rs`（修改）
 
-### 10.1 广播 ConversationUpdate 时填充 last_message_extra `⬜`
+### 10.1 广播 ConversationUpdate 时填�?last_message_extra `⬜`
 
-当消息的 extra 包含 mentions 时，将 extra JSON 字符串填入 ConversationUpdate 的 `last_message_extra` 字段。会话列表据此判断是否显示"有人@我"。
+当消息的 extra 包含 mentions 时，�?extra JSON 字符串填�?ConversationUpdate �?`last_message_extra` 字段。会话列表据此判断是否显�?有人@�?�?
 
 ```rust
-// broadcast_conversation_update 改造
+// broadcast_conversation_update 改�?
 let update = ConversationUpdate {
     conversation_id: conv_id.to_string(),
     last_message_preview: preview,

@@ -152,11 +152,14 @@ flash_im_conversation/lib/src/
 |------|------|------|
 | 会话选择器 | 独立页面（push） | 需要搜索和滚动，Overlay 太小 |
 | @检测 | TextEditingController.addListener 监听文本变化 | 检测最后输入的字符是否为 @ |
+| @选择界面 | push MemberPickerPage（多选） | 复用已有的选人组件，支持多选多人 |
 | @高亮 | RichText + TextSpan | 精确控制每段文字的样式 |
+| @会话列表提示 | SyncEngine 检测 mentions + ConversationListCubit 维护 MentionMeRecord 列表 | 结构化记录，区分 @我/@所有人，优先显示 @我 |
 | 置顶栏 | ChatPage 顶部固定 Widget | 不随消息列表滚动 |
 | 置顶数据 | 进入聊天页时 GET /pinned 加载 | 不缓存到本地，每次进入实时查询 |
 | PIN_CHANGED 监听 | ChatCubit 订阅 pinChangedStream | 实时更新置顶栏 |
 | 转发确认 | 选择会话后弹确认弹窗 | 防误操作 |
+| 消息缓存 | HTTP 拉取消息后写入 LocalStore | 下次进入从本地读取，不丢失历史 |
 
 ### 新增依赖
 

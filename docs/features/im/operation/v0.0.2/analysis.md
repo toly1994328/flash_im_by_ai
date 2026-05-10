@@ -197,9 +197,9 @@ sequenceDiagram
 | 多条转发 | 合并为一条 FORWARD 类型消息 | 不污染目标会话的消息列表，可展开查看 |
 | @存储 | content 含 @文本 + extra 含 mentions 数组 | content 保证无 extra 时也能看到 @文本，mentions 用于精确高亮 |
 | @所有人权限 | 仅群主/管理员 | 防止滥用 |
-| 会话列表@提示 | ConversationUpdate 帧携带 mention 信息 | 复用已有的会话更新推送机制 |
+| 会话列表@提示 | SyncEngine 检测 mentions + ConversationListCubit 维护 MentionMeRecord 列表 | 结构化记录，区分 @我 和 @所有人，支持后续跳转定位 |
 | 置顶上限 | 每会话最多 3 条 | 微信标准，防止置顶栏过长 |
-| 置顶权限 | 仅群主/管理员 | 群管理功能 |
+| 置顶权限 | 任何群成员 | 简化权限模型，后端校验成员身份即可 |
 | 置顶通知 | PIN_CHANGED WS 帧 | 实时通知所有成员 |
 | 转发 API | HTTP POST（不是 WS） | 需要后端校验权限和目标会话有效性 |
 

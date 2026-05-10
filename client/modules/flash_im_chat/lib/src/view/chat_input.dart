@@ -11,6 +11,7 @@ class ChatInput extends StatefulWidget {
   final ValueChanged<String>? onSendFile;
   final TextEditingController? controller;
   final bool isGroup;
+  final String? groupAvatar;
   final List<MentionMember>? groupMembers;
   final Future<List<MentionMember>> Function()? membersFetcher;
   final bool isOwnerOrAdmin;
@@ -24,6 +25,7 @@ class ChatInput extends StatefulWidget {
     this.onSendFile,
     this.controller,
     this.isGroup = false,
+    this.groupAvatar,
     this.groupMembers,
     this.membersFetcher,
     this.isOwnerOrAdmin = false,
@@ -102,12 +104,16 @@ class _ChatInputState extends State<ChatInput> {
     if (!mounted || members.isEmpty) return;
 
     // 转为 SelectableMember，复用 MemberPickerPage
-    final selectableMembers = members.map((m) => SelectableMember(
-      id: m.userId,
-      nickname: m.nickname,
-      avatar: m.avatar,
-      letter: m.nickname.isNotEmpty ? m.nickname[0].toUpperCase() : '#',
-    )).toList();
+    final selectableMembers = <SelectableMember>[
+      // "所有人"选项（letter='!' 排最前，不显示分组标签，avatar=null 用品牌色默认图标）
+      const SelectableMember(id: 'all', nickname: '所有人', avatar: null, letter: '!'),
+      ...members.map((m) => SelectableMember(
+        id: m.userId,
+        nickname: m.nickname,
+        avatar: m.avatar,
+        letter: PinyinUtil.getFirstLetter(m.nickname),
+      )),
+    ];
 
     final result = await Navigator.of(context).push<MemberPickerResult>(
       MaterialPageRoute(
@@ -115,6 +121,7 @@ class _ChatInputState extends State<ChatInput> {
           members: selectableMembers,
           title: '选择提醒的人',
           confirmLabel: '确定',
+          quickSelectIds: const {'all'},
           onConfirm: (r) {
             Navigator.of(context).pop(r);
           },
@@ -125,8 +132,12 @@ class _ChatInputState extends State<ChatInput> {
     if (result != null && mounted) {
       // 逐个插入 @昵称
       for (final id in result.allIds) {
-        final member = members.firstWhere((m) => m.userId == id, orElse: () => MentionMember(userId: id, nickname: '?'));
-        _onMentionSelected(member.userId, member.nickname);
+        if (id == 'all') {
+          _onMentionSelected('all', '所有人');
+        } else {
+          final member = members.firstWhere((m) => m.userId == id, orElse: () => MentionMember(userId: id, nickname: '?'));
+          _onMentionSelected(member.userId, member.nickname);
+        }
       }
     }
   }
@@ -290,69 +301,3 @@ class _MentionRecord {
   const _MentionRecord({required this.userId, required this.offset, required this.length});
 }
 
-/// @提及成员选择页面（单选，点击即返回）
-/// 参考移除群成员界面的风格，使用 SelectableMember 数据结构
-class _MentionSelectPage extends StatelessWidget {
-  final List<MentionMember> members;
-  final bool showAll;
-
-  const _MentionSelectPage({required this.members, this.showAll = false});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('选择提醒的人', style: TextStyle(fontSize: 16)),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF333333),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
-      backgroundColor: Colors.white,
-      body: ListView.separated(
-        itemCount: (showAll ? 1 : 0) + members.length,
-        separatorBuilder: (_, __) => const Padding(
-          padding: EdgeInsets.only(left: 68),
-          child: Divider(height: 0.5, thickness: 0.5, color: Color(0xFFF0F0F0)),
-        ),
-        itemBuilder: (_, index) {
-          if (showAll && index == 0) {
-            return _buildItem(context, 'all', '所有人', isAll: true);
-          }
-          final m = members[showAll ? index - 1 : index];
-          return _buildItem(context, m.userId, m.nickname);
-        },
-      ),
-    );
-  }
-
-  Widget _buildItem(BuildContext context, String userId, String nickname, {bool isAll = false}) {
-    return InkWell(
-      onTap: () => Navigator.of(context).pop({'userId': userId, 'nickname': nickname}),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        child: Row(
-          children: [
-            CircleAvatar(
-              radius: 20,
-              backgroundColor: isAll ? const Color(0xFF3B82F6) : const Color(0xFFE8E8E8),
-              child: Icon(
-                isAll ? Icons.groups : Icons.person,
-                size: 20,
-                color: isAll ? Colors.white : const Color(0xFF999999),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Text(
-              nickname,
-              style: TextStyle(
-                fontSize: 15,
-                color: isAll ? const Color(0xFF3B82F6) : const Color(0xFF333333),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}

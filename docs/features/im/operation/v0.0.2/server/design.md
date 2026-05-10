@@ -167,7 +167,7 @@ Authorization: Bearer {token}
 
 | 状态码 | 场景 |
 |--------|------|
-| 403 | 非群主/管理员 |
+| 403 | 非会话成员 |
 | 400 | 已置顶 / 超过 3 条上限 |
 | 404 | 消息不存在 |
 
@@ -182,7 +182,7 @@ Authorization: Bearer {token}
 
 响应（200）：`{"message": "ok"}`
 
-错误响应：403（非群主/管理员）、404（pin_id 不存在）
+错误响应：403（非会话成员）、404（pin_id 不存在）
 
 ---
 
@@ -284,7 +284,7 @@ server/modules/im-message/src/
 | 合并转发存储 | type=5 + extra 存原始消息 JSON | 复用 extra JSONB，不加新表 |
 | 合并转发 extra 大小 | 限制最多 20 条消息 | 防止 extra 过大 |
 | @提及后端处理 | 透传 extra.mentions，ConversationUpdate 携带 last_message_extra | 后端不解析 mentions 内容，只负责传递 |
-| 置顶权限 | 查 conversation_members.role | 复用已有的角色字段 |
+| 置顶权限 | 查 conversation_members 是否为成员 | 任何群成员都可置顶/取消置顶 |
 | 置顶上限 | 应用层校验 COUNT <= 3 | 简单，不需要数据库约束 |
 
 ## 6. 验收标准

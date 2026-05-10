@@ -42,6 +42,14 @@ class _HomePageState extends State<HomePage> {
     if (se != null) {
       se.onConversationChanged = () => _convCubit.loadConversations();
       se.onFriendListChanged = () => context.read<FriendCubit>().loadFriends();
+      se.onMentionMe = (convId, mentionId) {
+        final isAll = mentionId.endsWith(':all');
+        final msgId = mentionId.split(':').first;
+        _convCubit.addMentionMe(convId, MentionMeRecord(
+          messageId: msgId,
+          type: isAll ? MentionType.all : MentionType.me,
+        ));
+      };
     }
     _groupNotifCubit = GroupNotificationCubit(
       repository: context.read<GroupRepository>(),
@@ -357,6 +365,7 @@ class _HomePageState extends State<HomePage> {
     final user = session.user;
     if (user == null) return;
     _convCubit.clearUnread(conversation.id);
+    _convCubit.clearMentionMe(conversation.id);
     _convCubit.setActiveConversation(conversation.id);
     await Navigator.of(context).push(MaterialPageRoute(
       builder: (_) => MultiRepositoryProvider(

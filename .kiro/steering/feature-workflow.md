@@ -27,7 +27,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Analyst
 输出：`analysis.md`
-参考规范：#[[file:.kiro/steering/mermaid-diagram-writing.md]]
+参考规范：#[[file:.kiro/steering/feature-analyst.md]] #[[file:.kiro/steering/mermaid-diagram-writing.md]]
 
 包含三个投影面：
 - **交互链**：用户走什么路（用户故事 + 操作路径 + mermaid flowchart，每个场景必须附图）

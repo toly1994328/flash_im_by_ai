@@ -125,7 +125,26 @@ class MessageRepository {
       queryParameters: params,
     );
     final List data = res.data as List;
-    return data.map((e) => Message.fromJson(e as Map<String, dynamic>)).toList();
+    final messages = data.map((e) => Message.fromJson(e as Map<String, dynamic>)).toList();
+
+    // HTTP 拉到的消息写入本地缓存
+    if (_store != null && messages.isNotEmpty) {
+      final cached = messages.map((m) => CachedMessage(
+        id: m.id,
+        conversationId: m.conversationId,
+        senderId: m.senderId,
+        senderName: m.senderName,
+        senderAvatar: m.senderAvatar,
+        seq: m.seq,
+        msgType: m.type.index,
+        content: m.content,
+        extra: m.extra != null ? jsonEncode(m.extra) : null,
+        createdAt: m.createdAt.millisecondsSinceEpoch,
+      )).toList();
+      _store!.cacheMessages(cached, conversationId: conversationId);
+    }
+
+    return messages;
   }
 
   Future<ImageUploadResult> uploadImage(

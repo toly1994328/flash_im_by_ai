@@ -48,6 +48,9 @@ class MemberPickerPage extends StatefulWidget {
   /// 是否为移除模式（红色勾选 + 红色按钮）
   final bool isRemoveMode;
 
+  /// 快速选择 ID 集合：这些 ID 被勾选时立即触发 onConfirm（不等确认按钮）
+  final Set<String> quickSelectIds;
+
   const MemberPickerPage({
     super.key,
     required this.members,
@@ -57,6 +60,7 @@ class MemberPickerPage extends StatefulWidget {
     this.confirmLabel = '完成',
     this.minNewSelection = 1,
     this.isRemoveMode = false,
+    this.quickSelectIds = const {},
   });
 
   @override
@@ -114,7 +118,8 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
     double y = 0;
     for (final l in _letters) {
       _offsets[l] = y;
-      y += _kSectionH + _grouped[l]!.length * _kItemH;
+      final sectionH = l == '!' ? 0.0 : _kSectionH;
+      y += sectionH + _grouped[l]!.length * _kItemH;
     }
   }
 
@@ -127,6 +132,14 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
 
   void _toggleMember(String id) {
     if (widget.lockedIds.contains(id)) return;
+    // 快速选择：直接触发确认，不加入已选列表
+    if (widget.quickSelectIds.contains(id)) {
+      widget.onConfirm?.call(MemberPickerResult(
+        allIds: [id],
+        newIds: [id],
+      ));
+      return;
+    }
     setState(() {
       if (_selectedIds.contains(id)) {
         _selectedIds.remove(id);
@@ -283,7 +296,7 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
 
     final entries = <_Entry>[];
     for (final l in _letters) {
-      entries.add(_Entry.section(l));
+      if (l != '!') entries.add(_Entry.section(l));
       for (final m in _grouped[l]!) {
         entries.add(_Entry.member(m));
       }
@@ -345,7 +358,16 @@ class _MemberPickerPageState extends State<MemberPickerPage> {
                     : null,
               ),
               const SizedBox(width: 12),
-              AvatarWidget(avatar: member.avatar, size: 40, borderRadius: 6),
+              widget.quickSelectIds.contains(member.id) && member.avatar == null
+                  ? Container(
+                      width: 40, height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3B82F6),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: const Icon(Icons.groups, color: Colors.white, size: 22),
+                    )
+                  : AvatarWidget(avatar: member.avatar, size: 40, borderRadius: 6),
               const SizedBox(width: 12),
               Expanded(
                 child: Text(member.nickname,

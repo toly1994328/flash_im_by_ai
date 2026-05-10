@@ -199,6 +199,33 @@ class ConversationListCubit extends Cubit<ConversationListState> {
     } catch (_) {}
   }
 
+  // ─── @提及标记 ───
+
+  final Map<String, List<MentionMeRecord>> _mentionMeMap = {};
+
+  /// 收到 @我 的消息时调用
+  void addMentionMe(String conversationId, MentionMeRecord record) {
+    _mentionMeMap.putIfAbsent(conversationId, () => []).add(record);
+    final current = state;
+    if (current is ConversationListLoaded) {
+      emit(ConversationListLoaded(
+        current.conversations,
+        hasMore: current.hasMore,
+        totalUnread: current.totalUnread,
+      ));
+    }
+  }
+
+  /// 进入会话时清除 @我 标记
+  void clearMentionMe(String conversationId) {
+    _mentionMeMap.remove(conversationId);
+  }
+
+  /// 获取某会话的 @我 记录列表
+  List<MentionMeRecord> getMentionMeRecords(String conversationId) {
+    return _mentionMeMap[conversationId] ?? [];
+  }
+
   @override
   Future<void> close() {
     _updateSub?.cancel();

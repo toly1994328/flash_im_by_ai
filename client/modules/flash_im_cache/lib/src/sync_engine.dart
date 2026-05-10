@@ -18,6 +18,7 @@ class SyncEngine {
   final LocalStore _store;
   final WsClient _wsClient;
   final Dio _dio;
+  final String? currentUserId;
   final List<StreamSubscription> _subs = [];
   bool _isSyncing = false;
 
@@ -30,13 +31,18 @@ class SyncEngine {
   /// 回调：消息数据变更时触发（携带会话 ID）
   void Function(String conversationId)? onMessagesChanged;
 
+  /// 回调：收到 @我 的消息时触发（conversationId, "messageId:type"）
+  void Function(String conversationId, String mentionId)? onMentionMe;
+
   SyncEngine({
     required LocalStore store,
     required WsClient wsClient,
     required Dio dio,
+    this.currentUserId,
     this.onConversationChanged,
     this.onFriendListChanged,
     this.onMessagesChanged,
+    this.onMentionMe,
   })  : _store = store,
         _wsClient = wsClient,
         _dio = dio;
@@ -190,6 +196,24 @@ class SyncEngine {
       );
       _store.cacheMessages([message],
           conversationId: chatMsg.conversationId);
+
+      // 检测 @我：解析 extra.mentions
+      if (currentUserId != null && chatMsg.extra.isNotEmpty) {
+        try {
+          final extraStr = utf8.decode(chatMsg.extra);
+          final extraJson = json.decode(extraStr) as Map<String, dynamic>?;
+          final mentions = extraJson?['mentions'] as List?;
+          if (mentions != null) {
+            final hasAll = mentions.any((m) => m['user_id'] == 'all');
+            final hasMe = mentions.any((m) => m['user_id'] == currentUserId);
+            if (hasAll) {
+              onMentionMe?.call(chatMsg.conversationId, '${chatMsg.id}:all');
+            } else if (hasMe) {
+              onMentionMe?.call(chatMsg.conversationId, '${chatMsg.id}:me');
+            }
+          }
+        } catch (_) {}
+      }
     } catch (e) {
       print('⚠️ [SyncEngine] handleChatMessage failed: $e');
     }
@@ -205,7 +229,7 @@ class SyncEngine {
         lastMessageAt: update.lastMessageAt.toInt(),
         lastMessageExtra: update.lastMessageExtra.isNotEmpty ? update.lastMessageExtra : null,
       );
-      onConversationChanged?.call();
+      // 不调 onConversationChanged：ConversationListCubit 自己监听 WS 帧做局部更新
     } catch (e) {
       print('⚠️ [SyncEngine] handleConversationUpdate failed: $e');
     }

@@ -294,30 +294,30 @@ class MentionPicker extends StatelessWidget {
 
 ### 8.1 @字符检测 `⬜`
 
-监听 TextEditingController 变化，检测新输入的字符是否为 `@`：
+监听 TextEditingController 变化，检测输入 `@` 时 push MemberPickerPage（复用已有选人组件）：
 
 ```dart
-void _onTextChanged() {
+if (widget.isGroup) {
   final text = _controller.text;
-  final selection = _controller.selection;
-  if (selection.baseOffset > 0) {
-    final lastChar = text[selection.baseOffset - 1];
-    if (lastChar == '@' && widget.isGroup) {
-      _showMentionPicker();
-    }
+  final offset = _controller.selection.baseOffset;
+  if (offset > 0 && offset <= text.length && text[offset - 1] == '@') {
+    _openMentionPicker();
   }
 }
 ```
 
-### 8.2 选择后插入文本 `⬜`
+### 8.2 _openMentionPicker `⬜`
 
-选择成员后，在 @ 位置插入 `昵称 `（带空格），记录 MentionInfo（userId, offset, length）到列表。
+通过 membersFetcher 异步获取群成员 → 转为 SelectableMember → push MemberPickerPage（多选）。
+列表首项为"所有人"（id='all'）。选择后逐个调用 _onMentionSelected 插入 @昵称。
 
-### 8.3 发送时构建 extra.mentions `⬜`
+### 8.3 选择后插入文本 `⬜`
 
-发送消息时，将 mentions 列表转为 JSON 数组传给 ChatCubit：
+选择成员后，在 @ 位置插入 `昵称 `（带空格），记录 _MentionRecord（userId, offset, length）到列表。
 
-```dart
+### 8.4 发送时构建 extra.mentions `⬜`
+
+发送消息时，将 mentions 列表转为 JSON 数组。如果有 mentions 则调用 onSendWithMentions，否则调用 onSend。
 final mentions = _mentionInfos.map((m) => {
   'user_id': m.userId,
   'offset': m.offset,
@@ -361,30 +361,42 @@ Widget _buildRichText(String content, List<MentionInfo>? mentions) {
 
 ## 任务 10：会话列表@提示标识 `⬜`
 
-文件：`client/modules/flash_im_conversation/lib/src/view/conversation_tile.dart`（修改）
-文件：`client/modules/flash_im_cache/lib/src/models/cached_conversation.dart`（修改）
+文件：
+- `client/modules/flash_im_conversation/lib/src/data/conversation.dart`（修改：新增 MentionMeRecord + MentionType）
+- `client/modules/flash_im_conversation/lib/src/view/conversation_tile.dart`（修改：展示 @提示）
+- `client/modules/flash_im_conversation/lib/src/logic/conversation_list_cubit.dart`（修改：维护 mentionMeMap）
+- `client/modules/flash_im_cache/lib/src/sync_engine.dart`（修改：检测 @我 + onMentionMe 回调）
 
-### 10.1 CachedConversation 新增 lastMessageExtra 字段 `⬜`
+### 10.1 MentionMeRecord 结构体 `⬜`
 
 ```dart
-class CachedConversation {
-  // ... 已有字段
-  final String? lastMessageExtra; // JSON 字符串，含 mentions 等
+enum MentionType { me, all }
+
+class MentionMeRecord {
+  final String messageId;
+  final MentionType type;
 }
 ```
 
-同步修改 drift 表定义、converters、SyncEngine 的 ConversationUpdate 处理。
+### 10.2 SyncEngine 检测 @我 `⬜`
 
-### 10.2 检测 mentions 显示红色前缀 `⬜`
+`_handleChatMessage` 中解析 extra.mentions，如果包含当前用户 ID → `onMentionMe(convId, "msgId:me")`，如果包含 "all" → `onMentionMe(convId, "msgId:all")`。
 
-ConversationUpdate 帧新增了 `last_message_extra` 字段。会话列表 tile 解析该字段，如果 mentions 包含当前用户 ID 或 "all"，在预览文本前显示红色「[有人@我]」。
+### 10.3 ConversationListCubit 维护 mentionMeMap `⬜`
 
 ```dart
-// conversation_tile.dart
-if (_hasMentionMe(conv.lastMessageExtra, currentUserId)) {
-  // 前缀：红色 [有人@我]
-}
+final Map<String, List<MentionMeRecord>> _mentionMeMap = {};
+void addMentionMe(String convId, MentionMeRecord record)
+void clearMentionMe(String convId)  // 进入会话时清除
+List<MentionMeRecord> getMentionMeRecords(String convId)
 ```
+
+### 10.4 ConversationTile 展示 `⬜`
+
+- 有 MentionType.me → 优先显示 `[有人@我]`
+- 只有 MentionType.all → 显示 `[@所有人]`
+- 多条时显示数量：`[有人@我×3]`
+- 条件：`mentionMeRecords.isNotEmpty && unreadCount > 0`
 
 ---
 

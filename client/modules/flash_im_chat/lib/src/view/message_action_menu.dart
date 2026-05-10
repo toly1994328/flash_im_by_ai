@@ -208,7 +208,7 @@ class _MenuOverlayState extends State<_MenuOverlay>
       MenuAction.delete => (Icons.delete_outline, '删除'),
       MenuAction.multiSelect => (Icons.checklist, '多选'),
       MenuAction.pin => (Icons.push_pin, '置顶'),
-      MenuAction.unpin => (Icons.push_pin_outlined, '取消置顶'),
+      MenuAction.unpin => (Icons.push_pin_outlined, '取消'),
     };
   }
 }

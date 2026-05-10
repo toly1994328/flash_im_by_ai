@@ -9,12 +9,14 @@ class ConversationTile extends StatelessWidget {
   final Conversation conversation;
   final VoidCallback? onTap;
   final bool isOnline;
+  final String? currentUserId;
 
   const ConversationTile({
     super.key,
     required this.conversation,
     this.onTap,
     this.isOnline = false,
+    this.currentUserId,
   });
 
   @override
@@ -22,6 +24,7 @@ class ConversationTile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
+      onDoubleTap: () => _showDebugInfo(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: const BoxDecoration(
@@ -142,11 +145,68 @@ class ConversationTile extends StatelessWidget {
   }
 
   Widget _buildSubtitleRow() {
+    final mentions = conversation.mentionMeRecords;
+    final mentionCount = mentions.length;
+    if (mentionCount > 0 && conversation.unreadCount > 0) {
+      final hasMe = mentions.any((m) => m.type == MentionType.me);
+      final label = hasMe ? '有人@我' : '@所有人';
+      final text = mentionCount > 1 ? '[$label×$mentionCount] ' : '[$label] ';
+      return Row(
+        children: [
+          Text(text, style: const TextStyle(fontSize: 13, color: Color(0xFFFF4D4F), fontWeight: FontWeight.w500)),
+          Expanded(
+            child: Text(
+              conversation.lastMessagePreview ?? '',
+              style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        ],
+      );
+    }
     return Text(
       conversation.lastMessagePreview ?? '',
       style: const TextStyle(fontSize: 13, color: Color(0xFF999999)),
       maxLines: 1,
       overflow: TextOverflow.ellipsis,
+    );
+  }
+
+  void _showDebugInfo(BuildContext context) {
+    final info = StringBuffer();
+    info.writeln('id: ${conversation.id}');
+    info.writeln('type: ${conversation.type} (${conversation.isGroup ? "群聊" : "单聊"})');
+    info.writeln('name: ${conversation.name}');
+    info.writeln('peerUserId: ${conversation.peerUserId}');
+    info.writeln('peerNickname: ${conversation.peerNickname}');
+    info.writeln('unreadCount: ${conversation.unreadCount}');
+    info.writeln('isPinned: ${conversation.isPinned}');
+    info.writeln('isMuted: ${conversation.isMuted}');
+    info.writeln('lastMessageAt: ${conversation.lastMessageAt}');
+    info.writeln('lastMessagePreview: ${conversation.lastMessagePreview}');
+    info.writeln('lastMessageExtra: ${conversation.lastMessageExtra}');
+    info.writeln('mentionMeRecords: ${conversation.mentionMeRecords.map((r) => '${r.messageId}:${r.type.name}').toList()}');
+    info.writeln('avatar: ${conversation.avatar}');
+    info.writeln('createdAt: ${conversation.createdAt}');
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('会话详情', style: TextStyle(fontSize: 14)),
+        content: SingleChildScrollView(
+          child: SelectableText(
+            info.toString(),
+            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: const Text('关闭'),
+          ),
+        ],
+      ),
     );
   }
 

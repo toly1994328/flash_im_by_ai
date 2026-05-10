@@ -9,6 +9,8 @@ class Conversation {
   final String? peerAvatar;
   final DateTime? lastMessageAt;
   final String? lastMessagePreview;
+  final String? lastMessageExtra; // JSON，含 mentions 等
+  final List<MentionMeRecord> mentionMeRecords; // 未读的 @我 消息记录
   final int unreadCount;
   final bool isPinned;
   final bool isMuted;
@@ -25,6 +27,8 @@ class Conversation {
     this.peerAvatar,
     this.lastMessageAt,
     this.lastMessagePreview,
+    this.lastMessageExtra,
+    this.mentionMeRecords = const [],
     this.unreadCount = 0,
     this.isPinned = false,
     this.isMuted = false,
@@ -96,10 +100,21 @@ class Conversation {
           ? DateTime.parse(json['last_message_at'] as String)
           : null,
       lastMessagePreview: json['last_message_preview'] as String?,
+      lastMessageExtra: json['last_message_extra'] as String?,
       unreadCount: json['unread_count'] as int? ?? 0,
       isPinned: json['is_pinned'] as bool? ?? false,
       isMuted: json['is_muted'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }
+}
+
+/// @我 记录
+enum MentionType { me, all }
+
+class MentionMeRecord {
+  final String messageId;
+  final MentionType type;
+
+  const MentionMeRecord({required this.messageId, required this.type});
 }

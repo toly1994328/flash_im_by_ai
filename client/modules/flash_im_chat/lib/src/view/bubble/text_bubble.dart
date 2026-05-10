@@ -38,10 +38,14 @@ class TextBubble extends StatelessWidget {
     if (extra == null) return [];
     final list = extra['mentions'];
     if (list is! List) return [];
-    return list.map((m) => _MentionSpan(
-      offset: m['offset'] as int? ?? 0,
-      length: m['length'] as int? ?? 0,
-    )).toList()..sort((a, b) => a.offset.compareTo(b.offset));
+    return list
+        .map((m) => _MentionSpan(
+              offset: m['offset'] as int? ?? 0,
+              length: m['length'] as int? ?? 0,
+            ))
+        .where((m) => m.offset >= 0 && m.length > 0) // 过滤静默 mention（offset=-1）
+        .toList()
+      ..sort((a, b) => a.offset.compareTo(b.offset));
   }
 
   List<TextSpan> _buildSpans(List<_MentionSpan> mentions) {

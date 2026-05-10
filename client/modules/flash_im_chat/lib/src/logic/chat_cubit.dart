@@ -137,6 +137,20 @@ class ChatCubit extends Cubit<ChatState> {
       extra = (extra ?? {})..['mentions'] = mentions;
     }
 
+    // 群聊引用回复时，静默 @被引用者
+    if (isGroup && current.replyTo != null && current.replyTo!.senderId != currentUserId) {
+      final replySenderId = current.replyTo!.senderId;
+      final replyName = current.replyTo!.senderName;
+      final existingMentions = (extra?['mentions'] as List?) ?? [];
+      final alreadyMentioned = existingMentions.any((m) => m['user_id'] == replySenderId);
+      if (!alreadyMentioned) {
+        // @昵称 在 content 开头不存在，只在 mentions 里静默记录
+        // offset/length 设为 -1 表示不高亮（静默 mention）
+        existingMentions.add({'user_id': replySenderId, 'offset': -1, 'length': 0});
+        extra = (extra ?? {})..['mentions'] = existingMentions;
+      }
+    }
+
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
