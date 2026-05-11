@@ -19,7 +19,19 @@ docs/features/{模块}/{版本}/
 ├── client/
 │   ├── design.md            # 第 7 步：前端设计
 │   └── tasks.md             # 第 8 步：前端任务
+└── api/                     # 第 6 步：后端测试
+    └── {module}/
+        ├── request/
+        │   └── {module}.py  # 测试脚本（Python + curl），手动编写
+        └── doc/             # 接口文档（脚本运行后自动生成，不要手动编辑）
+            ├── 00_link.md   # 大纲索引
+            └── 01_xxx.md    # 各接口文档
 ```
+
+测试脚本既是测试工具也是文档生成器：运行后自动验证所有接口并生成 `doc/` 目录下的接口文档。`doc/` 里的文件全部是自动生成的，不要手动编辑。详见 #[[file:.kiro/steering/link-test-writer.md]]
+
+后端异常处理: #[[file:.kiro/steering/rust-error-handling.md]]
+
 
 ## 流水线（12 步）
 
@@ -27,7 +39,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Analyst
 输出：`analysis.md`
-参考规范：#[[file:.kiro/steering/feature-analyst.md]] #[[file:.kiro/steering/mermaid-diagram-writing.md]]
+规范具体详见#[[file:.kiro/steering/feature-analyst.md]]
 
 包含三个投影面：
 - **交互链**：用户走什么路（用户故事 + 操作路径 + mermaid flowchart，每个场景必须附图）
@@ -40,8 +52,8 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Designer
 输出：`server/design.md`
-参考规范：#[[file:.kiro/steering/feature-designer.md]] #[[file:.kiro/steering/rust-error-handling.md]]
-
+规范具体详见: #[[file:.kiro/steering/feature-designer.md]] 
+前置参考文件: 第 1 步产物的 analysis.md
 包含：
 - 数据模型（SQL + ER 图 + 设计决策表）
 - 接口契约（请求/响应 JSON + 错误码）
@@ -49,10 +61,13 @@ docs/features/{模块}/{版本}/
 - 技术决策（方案 + 理由）
 - 文件结构（新建/修改的文件清单，标注每个文件的单一职责）
 
+
 ### 第 3 步：后端任务
 
 角色：Feature Task Maker
 输出：`server/tasks.md`
+规范具体详见：#[[file:.kiro/steering/feature-task-maker.md]]
+前置参考文件：第 1 步产物的 analysis.md + 第 2 步产物的 server/design.md
 
 把 design.md 拆成可逐条执行的任务：
 - 每个任务对应一个文件
@@ -61,7 +76,7 @@ docs/features/{模块}/{版本}/
 
 ### 第 4 步：三文档交叉审查
 
-联合 analysis + design + tasks 检查一致性：
+联合后端 analysis + design + tasks 检查一致性：
 - 接口路径是否对齐
 - 功能编号是否覆盖
 - 遗漏的校验逻辑
