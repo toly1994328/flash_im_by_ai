@@ -32,7 +32,7 @@ docs/features/{模块}/{版本}/
             └── 01_xxx.md    # 各接口文档
 ```
 
-测试脚本既是测试工具也是文档生成器：运行后自动验证所有接口并生成 `doc/` 目录下的接口文档。`doc/` 里的文件全部是自动生成的，不要手动编辑。详见 #[[file:.kiro/steering/link-test-writer.md]]
+测试脚本既是测试工具也是文档生成器：运行后自动验证所有接口并生成 `doc/` 目录下的接口文档。`doc/` 里的文件全部是自动生成的，不要手动编辑。详见 #[[file:.kiro/skills/link-test-writer/SKILL.md]]
 
 
 ## 流水线（12 步）
@@ -41,7 +41,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Analyst
 输出：`analysis.md`
-规范具体详见#[[file:.kiro/steering/feature-analyst.md]]
+规范具体详见#[[file:.kiro/skills/feature-analyst/SKILL.md]]
 
 包含三个投影面：
 - **交互链**：用户走什么路（用户故事 + 操作路径 + mermaid flowchart，每个场景必须附图）
@@ -54,7 +54,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Designer
 输出：`server/design.md`
-规范具体详见: #[[file:.kiro/steering/feature-designer.md]] 
+规范具体详见: #[[file:.kiro/skills/feature-designer/SKILL.md]] 
 模块化拆分参考: #[[file:.kiro/skills/modular-design/SKILL.md]]
 前置参考文件: 第 1 步产物的 analysis.md
 包含：
@@ -69,7 +69,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Task Maker
 输出：`server/tasks.md`
-规范具体详见：#[[file:.kiro/steering/feature-task-maker.md]]
+规范具体详见：#[[file:.kiro/skills/feature-task-maker/SKILL.md]]
 前置参考文件：第 1 步产物的 analysis.md + 第 2 步产物的 server/design.md
 
 把 design.md 拆成可逐条执行的任务：
@@ -98,13 +98,13 @@ docs/features/{模块}/{版本}/
 
 用 Link Test Writer 生成测试脚本，覆盖所有正常和异常场景。
 测试通过后自动生成接口文档。
-参考规范：#[[file:.kiro/steering/link-test-writer.md]]
+参考规范：#[[file:.kiro/skills/link-test-writer/SKILL.md]]
 
 ### 第 7 步：前端设计
 
 角色：Feature Designer
 输出：`client/design.md`
-规范具体详见：#[[file:.kiro/steering/feature-designer.md]]
+规范具体详见：#[[file:.kiro/skills/feature-designer/SKILL.md]]
 模块化拆分参考：#[[file:.kiro/skills/modular-design/SKILL.md]]
 前置参考文件：第 1 步产物的 analysis.md + 第 6 步产物的 api/doc/（接口文档）
 
@@ -119,7 +119,7 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Task Maker
 输出：`client/tasks.md`
-规范具体详见：#[[file:.kiro/steering/feature-task-maker.md]]
+规范具体详见：#[[file:.kiro/skills/feature-task-maker/SKILL.md]]
 前置参考文件：第 1 步产物的 analysis.md + 第 7 步产物的 client/design.md + 第 6 步产物的 api/doc/（接口文档）
 
 把 client/design.md 拆成可逐条执行的任务：
@@ -163,7 +163,7 @@ UI 风格规范：#[[file:.kiro/skills/flash-im-ui-style/SKILL.md]]
 ### 第 12 步：归档
 
 角色：Feature Archiver
-归档规范：#[[file:.kiro/steering/feature-archiver.md]]
+归档规范：#[[file:.kiro/skills/feature-archiver/SKILL.md]]
 - 更新 `docs/features/archiver/index.md`：节点编号表 + 网络图 + 存档记录
 - 更新 `docs/features/archiver/modules/{域}/`：局域网络
 - 创建 `docs/features/archiver/trace/{版本}_{日期}.md`：存档快照
