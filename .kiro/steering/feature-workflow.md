@@ -8,6 +8,10 @@ inclusion: manual
 
 你是功能版本的流程调度者。每个功能版本按固定的 12 步流水线推进，你负责引导用户走完每一步，确保不跳步、不遗漏。
 
+## 全局规范
+
+Mermaid 图表规范：#[[file:.kiro/steering/feature-mermaid-maker.md]]（所有文档中的 mermaid 图表均需遵循）
+
 ## 工作目录
 
 ```
@@ -30,8 +34,6 @@ docs/features/{模块}/{版本}/
 
 测试脚本既是测试工具也是文档生成器：运行后自动验证所有接口并生成 `doc/` 目录下的接口文档。`doc/` 里的文件全部是自动生成的，不要手动编辑。详见 #[[file:.kiro/steering/link-test-writer.md]]
 
-后端异常处理: #[[file:.kiro/steering/rust-error-handling.md]]
-
 
 ## 流水线（12 步）
 
@@ -53,6 +55,7 @@ docs/features/{模块}/{版本}/
 角色：Feature Designer
 输出：`server/design.md`
 规范具体详见: #[[file:.kiro/steering/feature-designer.md]] 
+模块化拆分参考: #[[file:.kiro/skills/modular-design/SKILL.md]]
 前置参考文件: 第 1 步产物的 analysis.md
 包含：
 - 数据模型（SQL + ER 图 + 设计决策表）
@@ -88,7 +91,8 @@ docs/features/{模块}/{版本}/
 ### 第 5 步：后端实现
 
 按 tasks.md 顺序实现，每完成一个任务标记 ✅。
-参考规范：#[[file:.kiro/steering/rust-error-handling.md]]
+每项任务完成后，自行编译验证一下是否有异常，及时修改。
+错误处理规范：#[[file:.kiro/steering/rust-error-handling.md]]
 
 ### 第 6 步：后端测试
 
@@ -100,7 +104,9 @@ docs/features/{模块}/{版本}/
 
 角色：Feature Designer
 输出：`client/design.md`
-参考规范：#[[file:.kiro/steering/feature-designer.md]] #[[file:.kiro/steering/flash-im-ui-style.md]]
+规范具体详见：#[[file:.kiro/steering/feature-designer.md]]
+模块化拆分参考：#[[file:.kiro/skills/modular-design/SKILL.md]]
+前置参考文件：第 1 步产物的 analysis.md + 第 6 步产物的 api/doc/（接口文档）
 
 包含：
 - 文件结构（新建/修改的文件清单，标注每个文件的单一职责）
@@ -111,43 +117,53 @@ docs/features/{模块}/{版本}/
 
 ### 第 8 步：前端任务
 
-- `client/tasks.md`：逐条任务、代码骨架
+角色：Feature Task Maker
+输出：`client/tasks.md`
+规范具体详见：#[[file:.kiro/steering/feature-task-maker.md]]
+前置参考文件：第 1 步产物的 analysis.md + 第 7 步产物的 client/design.md + 第 6 步产物的 api/doc/（接口文档）
+
+把 client/design.md 拆成可逐条执行的任务：
+- 每个任务对应一个文件改动，粒度到 Widget / Cubit 方法级别
+- UI 组件给出关键 Widget 树结构和交互行为描述
+- 状态管理给出 Cubit 方法签名和 State 字段变化
+- 修改已有文件时精确到"在哪个方法里加什么"
+- 标注依赖顺序和执行顺序
 
 ### 第 9 步：前端交叉审查
 
-联合 analysis + client/design + client/tasks 检查一致性
+联合 analysis + server/design + api/doc + client/design + client/tasks 综合审查：
+- analysis 中的每条交互链是否在前端设计中都有对应的页面和流程
+- 前端调用的接口路径、参数、响应格式是否与 server/design 和 api/doc 一致
+- 组件复用的边界是否合理（扩展已有组件时，是否会破坏其他调用方的行为）
+- design 中的文件职责划分是否在 tasks 中得到体现
+- "暂不实现"的功能是否已从 tasks 中移除
 
 ### 第 10 步：前端实现
 
 按 tasks.md 顺序实现。
-参考规范：#[[file:.kiro/steering/flash-im-ui-style.md]]
+UI 风格规范：#[[file:.kiro/skills/flash-im-ui-style/SKILL.md]]
+构建验证规范：#[[file:.kiro/skills/flutter-build-verify/SKILL.md]]
 
-**完成后必须执行全量编译分析**：
-
-1. 如果涉及 drift 表定义变更，先运行代码生成：
-   ```bash
-   cd client/modules/flash_im_cache
-   dart run build_runner build --delete-conflicting-outputs
-   ```
-
-2. 全量编译分析（不可跳过）：
-   ```bash
-   cd client
-   flutter analyze
-   ```
-
-3. 必须零错误才能进入下一步。有错误必须修复后重新 analyze。
-
-> 注意：`getDiagnostics` 只检查单个文件的语法，不能替代 `flutter analyze` 的全量类型检查和跨模块依赖验证。
+完成后必须执行全量构建验证（详见 flutter-build-verify 技能），零错误才能进入下一步。
 
 ### 第 11 步：前端测试
 
-单元测试（Cubit 逻辑、数据转换）+ 集成测试（关键路径手动验证）。
+在真机或模拟器上手动验证关键路径，确认功能正常工作。
+
+验证范围：
+- 覆盖 analysis 中定义的所有交互链场景（正常流程）
+- 异常路径：网络断开、数据为空、权限不足等边界情况
+- 多端协同：A 发消息 B 收到、A 置顶所有人看到、A 转发后本地缓存同步等
+- UI 表现：动画流畅度、布局溢出、键盘弹起后的适配
+
+发现 bug 时的处理：
+- 修复后回到第 10 步重新 flutter analyze，确保修复没有引入新问题
+- 设计缺陷直接修复并更新到对应的 design/tasks 文档中
 
 ### 第 12 步：归档
 
 角色：Feature Archiver
-参考规范：#[[file:.kiro/steering/feature-archiver.md]] #[[file:.kiro/steering/feature-mermaid-maker.md]]
+归档规范：#[[file:.kiro/steering/feature-archiver.md]]
 - 更新 `docs/features/archiver/index.md`：节点编号表 + 网络图 + 存档记录
 - 更新 `docs/features/archiver/modules/{域}/`：局域网络
 - 创建 `docs/features/archiver/trace/{版本}_{日期}.md`：存档快照
