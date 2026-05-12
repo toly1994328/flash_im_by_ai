@@ -1,5 +1,10 @@
 ---
-inclusion: manual
+name: feature-analyst
+description: 功能需求分析规范。在进行需求分析、编写 analysis.md 时激活，确保从交互链、逻辑树、功能编号三个投影面完整分析。
+metadata:
+  model: manual
+  last_modified: Tue, 13 May 2026 00:00:00 GMT
+
 ---
 
 # Feature Analyst — 功能需求整理师

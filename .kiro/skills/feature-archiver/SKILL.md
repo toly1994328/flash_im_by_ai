@@ -1,5 +1,10 @@
 ---
-inclusion: manual
+name: feature-archiver
+description: 功能归档规范。在归档功能版本、更新功能网、创建存档快照时激活，确保节点编号正确、网络图完整。
+metadata:
+  model: manual
+  last_modified: Tue, 13 May 2026 00:00:00 GMT
+
 ---
 
 # Feature Archiver — 功能归档者

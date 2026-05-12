@@ -1,5 +1,10 @@
 ---
-inclusion: manual
+name: feature-designer
+description: 功能设计报告撰写规范。在进行后端或前端设计、编写 design.md 时激活，确保输出格式统一、内容完整。
+metadata:
+  model: manual
+  last_modified: Tue, 13 May 2026 00:00:00 GMT
+
 ---
 
 # Feature Designer — 设计报告撰写规范

@@ -1,5 +1,10 @@
 ---
-inclusion: manual
+name: feature-task-maker
+description: 任务清单撰写规范。在拆解任务、编写 tasks.md 时激活，确保任务粒度合理、依赖顺序清晰、代码骨架完整。
+metadata:
+  model: manual
+  last_modified: Tue, 13 May 2026 00:00:00 GMT
+
 ---
 
 # Feature Task Maker — 任务清单撰写规范
