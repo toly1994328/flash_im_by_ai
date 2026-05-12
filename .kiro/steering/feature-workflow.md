@@ -32,7 +32,7 @@ docs/features/{模块}/{版本}/
             └── 01_xxx.md    # 各接口文档
 ```
 
-测试脚本既是测试工具也是文档生成器：运行后自动验证所有接口并生成 `doc/` 目录下的接口文档。`doc/` 里的文件全部是自动生成的，不要手动编辑。详见 #[[file:.kiro/skills/link-test-writer/SKILL.md]]
+测试脚本既是测试工具也是文档生成器：运行后自动验证所有接口并生成 `doc/` 目录下的接口文档。`doc/` 里的文件全部是自动生成的，不要手动编辑。详见 #[[file:.kiro/skills/feature-link-test-writer/SKILL.md]]
 
 
 ## 流水线（12 步）
@@ -98,7 +98,7 @@ docs/features/{模块}/{版本}/
 
 用 Link Test Writer 生成测试脚本，覆盖所有正常和异常场景。
 测试通过后自动生成接口文档。
-参考规范：#[[file:.kiro/skills/link-test-writer/SKILL.md]]
+参考规范：#[[file:.kiro/skills/feature-link-test-writer/SKILL.md]]
 
 ### 第 7 步：前端设计
 

@@ -1,5 +1,5 @@
 ---
-name: link-test-writer
+name: feature-link-test-writer
 description: API 测试链撰写规范。在编写后端接口测试脚本、生成接口文档时激活，确保测试覆盖完整、文档自动生成。
 metadata:
   model: manual
