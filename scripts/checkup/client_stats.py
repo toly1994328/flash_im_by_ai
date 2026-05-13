@@ -59,7 +59,9 @@ def count_dart_files(directory):
 def main():
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
     today = date.today().strftime("%Y-%m-%d")
-    output_file = OUTPUT_DIR / f"{today}_client_stats.md"
+    out_dir = OUTPUT_DIR / f"{today}_client"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    output_file = out_dir / "01_望_结构统计.md"
     
     lines_out = []
     def out(text=""):
