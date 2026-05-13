@@ -16,17 +16,31 @@ CLIENT_DIR = PROJECT_DIR / "client"
 OUTPUT_DIR = PROJECT_DIR / "docs" / "project" / "checkup"
 
 
+def get_latest_tag():
+    """从 git 获取最新 tag"""
+    try:
+        result = subprocess.run(
+            ["git", "describe", "--tags", "--abbrev=0"],
+            cwd=str(PROJECT_DIR),
+            capture_output=True, text=True, shell=True,
+        )
+        tag = result.stdout.strip()
+        return tag if tag else "unknown"
+    except:
+        return "unknown"
+
+
 def run_analyze():
     """运行 flutter analyze 并捕获输出"""
-    result = subprocess.run(
-        ["flutter", "analyze"],
-        cwd=str(CLIENT_DIR),
-        capture_output=True,
-        text=True,
-        encoding="utf-8",
-        shell=True,
-    )
-    return result.stdout + result.stderr
+    import tempfile
+    tmp = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False, encoding='utf-8')
+    tmp.close()
+    cmd = f'cd /d "{CLIENT_DIR}" && flutter analyze > "{tmp.name}" 2>&1'
+    os.system(cmd)
+    with open(tmp.name, 'r', encoding='utf-8', errors='ignore') as f:
+        output = f.read()
+    os.unlink(tmp.name)
+    return output
 
 
 def parse_issues(output):
@@ -123,10 +137,12 @@ def main():
     print(report)
     
     # 保存到文件
-    today = date.today().strftime("%Y-%m-%d")
-    out_dir = OUTPUT_DIR / f"{today}_client"
+    tag = get_latest_tag()
+    out_dir = OUTPUT_DIR / f"{tag}_client"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "02_闻_静态分析.md"
+    out_file.write_text(report, encoding="utf-8")
+    print(f"\n✅ 结果已保存到: {out_file}")
     out_file.write_text(report, encoding="utf-8")
     print(f"\n✅ 结果已保存到: {out_file}")
 
