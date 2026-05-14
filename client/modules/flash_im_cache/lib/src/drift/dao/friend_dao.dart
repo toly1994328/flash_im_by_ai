@@ -20,14 +20,16 @@ class FriendDao {
         .get();
   }
 
-  /// 全量同步：删除本地多余的 + upsert 远程数据
+  /// 全量同步：删除本地多余的 + upsert 远程数据（事务保证原子性）
   Future<void> syncAll(List<CachedFriendsTableCompanion> remote) async {
-    final remoteIds = remote.map((c) => c.friendId.value).toSet();
-    await (_db.delete(_db.cachedFriendsTable)
-          ..where((t) => t.friendId.isNotIn(remoteIds)))
-        .go();
-    await _db.batch((batch) {
-      batch.insertAllOnConflictUpdate(_db.cachedFriendsTable, remote);
+    await _db.transaction(() async {
+      final remoteIds = remote.map((c) => c.friendId.value).toSet();
+      await (_db.delete(_db.cachedFriendsTable)
+            ..where((t) => t.friendId.isNotIn(remoteIds)))
+          .go();
+      await _db.batch((batch) {
+        batch.insertAllOnConflictUpdate(_db.cachedFriendsTable, remote);
+      });
     });
   }
 

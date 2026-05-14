@@ -91,7 +91,7 @@ class _ReceivedTab extends StatelessWidget {
         }
         return ListView.separated(
           itemCount: state.receivedRequests.length,
-          separatorBuilder: (_, __) => const Padding(
+          separatorBuilder: (_, _) => const Padding(
             padding: EdgeInsets.only(left: 68),
             child: Divider(height: 0.5, thickness: 0.5, color: Color(0xFFF0F0F0)),
           ),
@@ -195,7 +195,7 @@ class _SentTab extends StatelessWidget {
         }
         return ListView.separated(
           itemCount: state.sentRequests.length,
-          separatorBuilder: (_, __) => const Padding(
+          separatorBuilder: (_, _) => const Padding(
             padding: EdgeInsets.only(left: 68),
             child: Divider(height: 0.5, thickness: 0.5, color: Color(0xFFF0F0F0)),
           ),

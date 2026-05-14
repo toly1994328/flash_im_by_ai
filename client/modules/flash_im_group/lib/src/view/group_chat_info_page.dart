@@ -456,54 +456,6 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
     return AvatarWidget(avatar: resolved, size: size, borderRadius: 4);
   }
 
-  void _showEditAvatar() {
-    if (!_isOwner) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('仅群主可修改群头像')),
-      );
-      return;
-    }
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('群头像修改功能开发中')),
-    );
-  }
-
-  // ─── 群管理 BottomSheet ───
-
-  void _showManageSheet() {
-    showModalBottomSheet(
-      context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(12)),
-      ),
-      builder: (ctx) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.swap_horiz, color: Color(0xFF333333)),
-              title: const Text('转让群主', style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _showTransferSheet();
-              },
-            ),
-            const Divider(height: 0.5),
-            ListTile(
-              leading: const Icon(Icons.delete_forever, color: Color(0xFFF44336)),
-              title: const Text('解散群聊', style: TextStyle(fontSize: 16, color: Color(0xFFF44336))),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _confirmDisband();
-              },
-            ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
-    );
-  }
-
   // ─── 群公告 ───
 
   Future<void> _openAnnouncement() async {

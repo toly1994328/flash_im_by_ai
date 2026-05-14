@@ -138,7 +138,7 @@ class _ConversationSearchPageState extends State<ConversationSearchPage> {
 
     return ListView.separated(
       itemCount: _results!.length,
-      separatorBuilder: (_, __) => const Divider(
+      separatorBuilder: (_, _) => const Divider(
         height: 0.5,
         thickness: 0.5,
         color: Color(0xFFE8E8E8),

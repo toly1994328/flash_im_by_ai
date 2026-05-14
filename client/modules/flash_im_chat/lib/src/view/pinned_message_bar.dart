@@ -146,7 +146,7 @@ class _PinnedMessageBarState extends State<PinnedMessageBar> with SingleTickerPr
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
                         itemCount: widget.pinnedMessages.length,
-                        separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
+                        separatorBuilder: (_, _) => const Divider(height: 1, color: Color(0xFFF0F0F0)),
                         itemBuilder: (_, index) {
                           final pin = widget.pinnedMessages[index];
                           return _PinMessageItem(

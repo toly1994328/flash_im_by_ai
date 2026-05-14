@@ -18,44 +18,47 @@ metadata:
 
 ### 第一步：望（看结构）
 
-不读代码，只看项目的"外观"：目录结构、文件命名、模块划分。
+运行统计脚本，产出模块文件数、行数、字符数、占比、大文件排行。
 
-检查项：
-- 各模块的文件数量是否均衡？有没有某个模块异常膨胀？
-- 有没有叫 utils/helpers/common 的垃圾桶文件？里面塞了多少东西？
-- shared 模块里的文件，是否真的被多个模块使用？有没有只被一个模块用的？
-- 有没有废弃的文件/目录还留在项目里？（如 playground、临时测试文件）
+```bash
+python scripts/checkup/client_stats.py    # 前端
+python scripts/checkup/server_stats.py    # 后端
+```
+
+产出：
+- 前端：`docs/project/checkup/{tag}/client/01_望_结构统计.md`
+- 后端：`docs/project/checkup/{tag}/server/01_望_结构统计.md`
+
+脚本自动完成数字统计后，AI 在 `03_问_代码审查.md` 中基于统计结果进行结构审查：
+- 各模块占比是否均衡？有没有某个模块异常膨胀？
+- shared 模块里的文件，是否真的被多个模块使用？
+- 有没有废弃的文件/目录还留在项目里？
 - 模块命名是否能让人一眼看出职责？
-
-输出：结构问题清单（标注严重程度）
+- 大文件排行里的文件，是否需要拆分？
 
 ### 第二步：闻（跑工具）
 
-用编译器和静态分析工具"听"项目的声音。
+运行静态分析脚本，产出 error/warning/info 分类统计。
 
-执行：
 ```bash
-# 前端
-cd client
-flutter analyze
-
-# 后端
-cd server
-cargo clippy -- -W warnings
+python scripts/checkup/client_analyze.py  # 前端（flutter analyze）
+python scripts/checkup/server_analyze.py  # 后端（cargo clippy）
 ```
 
-检查项：
-- error 数量（必须为 0）
-- warning 数量和类型分布
-- info/hint 中有没有值得关注的
-- 未使用的 import、变量、参数
-- 过时的 API 调用
+产出：
+- 前端：`docs/project/checkup/{tag}/client/02_闻_静态分析.md`
+- 后端：`docs/project/checkup/{tag}/server/02_闻_静态分析.md`
 
-输出：静态分析报告（error/warning/info 分类统计 + 典型问题列举）
+脚本自动完成分析后，AI 在 `03_问_代码审查.md` 中基于分析结果进行解读：
+- warning 的共同特征是什么？（如"都是未使用的代码"说明有死代码堆积）
+- info 里哪些值得关注？（如 `use_build_context_synchronously` 是潜在运行时风险）
+- 和上次体检对比，问题是增多了还是减少了？
 
 ### 第三步：问（AI 审查）
 
-让 AI 深入阅读关键模块的代码，从设计角度审查。
+AI 深入阅读关键模块的代码，从设计角度审查，结合望、闻阶段的结果，产出代码质量与问题汇报。
+
+产出：`docs/project/checkup/{tag}/client/03_问_代码审查.md`（后端同理放 server 目录）
 
 审查维度：
 - **职责单一性**：这个类/模块是否只做一件事？有没有"顺手加进来"的逻辑？
@@ -67,12 +70,12 @@ cargo clippy -- -W warnings
 - **生命周期**：Stream 订阅有没有对应的取消？Controller 有没有 dispose？
 
 审查范围（按优先级）：
-1. 跨模块的公共接口（barrel file / 公开 API）
-2. 状态管理层（Cubit / State）
-3. 数据层（Repository / LocalStore）
-4. 最近改动频繁的文件
+1. 望和闻中发现的问题文件（大文件、warning 集中的文件）
+2. 跨模块的公共接口（barrel file / 公开 API）
+3. 状态管理层（Cubit / State）
+4. 数据层（Repository / LocalStore）
 
-输出：代码审查报告（按模块分组，每个问题标注严重程度 + 修复建议）
+报告内容：按模块分组，每个问题标注严重程度 + 具体位置 + 问题描述。
 
 ### 第四步：切（深入诊断）
 
@@ -90,32 +93,57 @@ cargo clippy -- -W warnings
 
 ## 体检报告格式
 
-每端各产出一份独立的体检报告，存放在对应目录下。
+每端各产出一份独立的体检目录，按版本号命名。
 
 产出位置：
-- 前端：`docs/project/checkup/{日期}_client.md`
-- 后端：`docs/project/checkup/{日期}_server.md`
+- 前端：`docs/project/checkup/{tag}/client/`
+- 后端：`docs/project/checkup/{tag}/server/`
 
-单份报告格式：
+目录结构：
+```
+docs/project/checkup/{tag}/
+├── client/
+│   ├── 01_望_结构统计.md    ← 脚本自动生成
+│   ├── 02_闻_静态分析.md    ← 脚本自动生成
+│   ├── 03_问_代码审查.md    ← AI 审查后记录
+│   └── 04_切_确诊处方.md    ← 汇总确诊 + 处方
+└── server/
+    ├── 01_望_结构统计.md
+    ├── 02_闻_静态分析.md
+    ├── 03_问_代码审查.md
+    └── 04_切_确诊处方.md
+```
+
+03 和 04 由 AI 基于前两步的产出进行深入分析，写入对应文件。格式如下：
 
 ```markdown
-# {端} 体检报告
+# {端} 代码审查（问）
 
-日期：YYYY-MM-DD
+日期：YYYY-MM-DD　版本：{tag}
 
-## 望：结构问题
-
-...
-
-## 闻：静态分析
+## 审查范围
 
 ...
 
-## 问：代码审查
+## 发现
+
+### 模块 A
 
 ...
 
-## 切：确诊与处方
+### 模块 B
+
+...
+```
+
+确诊处方格式：
+
+```markdown
+# {端} 确诊与处方（切）
+
+日期：YYYY-MM-DD　版本：{tag}
+
+## 确诊清单
 
 | # | 级别 | 问题 | 位置 | 处方 |
 |---|------|------|------|------|

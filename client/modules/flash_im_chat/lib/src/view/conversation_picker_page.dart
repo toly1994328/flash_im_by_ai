@@ -47,13 +47,13 @@ class _ConversationPickerPageState extends State<ConversationPickerPage> {
 
       setState(() {
         _members = convs.map((c) {
-          final name = c['name'] ?? c['peer_nickname'] ?? '未知';
+          final String name = (c['name'] ?? c['peer_nickname'] ?? '未知') as String;
           final avatar = c['avatar'] ?? c['peer_avatar'];
           return SelectableMember(
             id: c['id'] as String,
-            nickname: name as String,
+            nickname: name,
             avatar: avatar as String?,
-            letter: PinyinUtil.getFirstLetter(name as String),
+            letter: PinyinUtil.getFirstLetter(name),
           );
         }).toList();
         _loading = false;

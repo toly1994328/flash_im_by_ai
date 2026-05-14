@@ -115,7 +115,6 @@ class _MenuOverlayState extends State<_MenuOverlay>
   @override
   Widget build(BuildContext context) {
     final screenSize = MediaQuery.of(context).size;
-    const menuPadding = 8.0;
 
     final bubbleRight = widget.position.dx + widget.bubbleSize.width;
     final bubbleTop = widget.position.dy;

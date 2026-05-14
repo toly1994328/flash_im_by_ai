@@ -1,7 +1,6 @@
 import 'package:flash_shared/flash_shared.dart';
 import 'package:flutter/material.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
-import '../data/group_models.dart';
 
 /// 我的群聊页面
 ///

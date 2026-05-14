@@ -118,7 +118,7 @@ class _MessageDetailPageState extends State<MessageDetailPage> {
               : ListView.separated(
                   controller: _scrollController,
                   itemCount: _messages.length + (_hasMore ? 1 : 0),
-                  separatorBuilder: (_, __) => const Divider(
+                  separatorBuilder: (_, _) => const Divider(
                     height: 0.5, thickness: 0.5,
                     color: Color(0xFFE8E8E8), indent: 68,
                   ),

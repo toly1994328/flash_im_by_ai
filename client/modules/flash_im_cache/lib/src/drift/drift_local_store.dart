@@ -22,9 +22,14 @@ class DriftLocalStore implements LocalStore {
   late final FriendDao _friendDao;
   late final TrashDao _trashDao;
   final _changeController = StreamController<CacheChangeEvent>.broadcast();
+  bool _isClosed = false;
 
   @override
   Stream<CacheChangeEvent> get changeStream => _changeController.stream;
+
+  void _emitChange(CacheChangeEvent event) {
+    if (!_isClosed) _changeController.add(event);
+  }
 
   DriftLocalStore(this._db) {
     _messageDao = MessageDao(_db);
@@ -45,7 +50,7 @@ class DriftLocalStore implements LocalStore {
   Future<void> cacheMessages(List<CachedMessage> messages,
       {String? conversationId}) async {
     await _messageDao.upsertAll(messages.map(toMessageCompanion).toList());
-    _changeController.add(CacheChangeEvent(CacheChangeType.messages,
+    _emitChange(CacheChangeEvent(CacheChangeType.messages,
         conversationId: conversationId));
   }
 
@@ -73,8 +78,7 @@ class DriftLocalStore implements LocalStore {
   Future<void> cacheConversations(List<CachedConversation> conversations) async {
     await _conversationDao
         .upsertAll(conversations.map(toConversationCompanion).toList());
-    _changeController
-        .add(const CacheChangeEvent(CacheChangeType.conversations));
+    _emitChange(const CacheChangeEvent(CacheChangeType.conversations));
   }
 
   @override
@@ -101,23 +105,20 @@ class DriftLocalStore implements LocalStore {
         lastMessagePreview: lastMessagePreview,
         lastMessageAt: lastMessageAt,
         lastMessageExtra: lastMessageExtra);
-    _changeController
-        .add(const CacheChangeEvent(CacheChangeType.conversations));
+    _emitChange(const CacheChangeEvent(CacheChangeType.conversations));
   }
 
   @override
   Future<void> syncConversations(List<CachedConversation> remote) async {
     await _conversationDao
         .syncAll(remote.map(toConversationCompanion).toList());
-    _changeController
-        .add(const CacheChangeEvent(CacheChangeType.conversations));
+    _emitChange(const CacheChangeEvent(CacheChangeType.conversations));
   }
 
   @override
   Future<void> deleteConversation(String id) async {
     await _conversationDao.deleteById(id);
-    _changeController
-        .add(const CacheChangeEvent(CacheChangeType.conversations));
+    _emitChange(const CacheChangeEvent(CacheChangeType.conversations));
   }
 
   // ─── 好友 ───
@@ -125,7 +126,7 @@ class DriftLocalStore implements LocalStore {
   @override
   Future<void> cacheFriends(List<CachedFriend> friends) async {
     await _friendDao.upsertAll(friends.map(toFriendCompanion).toList());
-    _changeController.add(const CacheChangeEvent(CacheChangeType.friends));
+    _emitChange(const CacheChangeEvent(CacheChangeType.friends));
   }
 
   @override
@@ -137,13 +138,13 @@ class DriftLocalStore implements LocalStore {
   @override
   Future<void> syncFriends(List<CachedFriend> remote) async {
     await _friendDao.syncAll(remote.map(toFriendCompanion).toList());
-    _changeController.add(const CacheChangeEvent(CacheChangeType.friends));
+    _emitChange(const CacheChangeEvent(CacheChangeType.friends));
   }
 
   @override
   Future<void> deleteFriend(String friendId) async {
     await _friendDao.deleteById(friendId);
-    _changeController.add(const CacheChangeEvent(CacheChangeType.friends));
+    _emitChange(const CacheChangeEvent(CacheChangeType.friends));
   }
 
   // ─── 管理 ───
@@ -177,6 +178,7 @@ class DriftLocalStore implements LocalStore {
 
   @override
   void dispose() {
+    _isClosed = true;
     _changeController.close();
     _db.close();
   }

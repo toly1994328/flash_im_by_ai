@@ -252,12 +252,15 @@ class ConversationTile extends StatelessWidget {
 
   String _formatTime(DateTime time) {
     final now = DateTime.now();
-    final diff = now.difference(time);
-    if (diff.inDays == 0) {
+    final today = DateTime(now.year, now.month, now.day);
+    final yesterday = today.subtract(const Duration(days: 1));
+    final messageDay = DateTime(time.year, time.month, time.day);
+
+    if (messageDay == today) {
       return '${time.hour.toString().padLeft(2, '0')}:${time.minute.toString().padLeft(2, '0')}';
-    } else if (diff.inDays == 1) {
+    } else if (messageDay == yesterday) {
       return '昨天';
-    } else if (diff.inDays < 7) {
+    } else if (today.difference(messageDay).inDays < 7) {
       const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
       return weekdays[time.weekday - 1];
     } else {

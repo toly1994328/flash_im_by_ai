@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shimmer/shimmer.dart';
-import 'package:flash_im_core/flash_im_core.dart' show WsClient, WsFrame, WsFrameType, GroupInfoUpdate, UserStatusNotification;
+import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
 import 'package:flash_shared/flash_shared.dart' show MemberPickerResult;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
 import '../data/message.dart';
@@ -290,7 +290,7 @@ class _ChatPageState extends State<ChatPage> {
                           ],
                         ),
                       ),
-                      ChatLoaded(:final messages, :final hasMore, :final isLoadingMore) =>
+                      ChatLoaded(:final messages, :final hasMore) =>
                         messages.isEmpty
                           ? const Center(child: Text('暂无消息', style: TextStyle(color: Colors.grey)))
                           : _buildMessageList(messages, hasMore),
@@ -615,57 +615,6 @@ class _ChatPageState extends State<ChatPage> {
       }
       _scrollController.addListener(onScroll);
     }
-  }
-
-  void _confirmForward(BuildContext context, ChatCubit cubit, Message msg, List<String> targetIds) {
-    // 延迟一帧确保前一个页面完全 pop 完毕
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) return;
-      showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: Text(
-          targetIds.length > 1 ? '转发给 ${targetIds.length} 个会话' : '转发消息',
-          style: const TextStyle(fontSize: 16),
-        ),
-        content: Container(
-          alignment:  Alignment.center,
-          constraints: const BoxConstraints(maxHeight: 200),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF8F8F8),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: _buildForwardPreview(msg),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('取消', style: TextStyle(color: Color(0xFF999999))),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              for (final targetConvId in targetIds) {
-                cubit.forwardMessages(
-                  messageIds: [msg.id],
-                  targetConvId: targetConvId,
-                  forwardType: 'single',
-                );
-              }
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
-              );
-            },
-            child: const Text('发送', style: TextStyle(color: Color(0xFF3B82F6))),
-          ),
-        ],
-      ),
-    );
-    });
   }
 
   Widget _buildForwardPreview(Message msg) {

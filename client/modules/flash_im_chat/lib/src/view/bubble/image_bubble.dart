@@ -51,13 +51,13 @@ class ImageBubble extends StatelessWidget {
     Widget imageWidget;
     if (isLocal) {
       imageWidget = Image.file(File(url), fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => placeholder());
+        errorBuilder: (_, _, _) => placeholder());
     } else {
       final imageUrl = _fullUrl(url);
       imageWidget = Stack(children: [
         placeholder(loading: true),
         Positioned.fill(child: Image.network(imageUrl, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => placeholder())),
+          errorBuilder: (_, _, _) => placeholder())),
       ]);
     }
 

@@ -140,7 +140,6 @@ class ChatCubit extends Cubit<ChatState> {
     // 群聊引用回复时，静默 @被引用者
     if (isGroup && current.replyTo != null && current.replyTo!.senderId != currentUserId) {
       final replySenderId = current.replyTo!.senderId;
-      final replyName = current.replyTo!.senderName;
       final existingMentions = (extra?['mentions'] as List?) ?? [];
       final alreadyMentioned = existingMentions.any((m) => m['user_id'] == replySenderId);
       if (!alreadyMentioned) {

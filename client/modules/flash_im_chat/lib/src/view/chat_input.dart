@@ -41,7 +41,6 @@ class _ChatInputState extends State<ChatInput> {
   bool _ownController = false;
   bool _hasText = false;
   bool _showMorePanel = false;
-  bool _showMentionPicker = false;
   final List<_MentionRecord> _mentions = [];
 
   @override
@@ -92,7 +91,7 @@ class _ChatInputState extends State<ChatInput> {
       length: 1 + nickname.length, // @昵称（不含尾部空格）
     ));
 
-    setState(() => _showMentionPicker = false);
+    setState(() {});
   }
 
   Future<void> _openMentionPicker() async {

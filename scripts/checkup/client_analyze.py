@@ -138,7 +138,7 @@ def main():
     
     # 保存到文件
     tag = get_latest_tag()
-    out_dir = OUTPUT_DIR / f"{tag}_client"
+    out_dir = OUTPUT_DIR / tag / "client"
     out_dir.mkdir(parents=True, exist_ok=True)
     out_file = out_dir / "02_闻_静态分析.md"
     out_file.write_text(report, encoding="utf-8")

@@ -49,13 +49,13 @@ class VideoBubble extends StatelessWidget {
     if (isLocalThumb) {
       thumbWidget = Image.file(File(message.content),
         width: placeholderW, height: placeholderH, fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => videoPlaceholder());
+        errorBuilder: (_, _, _) => videoPlaceholder());
     } else if (thumbUrl.isNotEmpty) {
       final fullThumbUrl = _fullUrl(thumbUrl);
       thumbWidget = Stack(children: [
         videoPlaceholder(),
         Positioned.fill(child: Image.network(fullThumbUrl, fit: BoxFit.cover,
-          errorBuilder: (_, __, ___) => videoPlaceholder())),
+          errorBuilder: (_, _, _) => videoPlaceholder())),
       ]);
     } else {
       thumbWidget = videoPlaceholder();

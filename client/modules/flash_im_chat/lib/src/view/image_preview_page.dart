@@ -21,7 +21,7 @@ class ImagePreviewPage extends StatelessWidget {
             child: Image.network(
               imageUrl,
               fit: BoxFit.contain,
-              errorBuilder: (_, __, ___) => const Icon(
+              errorBuilder: (_, _, _) => const Icon(
                 Icons.broken_image_outlined,
                 color: Colors.white54,
                 size: 64,

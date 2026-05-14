@@ -14,21 +14,21 @@ GoRouter createRouter({
     routes: [
       GoRoute(
         path: '/',
-        builder: (_, __) => SplashPage(
+        builder: (_, _) => SplashPage(
           tasks: startupTasks,
           onComplete: onStartupComplete,
         ),
       ),
       GoRoute(
         path: '/login',
-        builder: (_, __) => LoginPage(
+        builder: (_, _) => LoginPage(
           authRepository: authRepository,
           onLoginSuccess: onLoginSuccess,
         ),
       ),
       GoRoute(
         path: '/home',
-        builder: (_, __) => const HomePage(),
+        builder: (_, _) => const HomePage(),
       ),
     ],
   );

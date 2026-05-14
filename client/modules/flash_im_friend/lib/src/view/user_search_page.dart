@@ -141,7 +141,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
     }
     return ListView.separated(
       itemCount: _results.length,
-      separatorBuilder: (_, __) => const Padding(
+      separatorBuilder: (_, _) => const Padding(
         padding: EdgeInsets.only(left: 68),
         child: Divider(height: 0.5, thickness: 0.5, color: Color(0xFFF0F0F0)),
       ),

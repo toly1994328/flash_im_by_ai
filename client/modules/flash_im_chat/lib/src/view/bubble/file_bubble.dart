@@ -55,7 +55,7 @@ class FileBubble extends StatelessWidget {
           if (isDownloading)
             Positioned.fill(child: FractionallySizedBox(
               alignment: Alignment.centerLeft,
-              widthFactor: dlInfo!.progress,
+              widthFactor: dlInfo.progress,
               child: Container(color: const Color(0xFF3B82F6).withValues(alpha: 0.1)),
             )),
           Padding(

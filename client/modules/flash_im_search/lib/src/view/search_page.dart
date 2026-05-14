@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -60,10 +62,12 @@ class _SearchView extends StatefulWidget {
 class _SearchViewState extends State<_SearchView> {
   final _controller = TextEditingController();
   final _focusNode = FocusNode();
+  Timer? _debounceTimer;
 
   static const _historyKey = 'im_search_history';
   static const _maxHistory = 20;
   List<String> _history = [];
+  SharedPreferences? _prefs;
 
   // 各分区是否展开
   bool _friendExpanded = false;
@@ -73,24 +77,25 @@ class _SearchViewState extends State<_SearchView> {
   @override
   void initState() {
     super.initState();
-    _loadHistory();
+    _initPrefs();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _focusNode.requestFocus();
     });
   }
 
+  Future<void> _initPrefs() async {
+    _prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _history = _prefs!.getStringList(_historyKey) ?? [];
+    });
+  }
+
   @override
   void dispose() {
+    _debounceTimer?.cancel();
     _controller.dispose();
     _focusNode.dispose();
     super.dispose();
-  }
-
-  Future<void> _loadHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _history = prefs.getStringList(_historyKey) ?? [];
-    });
   }
 
   Future<void> _saveKeyword(String keyword) async {
@@ -101,22 +106,24 @@ class _SearchViewState extends State<_SearchView> {
     if (_history.length > _maxHistory) {
       _history = _history.sublist(0, _maxHistory);
     }
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setStringList(_historyKey, _history);
+    await _prefs?.setStringList(_historyKey, _history);
     if (mounted) setState(() {});
   }
 
   Future<void> _clearHistory() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_historyKey);
+    await _prefs?.remove(_historyKey);
     setState(() => _history = []);
   }
 
   void _onSearch(String keyword) {
+    _debounceTimer?.cancel();
     context.read<SearchCubit>().search(keyword);
-    if (keyword.trim().isNotEmpty) {
+    if (keyword.trim().isEmpty) return;
+    // 延迟保存搜索历史，避免每次按键都写 SharedPreferences
+    _debounceTimer = Timer(const Duration(milliseconds: 500), () {
+      if (!mounted) return;
       _saveKeyword(keyword);
-    }
+    });
     setState(() {
       _friendExpanded = false;
       _groupExpanded = false;

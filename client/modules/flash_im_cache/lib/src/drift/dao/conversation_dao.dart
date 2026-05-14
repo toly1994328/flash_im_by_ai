@@ -56,16 +56,18 @@ class ConversationDao {
     );
   }
 
-  /// 全量同步：删除本地多余的 + upsert 远程数据
+  /// 全量同步：删除本地多余的 + upsert 远程数据（事务保证原子性）
   Future<void> syncAll(
       List<CachedConversationsTableCompanion> remote) async {
-    final remoteIds = remote.map((c) => c.id.value).toSet();
-    await (_db.delete(_db.cachedConversationsTable)
-          ..where((t) => t.id.isNotIn(remoteIds)))
-        .go();
-    await _db.batch((batch) {
-      batch.insertAllOnConflictUpdate(
-          _db.cachedConversationsTable, remote);
+    await _db.transaction(() async {
+      final remoteIds = remote.map((c) => c.id.value).toSet();
+      await (_db.delete(_db.cachedConversationsTable)
+            ..where((t) => t.id.isNotIn(remoteIds)))
+          .go();
+      await _db.batch((batch) {
+        batch.insertAllOnConflictUpdate(
+            _db.cachedConversationsTable, remote);
+      });
     });
   }
 

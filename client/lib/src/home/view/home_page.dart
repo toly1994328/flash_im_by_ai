@@ -355,7 +355,7 @@ class _HomePageState extends State<HomePage> {
     if (user == null) return;
     try {
       final conv = await context.read<ConversationRepository>().getById(conversationId);
-      if (!mounted) return;
+      if (!context.mounted) return;
       _openChat(context, conv);
     } catch (_) {}
   }
@@ -593,7 +593,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final conv = await context.read<ConversationRepository>()
           .createPrivate(int.parse(friend.friendId));
-      if (!mounted) return;
+      if (!context.mounted) return;
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => MultiRepositoryProvider(
           providers: [
@@ -664,7 +664,7 @@ class _HomePageState extends State<HomePage> {
     try {
       final conv = await context.read<GroupRepository>()
           .createGroup(name: result.name, memberIds: result.memberIds);
-      if (!mounted) return;
+      if (!context.mounted) return;
       _convCubit.loadConversations();
       final session = context.read<SessionCubit>().state;
       final user = session.user;
@@ -726,11 +726,10 @@ class _HomePageState extends State<HomePage> {
         ),
       ));
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('创建群聊失败：$e')),
-        );
-      }
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('创建群聊失败：$e')),
+      );
     }
   }
 
