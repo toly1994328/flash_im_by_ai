@@ -155,6 +155,27 @@ void main() {
     );
   });
 
+  group('场景 4：发送超时', () {
+    test('10 秒后未收到 ACK，消息标记为 failed', () async {
+      when(() => mockRepo.getMessages(TestFixtures.defaultConvId))
+          .thenAnswer((_) async => []);
+      final cubit = buildCubit();
+      await cubit.loadMessages();
+
+      cubit.sendMessage('超时测试');
+      var state = cubit.state as ChatLoaded;
+      expect(state.messages.first.status, MessageStatus.sending);
+
+      // 等待超时（10 秒）
+      await Future.delayed(const Duration(seconds: 11));
+
+      state = cubit.state as ChatLoaded;
+      expect(state.messages.first.status, MessageStatus.failed);
+
+      await cubit.close();
+    }, timeout: const Timeout(Duration(seconds: 15)));
+  });
+
   group('场景 5：接收对方消息', () {
     blocTest<ChatCubit, ChatState>(
       '收到对方消息后列表更新',
@@ -221,6 +242,74 @@ void main() {
       verify: (cubit) {
         final state = cubit.state as ChatLoaded;
         expect(state.messages.first.content, '你撤回了一条消息');
+      },
+    );
+  });
+
+  group('场景 7：置顶消息', () {
+    blocTest<ChatCubit, ChatState>(
+      'pinMessage 后 pinnedMessages 列表更新',
+      build: () {
+        when(() => mockRepo.getMessages(TestFixtures.defaultConvId))
+            .thenAnswer((_) async => [TestFixtures.message()]);
+        when(() => mockRepo.pinMessage(TestFixtures.defaultConvId, 'msg_1'))
+            .thenAnswer((_) async => {'pin_id': 'pin_1'});
+        when(() => mockRepo.getPinnedMessages(TestFixtures.defaultConvId))
+            .thenAnswer((_) async => [
+                  {'pin_id': 'pin_1', 'message_id': 'msg_1', 'content': 'hello', 'msg_type': 0, 'sender_name': '测试', 'pinned_by': 1, 'pinned_at': '2026-01-01T00:00:00Z'}
+                ]);
+        return buildCubit();
+      },
+      act: (cubit) async {
+        await cubit.loadMessages();
+        await cubit.pinMessage('msg_1');
+      },
+      verify: (cubit) {
+        final state = cubit.state as ChatLoaded;
+        expect(state.pinnedMessages.length, 1);
+      },
+    );
+  });
+
+  group('场景 10：收到对方撤回', () {
+    blocTest<ChatCubit, ChatState>(
+      '收到撤回帧后消息内容变更',
+      build: () {
+        when(() => mockRepo.getMessages(TestFixtures.defaultConvId))
+            .thenAnswer((_) async => [
+                  TestFixtures.message(
+                    id: 'peer_msg_1',
+                    senderId: TestFixtures.defaultPeerId,
+                    senderName: TestFixtures.defaultPeerName,
+                    content: '对方的消息',
+                  ),
+                ]);
+        when(() => mockStore.cacheMessages(any(), conversationId: any(named: 'conversationId')))
+            .thenAnswer((_) async {});
+        when(() => mockStore.updateConversation(any(),
+                lastMessagePreview: any(named: 'lastMessagePreview'),
+                lastMessageAt: any(named: 'lastMessageAt')))
+            .thenAnswer((_) async {});
+        return buildCubit();
+      },
+      act: (cubit) async {
+        await cubit.loadMessages();
+
+        // 模拟收到对方撤回帧
+        final recalled = MessageRecalled()
+          ..messageId = 'peer_msg_1'
+          ..conversationId = TestFixtures.defaultConvId
+          ..senderId = TestFixtures.defaultPeerId
+          ..senderName = TestFixtures.defaultPeerName;
+        final frame = WsFrame()
+          ..type = WsFrameType.MESSAGE_RECALLED
+          ..payload = recalled.writeToBuffer();
+        fakeWs.messageRecalledController.add(frame);
+      },
+      wait: const Duration(milliseconds: 50),
+      verify: (cubit) {
+        final state = cubit.state as ChatLoaded;
+        expect(state.messages.first.content, '${TestFixtures.defaultPeerName}撤回了一条消息');
       },
     );
   });
