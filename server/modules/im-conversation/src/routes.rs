@@ -90,7 +90,7 @@ async fn search_joined_groups(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = extract_user_id(&headers)?;
     let keyword = params.get("keyword").cloned().unwrap_or_default();
-    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(50).max(1);
+    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).clamp(1, 50);
 
     let escaped = keyword.replace('%', "\\%").replace('_', "\\_");
     let pattern = format!("%{}%", escaped);

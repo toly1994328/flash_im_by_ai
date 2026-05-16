@@ -99,14 +99,14 @@ impl StorageConfig {
         if let Ok(v) = std::env::var("UPLOAD_BASE_PATH") {
             config.base_path = PathBuf::from(v);
         }
-        if let Ok(v) = std::env::var("UPLOAD_MAX_IMAGE_SIZE") {
-            if let Ok(n) = v.parse() { config.max_image_size = n; }
+        if let Ok(v) = std::env::var("UPLOAD_MAX_IMAGE_SIZE") && let Ok(n) = v.parse() {
+            config.max_image_size = n;
         }
-        if let Ok(v) = std::env::var("UPLOAD_MAX_VIDEO_SIZE") {
-            if let Ok(n) = v.parse() { config.max_video_size = n; }
+        if let Ok(v) = std::env::var("UPLOAD_MAX_VIDEO_SIZE") && let Ok(n) = v.parse() {
+            config.max_video_size = n;
         }
-        if let Ok(v) = std::env::var("UPLOAD_MAX_FILE_SIZE") {
-            if let Ok(n) = v.parse() { config.max_file_size = n; }
+        if let Ok(v) = std::env::var("UPLOAD_MAX_FILE_SIZE") && let Ok(n) = v.parse() {
+            config.max_file_size = n;
         }
         config
     }

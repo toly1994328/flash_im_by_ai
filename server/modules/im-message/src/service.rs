@@ -205,7 +205,7 @@ impl MessageService {
         after_seq: Option<i64>,
         limit: i32,
     ) -> Result<Vec<MessageWithSender>, StatusCode> {
-        let limit = limit.min(100).max(1);
+        let limit = limit.clamp(1, 100);
         let messages = match (after_seq, before_seq) {
             (Some(seq), _) => self.repo.find_after_with_sender(conversation_id, seq, limit).await,
             (_, Some(seq)) => self.repo.find_before_with_sender(conversation_id, seq, limit).await,

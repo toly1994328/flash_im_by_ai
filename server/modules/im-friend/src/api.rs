@@ -227,7 +227,7 @@ async fn search_friends(
 ) -> ApiResult {
     let user_id = extract_user_id(&headers).map_err(|s| (s, Json(serde_json::json!({"error":"未授权"}))))?;
     let keyword = query.get("keyword").cloned().unwrap_or_default();
-    let limit: i32 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(50).max(1);
+    let limit: i32 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).clamp(1, 50);
 
     let escaped = keyword.replace('%', "\\%").replace('_', "\\_");
     let pattern = format!("%{}%", escaped);

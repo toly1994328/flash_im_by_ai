@@ -6,7 +6,6 @@ use axum::{
 };
 use std::sync::Arc;
 use uuid::Uuid;
-use sqlx;
 
 use flash_core::jwt::extract_user_id;
 use flash_core::AppError;
@@ -155,7 +154,7 @@ async fn search_messages(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = extract_user_id(&headers)?;
     let keyword = query.get("keyword").cloned().unwrap_or_default();
-    let limit: i32 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(10).min(20).max(1);
+    let limit: i32 = query.get("limit").and_then(|v| v.parse().ok()).unwrap_or(10).clamp(1, 20);
 
     let escaped = keyword.replace('%', "\\%").replace('_', "\\_");
     let pattern = format!("%{}%", escaped);
@@ -241,7 +240,7 @@ async fn search_conversation_messages(
     let _user_id = extract_user_id(&headers)?;
     let conv_id = Uuid::parse_str(&conv_id_str).map_err(|_| StatusCode::BAD_REQUEST)?;
     let keyword = params.get("keyword").cloned().unwrap_or_default();
-    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).min(100).max(1);
+    let limit: i32 = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20).clamp(1, 100);
     let offset: i32 = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0).max(0);
 
     let escaped = keyword.replace('%', "\\%").replace('_', "\\_");

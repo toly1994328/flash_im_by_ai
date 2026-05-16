@@ -468,10 +468,8 @@ impl GroupService {
         }
 
         // 如果传了 name，trim 后校验非空
-        if let Some(n) = name {
-            if n.trim().is_empty() {
-                return Err(StatusCode::BAD_REQUEST);
-            }
+        if let Some(n) = name && n.trim().is_empty() {
+            return Err(StatusCode::BAD_REQUEST);
         }
 
         self.repo.update_group(conversation_id, name, avatar)

@@ -32,15 +32,11 @@ pub async fn update_profile(
     let user_id = extract_user_id(&headers)?;
 
     // 校验字段长度
-    if let Some(ref nickname) = req.nickname {
-        if nickname.is_empty() || nickname.len() > 50 {
-            return Err(StatusCode::BAD_REQUEST);
-        }
+    if let Some(ref nickname) = req.nickname && (nickname.is_empty() || nickname.len() > 50) {
+        return Err(StatusCode::BAD_REQUEST);
     }
-    if let Some(ref signature) = req.signature {
-        if signature.len() > 100 {
-            return Err(StatusCode::BAD_REQUEST);
-        }
+    if let Some(ref signature) = req.signature && signature.len() > 100 {
+        return Err(StatusCode::BAD_REQUEST);
     }
 
     // 动态构建 UPDATE SQL
@@ -240,7 +236,7 @@ pub async fn search_users(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let keyword = query.keyword.replace('%', "\\%").replace('_', "\\_");
     let pattern = format!("%{}%", keyword);
-    let limit = query.limit.min(50).max(1);
+    let limit = query.limit.clamp(1, 50);
 
     // 尝试解析为数字（闪讯号 = account_id）
     let id_match: i64 = keyword.parse().unwrap_or(0);

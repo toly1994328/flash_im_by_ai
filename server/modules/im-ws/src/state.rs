@@ -18,6 +18,10 @@ pub struct WsState {
     connections: RwLock<HashMap<i64, Vec<ConnectionInfo>>>,
 }
 
+impl Default for WsState {
+    fn default() -> Self { Self::new() }
+}
+
 impl WsState {
     pub fn new() -> Self {
         Self { connections: RwLock::new(HashMap::new()) }
