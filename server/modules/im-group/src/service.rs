@@ -221,7 +221,7 @@ impl GroupService {
         }
 
         // 查群信息
-        let (name, avatar, owner_id, group_no, join_verification, status, announcement, announcement_updated_at) = self.repo
+        let info = self.repo
             .get_group_info(conversation_id)
             .await
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
@@ -234,16 +234,16 @@ impl GroupService {
 
         Ok(GroupDetail {
             id: conversation_id,
-            name,
-            avatar,
-            owner_id,
-            group_no,
+            name: info.name,
+            avatar: info.avatar,
+            owner_id: info.owner_id,
+            group_no: info.group_no,
             member_count: members.len() as i64,
-            join_verification,
+            join_verification: info.join_verification,
             members,
-            status,
-            announcement,
-            announcement_updated_at,
+            status: info.status,
+            announcement: info.announcement,
+            announcement_updated_at: info.announcement_updated_at,
         })
     }
 

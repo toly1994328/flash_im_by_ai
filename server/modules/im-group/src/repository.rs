@@ -1,7 +1,7 @@
 use sqlx::PgPool;
 use uuid::Uuid;
 
-use super::models::{GroupConversation, GroupSearchResult, JoinRequestItem, GroupMember};
+use super::models::{GroupConversation, GroupSearchResult, JoinRequestItem, GroupMember, GroupInfoRow};
 
 pub struct GroupRepository {
     db: PgPool,
@@ -341,11 +341,11 @@ impl GroupRepository {
     pub async fn get_group_info(
         &self,
         conversation_id: Uuid,
-    ) -> Result<Option<(Option<String>, Option<String>, Option<i64>, i64, bool, i16, Option<String>, Option<chrono::DateTime<chrono::Utc>>)>, sqlx::Error> {
-        // 返回 (name, avatar, owner_id, group_no, join_verification, status, announcement, announcement_updated_at)
-        sqlx::query_as(
-            r#"SELECT c.name, c.avatar, c.owner_id, COALESCE(gi.group_no, 0), COALESCE(gi.join_verification, false),
-                COALESCE(c.status, 0::SMALLINT), gi.announcement, gi.announcement_updated_at
+    ) -> Result<Option<GroupInfoRow>, sqlx::Error> {
+        sqlx::query_as::<_, GroupInfoRow>(
+            r#"SELECT c.name, c.avatar, c.owner_id, COALESCE(gi.group_no, 0) AS group_no,
+                COALESCE(gi.join_verification, false) AS join_verification,
+                COALESCE(c.status, 0::SMALLINT) AS status, gi.announcement, gi.announcement_updated_at
                 FROM conversations c
                 LEFT JOIN group_info gi ON gi.conversation_id = c.id
                 WHERE c.id = $1 AND c.type = 1"#

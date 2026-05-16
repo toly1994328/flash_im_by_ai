@@ -8,7 +8,7 @@ use std::sync::Arc;
 use uuid::Uuid;
 
 use flash_core::jwt::extract_user_id;
-use flash_core::AppError;
+use flash_core::{get_nickname, AppError};
 use im_message::MessageService;
 use im_ws::dispatcher::MessageDispatcher;
 
@@ -38,16 +38,7 @@ async fn create_group(
     let conv = state.service.create_group(user_id, &req.name, &req.member_ids).await?;
 
     // 发送系统消息 "XXX 创建了群聊"
-    let creator_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
+    let creator_name = get_nickname(state.service.db(), user_id).await;
 
     let _ = state.msg_service.send_system(
         conv.id,
@@ -83,16 +74,7 @@ async fn join_group(
     match result {
         JoinResult::AutoApproved => {
             // 发系统消息 "XXX 加入了群聊"
-            let joiner_name: String = sqlx::query_as::<_, (String,)>(
-                "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-            )
-            .bind(user_id)
-            .fetch_optional(state.service.db())
-            .await
-            .ok()
-            .flatten()
-            .map(|(n,)| n)
-            .unwrap_or_else(|| "?".to_string());
+            let joiner_name = get_nickname(state.service.db(), user_id).await;
 
             let _ = state.msg_service.send_system(
                 conv_id,
@@ -165,16 +147,7 @@ async fn handle_join_request(
 
     // 如果同意，发系统消息
     if let Some(applicant_id) = result {
-        let applicant_name: String = sqlx::query_as::<_, (String,)>(
-            "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-        )
-        .bind(applicant_id)
-        .fetch_optional(state.service.db())
-        .await
-        .ok()
-        .flatten()
-        .map(|(n,)| n)
-        .unwrap_or_else(|| "?".to_string());
+        let applicant_name = get_nickname(state.service.db(), applicant_id).await;
 
         let _ = state.msg_service.send_system(
             conv_id,
@@ -234,30 +207,12 @@ async fn add_members(
     let added_count = state.service.add_members(user_id, conv_id, &req.member_ids).await?;
 
     // 查邀请者昵称
-    let inviter_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
+    let inviter_name = get_nickname(state.service.db(), user_id).await;
 
     // 查被邀请者昵称
     let mut invited_names = Vec::new();
     for &mid in &req.member_ids {
-        let name: String = sqlx::query_as::<_, (String,)>(
-            "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-        )
-        .bind(mid)
-        .fetch_optional(state.service.db())
-        .await
-        .ok()
-        .flatten()
-        .map(|(n,)| n)
-        .unwrap_or_else(|| "?".to_string());
+        let name = get_nickname(state.service.db(), mid).await;
         invited_names.push(name);
     }
 
@@ -280,16 +235,7 @@ async fn remove_member_handler(
     state.service.remove_member(user_id, conv_id, target_id).await?;
 
     // 查被踢者昵称
-    let target_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(target_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
+    let target_name = get_nickname(state.service.db(), target_id).await;
 
     let _ = state.msg_service.send_system(
         conv_id,
@@ -308,16 +254,7 @@ async fn leave(
     let user_id = extract_user_id(&headers)?;
 
     // 先查昵称（退群后可能查不到成员关系）
-    let leaver_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
+    let leaver_name = get_nickname(state.service.db(), user_id).await;
 
     state.service.leave(user_id, conv_id).await?;
 
@@ -341,27 +278,8 @@ async fn transfer_owner(
     state.service.transfer_owner(user_id, conv_id, req.new_owner_id).await?;
 
     // 查两人昵称
-    let old_owner_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
-
-    let new_owner_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(req.new_owner_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
+    let old_owner_name = get_nickname(state.service.db(), user_id).await;
+    let new_owner_name = get_nickname(state.service.db(), req.new_owner_id).await;
 
     let _ = state.msg_service.send_system(
         conv_id,
@@ -419,16 +337,7 @@ async fn update_announcement(
     state.service.update_announcement(user_id, conv_id, &req.announcement).await?;
 
     // 发系统消息通知群成员
-    let updater_name: String = sqlx::query_as::<_, (String,)>(
-        "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-    )
-    .bind(user_id)
-    .fetch_optional(state.service.db())
-    .await
-    .ok()
-    .flatten()
-    .map(|(n,)| n)
-    .unwrap_or_else(|| "?".to_string());
+    let updater_name = get_nickname(state.service.db(), user_id).await;
 
     let _ = state.msg_service.send_system(
         conv_id,
@@ -469,16 +378,7 @@ async fn update_group(
 
     // 修改群名时发系统消息
     if let Some(ref name) = new_name {
-        let updater_name: String = sqlx::query_as::<_, (String,)>(
-            "SELECT COALESCE(nickname, '?') FROM user_profiles WHERE account_id = $1"
-        )
-        .bind(user_id)
-        .fetch_optional(state.service.db())
-        .await
-        .ok()
-        .flatten()
-        .map(|(n,)| n)
-        .unwrap_or_else(|| "?".to_string());
+        let updater_name = get_nickname(state.service.db(), user_id).await;
 
         let _ = state.msg_service.send_system(
             conv_id,

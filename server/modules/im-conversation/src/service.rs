@@ -254,6 +254,24 @@ impl ConversationService {
         })
     }
 
+    /// 标记会话已读（清零未读数）
+    pub async fn mark_read(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<(), StatusCode> {
+        sqlx::query(
+            "UPDATE conversation_members SET unread_count = 0 \
+             WHERE conversation_id = $1 AND user_id = $2",
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .execute(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(())
+    }
+
     /// 检查用户是否是会話成員
     pub async fn is_member(
         &self,

@@ -142,3 +142,16 @@ pub struct UpdateGroupRequest {
 pub struct UpdateAnnouncementRequest {
     pub announcement: String,
 }
+
+/// 群基本信息行（用于 get_group_info 查询）
+#[derive(Debug, FromRow)]
+pub struct GroupInfoRow {
+    pub name: Option<String>,
+    pub avatar: Option<String>,
+    pub owner_id: Option<i64>,
+    pub group_no: i64,
+    pub join_verification: bool,
+    pub status: i16,
+    pub announcement: Option<String>,
+    pub announcement_updated_at: Option<DateTime<Utc>>,
+}
