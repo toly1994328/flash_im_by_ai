@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:fx_logger/fx_logger.dart';
+import 'i_message_repository.dart';
 import 'message.dart';
 
 class ImageUploadResult {
@@ -83,7 +84,7 @@ class FileUploadResult {
       );
 }
 
-class MessageRepository {
+class MessageRepository implements IMessageRepository {
   final Dio _dio;
   LocalStore? _store;
   static final _log = FxLog('MsgRepo');
@@ -97,6 +98,7 @@ class MessageRepository {
   void setStore(LocalStore store) => _store = store;
 
   /// 获取当前本地存储
+  @override
   LocalStore? get store => _store;
 
   /// 消息撤回

@@ -8,12 +8,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType, MessageRecalled;
 import 'package:flash_im_cache/flash_im_cache.dart';
+import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import '../data/message_repository.dart';
 import 'chat_state.dart';
 
 class ChatCubit extends Cubit<ChatState> {
-  final MessageRepository _repository;
+  final IMessageRepository _repository;
   static final _log = FxLog('Chat');
   final WsClient _wsClient;
   final String conversationId;
@@ -41,7 +42,7 @@ class ChatCubit extends Cubit<ChatState> {
   Map<String, int> get membersReadSeq => Map.unmodifiable(_membersReadSeq);
 
   ChatCubit({
-    required MessageRepository repository,
+    required IMessageRepository repository,
     required WsClient wsClient,
     required this.conversationId,
     required this.currentUserId,
