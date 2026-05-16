@@ -837,9 +837,9 @@ class _DashedBorderPainter extends CustomPainter {
   _DashedBorderPainter({
     required this.color,
     this.borderRadius = 4,
-    this.strokeWidth = 1.0,
-    this.dashWidth = 4.0,
-    this.dashSpace = 3.0,
+    this.strokeWidth = 1.0, // ignore: unused_element_parameter
+    this.dashWidth = 4.0, // ignore: unused_element_parameter
+    this.dashSpace = 3.0, // ignore: unused_element_parameter
   });
 
   @override

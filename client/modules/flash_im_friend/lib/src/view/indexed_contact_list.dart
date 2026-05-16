@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flash_shared/flash_shared.dart';
 import '../data/friend.dart';
-import '../utils/pinyin_helper.dart';
 
 /// 带字母索引的联系人列表（微信风格）
 ///

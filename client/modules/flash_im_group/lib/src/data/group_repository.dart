@@ -31,7 +31,7 @@ class GroupRepository {
   /// 申请入群，返回是否直接加入
   Future<bool> joinGroup(String groupId, {String? message}) async {
     final res = await _dio.post('/groups/$groupId/join', data: {
-      if (message != null) 'message': message,
+      'message': ?message,
     });
     return (res.data as Map<String, dynamic>)['auto_approved'] as bool;
   }
@@ -98,8 +98,8 @@ class GroupRepository {
   /// 修改群信息（群名/头像）
   Future<void> updateGroup(String groupId, {String? name, String? avatar}) async {
     await _dio.put('/groups/$groupId', data: {
-      if (name != null) 'name': name,
-      if (avatar != null) 'avatar': avatar,
+      'name': ?name,
+      'avatar': ?avatar,
     });
   }
 }

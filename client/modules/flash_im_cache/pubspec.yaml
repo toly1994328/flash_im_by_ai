@@ -17,6 +17,8 @@ dependencies:
   dio: ^5.8.0+1
   flash_im_core:
     path: ../flash_im_core
+  fx_logger:
+    path: ../../packages/fx_logger
 
 dev_dependencies:
   flutter_test:

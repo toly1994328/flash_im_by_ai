@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fx_logger/fx_logger.dart';
 import 'package:flash_auth/flash_auth.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
@@ -47,20 +48,21 @@ void main() async {
   SyncEngine? syncEngine;
 
   Future<void> initCache() async {
+    final log = FxLog('Cache');
     final user = sessionCubit.state.user;
-    print('🗄️ [Cache] initCache called, user=${user?.userId}, status=${sessionCubit.state.status}');
+    log.d('initCache called, user=${user?.userId}, status=${sessionCubit.state.status}');
     if (user == null) {
-      print('🗄️ [Cache] user is null, skipping cache init');
+      log.d('user is null, skipping cache init');
       return;
     }
     localStore?.dispose();
     syncEngine?.dispose();
-    print('🗄️ [Cache] opening database for userId=${user.userId}');
+    log.d('opening database for userId=${user.userId}');
     localStore = await DriftLocalStore.open(user.userId);
     conversationRepo.setStore(localStore!);
     messageRepo.setStore(localStore!);
     friendRepo.setStore(localStore!);
-    print('🗄️ [Cache] store injected into repositories');
+    log.d('store injected into repositories');
     syncEngine = SyncEngine(
       store: localStore!,
       wsClient: wsClient,
@@ -69,7 +71,7 @@ void main() async {
     );
     syncEngine!.start();
     globalSyncEngine = syncEngine;
-    print('🗄️ [Cache] SyncEngine started');
+    log.i('SyncEngine started');
   }
 
   late final GoRouter router;

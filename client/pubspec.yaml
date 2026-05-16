@@ -63,6 +63,8 @@ dependencies:
     path: modules/flash_im_search
   flash_im_cache:
     path: modules/flash_im_cache
+  fx_logger:
+    path: packages/fx_logger
 
 dev_dependencies:
   flutter_test:

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fx_logger/fx_logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType, MessageRecalled;
@@ -13,6 +14,7 @@ import 'chat_state.dart';
 
 class ChatCubit extends Cubit<ChatState> {
   final MessageRepository _repository;
+  static final _log = FxLog('Chat');
   final WsClient _wsClient;
   final String conversationId;
   final String currentUserId;
@@ -27,7 +29,7 @@ class ChatCubit extends Cubit<ChatState> {
   StreamSubscription? _pinChangedSub;
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
-  LocalStore? _store;
+  final LocalStore? _store;
 
   int _peerReadSeq = 0;
   Map<String, int> _membersReadSeq = {};
@@ -206,7 +208,7 @@ class ChatCubit extends Cubit<ChatState> {
 
     try {
       final result = await _repository.uploadImage(filePath, onProgress: (p) {
-        print('📤 [upload] image progress: ${(p * 100).toInt()}%');
+        _log.d('image progress: ${(p * 100).toInt()}%');
         final s = state;
         if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
       });
@@ -276,7 +278,7 @@ class ChatCubit extends Cubit<ChatState> {
         filePath, thumbnailPath, durationMs,
         width: width, height: height,
         onProgress: (p) {
-          print('📤 [upload] video progress: ${(p * 100).toInt()}%');
+          _log.d('video progress: ${(p * 100).toInt()}%');
           final s = state;
           if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
         },
@@ -345,7 +347,7 @@ class ChatCubit extends Cubit<ChatState> {
 
     try {
       final result = await _repository.uploadFile(filePath, onProgress: (p) {
-        print('📤 [upload] file progress: ${(p * 100).toInt()}%');
+        _log.d('file progress: ${(p * 100).toInt()}%');
         final s = state;
         if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
       });

@@ -7,7 +7,6 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../data/im_config.dart';
 import '../data/proto/ws.pb.dart';
-import '../data/proto/ws.pbenum.dart';
 import '../data/proto/message.pb.dart' as msg;
 
 typedef TokenProvider = String? Function();

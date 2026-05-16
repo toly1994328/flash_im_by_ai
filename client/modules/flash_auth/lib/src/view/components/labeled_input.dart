@@ -34,7 +34,7 @@ class LabeledInput extends StatelessWidget {
             color: _kPrimary.withValues(alpha: 0.4),
           ),
           Expanded(child: child),
-          if (trailing != null) trailing!,
+          ?trailing,
         ],
       ),
     );

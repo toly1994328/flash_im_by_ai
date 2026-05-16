@@ -3,6 +3,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flash_im_core/flash_im_core.dart';
+import 'package:fx_logger/fx_logger.dart';
 
 import 'local_store.dart';
 import 'models/cached_message.dart';
@@ -21,6 +22,7 @@ class SyncEngine {
   final String? currentUserId;
   final List<StreamSubscription> _subs = [];
   bool _isSyncing = false;
+  final _log = FxLog('Sync');
 
   /// 回调：会话数据变更时触发
   void Function()? onConversationChanged;
@@ -49,7 +51,7 @@ class SyncEngine {
 
   /// 开始监听 WS 事件和连接状态
   void start() {
-    print('🔄 [SyncEngine] start() called, wsState=${_wsClient.state}');
+    _log.d('start() called, wsState=${_wsClient.state}');
     _subs.add(_wsClient.stateStream.listen(_onStateChange));
     _subs.add(_wsClient.chatMessageStream.listen(_handleChatMessage));
     _subs.add(
@@ -60,13 +62,13 @@ class SyncEngine {
 
     // 如果已经认证（恢复会话场景），立即同步
     if (_wsClient.state == WsConnectionState.authenticated) {
-      print('🔄 [SyncEngine] already authenticated, triggering sync');
+      _log.d('already authenticated, triggering sync');
       _syncAfterReconnect();
     }
   }
 
   void _onStateChange(WsConnectionState state) {
-    print('🔄 [SyncEngine] WS state changed: $state');
+    _log.d('WS state changed: $state');
     if (state == WsConnectionState.authenticated) {
       _syncAfterReconnect();
     }
@@ -76,19 +78,19 @@ class SyncEngine {
 
   Future<void> _syncAfterReconnect() async {
     if (_isSyncing) {
-      print('🔄 [SyncEngine] already syncing, skip');
+      _log.d('already syncing, skip');
       return;
     }
     _isSyncing = true;
     try {
       final isFirst = await _store.isFirstLogin();
-      print('🔄 [SyncEngine] sync start (firstLogin=$isFirst)');
+      _log.d('sync start (firstLogin=$isFirst)');
       await _syncConversations();
       await _syncFriends();
       await _syncMessages(fullPull: isFirst);
-      print('✅ [SyncEngine] sync completed');
+      _log.i('sync completed');
     } catch (e) {
-      print('⚠️ [SyncEngine] sync failed: $e');
+      _log.w('sync failed: $e');
     } finally {
       _isSyncing = false;
     }
@@ -99,12 +101,12 @@ class SyncEngine {
       final res = await _dio.get('/conversations',
           queryParameters: {'limit': 200, 'offset': 0});
       final List data = res.data as List;
-      print('🔄 [SyncEngine] syncConversations: ${data.length} remote');
+      _log.d('syncConversations: ${data.length} remote');
       final remote = data.map((e) => _jsonToConversation(e as Map<String, dynamic>)).toList();
       await _store.syncConversations(remote);
       onConversationChanged?.call();
     } catch (e) {
-      print('⚠️ [SyncEngine] syncConversations failed: $e');
+      _log.w('syncConversations failed: $e');
     }
   }
 
@@ -113,12 +115,12 @@ class SyncEngine {
       final res = await _dio.get('/api/friends',
           queryParameters: {'limit': 1000, 'offset': 0});
       final List data = res.data['data'] as List;
-      print('🔄 [SyncEngine] syncFriends: ${data.length} remote');
+      _log.d('syncFriends: ${data.length} remote');
       final remote = data.map((e) => _jsonToFriend(e as Map<String, dynamic>)).toList();
       await _store.syncFriends(remote);
       onFriendListChanged?.call();
     } catch (e) {
-      print('⚠️ [SyncEngine] syncFriends failed: $e');
+      _log.w('syncFriends failed: $e');
     }
   }
 
@@ -127,21 +129,21 @@ class SyncEngine {
       if (fullPull) {
         // 首次登录：对每个会话拉最近消息
         final conversations = await _store.getConversations(limit: 200);
-        print('🔄 [SyncEngine] fullPull: ${conversations.length} conversations');
+        _log.d('fullPull: ${conversations.length} conversations');
         for (final conv in conversations) {
           await _pullLatestMessages(conv.id);
         }
       } else {
         // 增量同步：对每个有缓存的会话拉差量
         final convIds = await _store.getCachedConversationIds();
-        print('🔄 [SyncEngine] incremental: ${convIds.length} cached conversations');
+        _log.d('incremental: ${convIds.length} cached conversations');
         for (final convId in convIds) {
           final maxSeq = await _store.getMaxSeq(convId);
           await _pullAfterSeq(convId, maxSeq);
         }
       }
     } catch (e) {
-      print('⚠️ [SyncEngine] syncMessages failed: $e');
+      _log.w('syncMessages failed: $e');
     }
   }
 
@@ -151,11 +153,11 @@ class SyncEngine {
           queryParameters: {'limit': 50});
       final List data = res.data as List;
       if (data.isEmpty) return;
-      print('🔄 [SyncEngine] pullLatest $conversationId: ${data.length} messages');
+      _log.d('pullLatest $conversationId: ${data.length} messages');
       final messages = data.map((e) => _jsonToMessage(e as Map<String, dynamic>)).toList();
       await _store.cacheMessages(messages, conversationId: conversationId);
     } catch (e) {
-      print('⚠️ [SyncEngine] pullLatest $conversationId failed: $e');
+      _log.w('pullLatest $conversationId failed: $e');
     }
   }
 
@@ -165,11 +167,11 @@ class SyncEngine {
           queryParameters: {'after_seq': afterSeq, 'limit': 100});
       final List data = res.data as List;
       if (data.isEmpty) return;
-      print('🔄 [SyncEngine] pullAfterSeq $conversationId (after=$afterSeq): ${data.length} messages');
+      _log.d('pullAfterSeq $conversationId (after=$afterSeq): ${data.length} messages');
       final messages = data.map((e) => _jsonToMessage(e as Map<String, dynamic>)).toList();
       await _store.cacheMessages(messages, conversationId: conversationId);
     } catch (e) {
-      print('⚠️ [SyncEngine] pullAfterSeq $conversationId failed: $e');
+      _log.w('pullAfterSeq $conversationId failed: $e');
     }
   }
 
@@ -178,7 +180,7 @@ class SyncEngine {
   void _handleChatMessage(WsFrame frame) {
     try {
       final chatMsg = ChatMessage.fromBuffer(frame.payload);
-      print('🔄 [SyncEngine] chatMessage: conv=${chatMsg.conversationId}, seq=${chatMsg.seq}');
+      _log.d('chatMessage: conv=${chatMsg.conversationId}, seq=${chatMsg.seq}');
       final message = CachedMessage(
         id: chatMsg.id,
         conversationId: chatMsg.conversationId,
@@ -215,14 +217,14 @@ class SyncEngine {
         } catch (_) {}
       }
     } catch (e) {
-      print('⚠️ [SyncEngine] handleChatMessage failed: $e');
+      _log.w('handleChatMessage failed: $e');
     }
   }
 
   void _handleConversationUpdate(WsFrame frame) {
     try {
       final update = ConversationUpdate.fromBuffer(frame.payload);
-      print('🔄 [SyncEngine] convUpdate: ${update.conversationId}, preview=${update.lastMessagePreview}');
+      _log.d('convUpdate: ${update.conversationId}, preview=${update.lastMessagePreview}');
       _store.updateConversation(
         update.conversationId,
         lastMessagePreview: update.lastMessagePreview,
@@ -231,14 +233,14 @@ class SyncEngine {
       );
       // 不调 onConversationChanged：ConversationListCubit 自己监听 WS 帧做局部更新
     } catch (e) {
-      print('⚠️ [SyncEngine] handleConversationUpdate failed: $e');
+      _log.w('handleConversationUpdate failed: $e');
     }
   }
 
   void _handleFriendAccepted(WsFrame frame) {
     try {
       final notif = FriendAcceptedNotification.fromBuffer(frame.payload);
-      print('🔄 [SyncEngine] friendAccepted: ${notif.friendId} ${notif.nickname}');
+      _log.d('friendAccepted: ${notif.friendId} ${notif.nickname}');
       final friend = CachedFriend(
         friendId: notif.friendId,
         nickname: notif.nickname,
@@ -247,28 +249,28 @@ class SyncEngine {
       );
       _store.cacheFriends([friend]);
     } catch (e) {
-      print('⚠️ [SyncEngine] handleFriendAccepted failed: $e');
+      _log.w('handleFriendAccepted failed: $e');
     }
   }
 
   void _handleFriendRemoved(WsFrame frame) {
     try {
       final notif = FriendRemovedNotification.fromBuffer(frame.payload);
-      print('🔄 [SyncEngine] friendRemoved: ${notif.friendId}');
+      _log.d('friendRemoved: ${notif.friendId}');
       _store.deleteFriend(notif.friendId);
     } catch (e) {
-      print('⚠️ [SyncEngine] handleFriendRemoved failed: $e');
+      _log.w('handleFriendRemoved failed: $e');
     }
   }
 
   void _handleMessageRecalled(WsFrame frame) {
     try {
       final recalled = MessageRecalled.fromBuffer(frame.payload);
-      print('🔄 [SyncEngine] messageRecalled: ${recalled.messageId} in ${recalled.conversationId}');
+      _log.d('messageRecalled: ${recalled.messageId} in ${recalled.conversationId}');
       // 本地缓存中该消息的 status 会在下次增量同步时被覆盖为 1
       // 这里不需要额外操作，ChatCubit 会通过自己的监听处理 UI 更新
     } catch (e) {
-      print('⚠️ [SyncEngine] handleMessageRecalled failed: $e');
+      _log.w('handleMessageRecalled failed: $e');
     }
   }
 

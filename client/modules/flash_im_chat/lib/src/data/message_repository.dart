@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:dio/dio.dart';
 import 'package:flash_im_cache/flash_im_cache.dart';
+import 'package:fx_logger/fx_logger.dart';
 import 'message.dart';
 
 class ImageUploadResult {
@@ -85,6 +86,7 @@ class FileUploadResult {
 class MessageRepository {
   final Dio _dio;
   LocalStore? _store;
+  static final _log = FxLog('MsgRepo');
 
   MessageRepository({required Dio dio}) : _dio = dio;
 
@@ -107,24 +109,24 @@ class MessageRepository {
     int? beforeSeq,
     int limit = 50,
   }) async {
-    print('📨 [MsgRepo] getMessages convId=$conversationId, beforeSeq=$beforeSeq, limit=$limit, hasStore=${_store != null}');
+    _log.d('getMessages convId=$conversationId, beforeSeq=$beforeSeq, limit=$limit, hasStore=${_store != null}');
     if (_store != null) {
       final cached = await _store!.getMessages(conversationId,
           beforeSeq: beforeSeq, limit: limit);
-      print('📨 [MsgRepo] local cached: ${cached.length} messages');
+      _log.d('local cached: ${cached.length} messages');
       if (cached.isNotEmpty) {
         final trashIds = await _store!.getTrashIds(entityType: 'message');
         final trashSet = trashIds.toSet();
         final filtered = cached.where((m) => !trashSet.contains(m.id)).toList();
-        print('📨 [MsgRepo] after trash filter: ${filtered.length} messages');
+        _log.d('after trash filter: ${filtered.length} messages');
         if (filtered.isNotEmpty) {
-          print('📨 [MsgRepo] using local data');
+          _log.d('using local data');
           return filtered.map(_fromCached).toList();
         }
       }
       // 本地数据不足或为空，fallback HTTP
     }
-    print('📨 [MsgRepo] fetching from HTTP...');
+    _log.d('fetching from HTTP...');
     final params = <String, dynamic>{'limit': limit};
     if (beforeSeq != null) params['before_seq'] = beforeSeq;
     final res = await _dio.get(
@@ -132,7 +134,7 @@ class MessageRepository {
       queryParameters: params,
     );
     final List data = res.data as List;
-    print('📨 [MsgRepo] HTTP returned: ${data.length} messages');
+    _log.d('HTTP returned: ${data.length} messages');
     final messages = data.map((e) => Message.fromJson(e as Map<String, dynamic>)).toList();
 
     // HTTP 拉到的消息写入本地缓存
@@ -150,7 +152,7 @@ class MessageRepository {
         createdAt: m.createdAt.millisecondsSinceEpoch,
       )).toList();
       _store!.cacheMessages(cached, conversationId: conversationId);
-      print('📨 [MsgRepo] cached ${cached.length} messages to local');
+      _log.d('cached ${cached.length} messages to local');
     }
 
     return messages;

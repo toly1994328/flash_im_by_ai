@@ -28,7 +28,7 @@ class ConversationRepository {
     final res = await _dio.get('/conversations', queryParameters: {
       'limit': limit,
       'offset': offset,
-      if (type != null) 'type': type,
+      'type': ?type,
     });
     final List data = res.data as List;
     return data

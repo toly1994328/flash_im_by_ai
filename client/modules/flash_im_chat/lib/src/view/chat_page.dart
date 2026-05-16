@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fx_logger/fx_logger.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
 import 'package:flash_shared/flash_shared.dart' show MemberPickerResult;
@@ -544,7 +545,7 @@ class _ChatPageState extends State<ChatPage> {
     final bubbleSize = renderBox.size;
     final bubbleOffset = renderBox.localToGlobal(Offset.zero);
 
-    print('📐 [menu] bubbleOffset=$bubbleOffset, bubbleSize=$bubbleSize, isMe=$isMe');
+    FxLog('ChatPage').d('bubbleOffset=$bubbleOffset, bubbleSize=$bubbleSize, isMe=$isMe');
 
     final dismiss = MessageActionMenu.show(
       context: context,
@@ -568,7 +569,7 @@ class _ChatPageState extends State<ChatPage> {
           case MenuAction.delete:
             _confirmDeleteMessage(context, chatCubit, msg.id);
           case MenuAction.forward:
-            print('📤 [Forward] opening picker...');
+            FxLog('ChatPage').d('opening forward picker...');
             Navigator.of(context).push<MemberPickerResult>(
               MaterialPageRoute(
                 builder: (_) => ConversationPickerPage(
@@ -578,7 +579,7 @@ class _ChatPageState extends State<ChatPage> {
                 ),
               ),
             ).then((result) {
-              print('📤 [Forward] picker returned: ${result?.allIds}, mounted=${context.mounted}');
+              FxLog('ChatPage').d('picker returned: ${result?.allIds}, mounted=${context.mounted}');
               if (result != null && result.allIds.isNotEmpty && context.mounted) {
                 for (final targetConvId in result.allIds) {
                   chatCubit.forwardMessages(

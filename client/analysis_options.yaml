@@ -12,6 +12,7 @@ include: package:flutter_lints/flutter.yaml
 analyzer:
   exclude:
     - lib/playground/**       # 废弃的原型代码
+    - test/**                 # 测试文件不纳入体检
     - "**/*.g.dart"           # build_runner 生成
     - "**/*.freezed.dart"     # freezed 生成
 

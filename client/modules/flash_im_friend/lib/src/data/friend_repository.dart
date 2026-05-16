@@ -26,7 +26,7 @@ class FriendRepository {
   Future<void> sendRequest(String toUserId, {String? message}) async {
     await _dio.post('/api/friends/requests', data: {
       'to_user_id': int.parse(toUserId),
-      if (message != null) 'message': message,
+      'message': ?message,
     });
   }
 

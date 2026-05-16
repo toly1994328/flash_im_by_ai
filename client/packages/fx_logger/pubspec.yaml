@@ -1,0 +1,16 @@
+name: fx_logger
+description: A minimal, tag-based logger with pluggable delegate. Zero overhead in release mode.
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
