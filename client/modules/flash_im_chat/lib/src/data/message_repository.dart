@@ -102,10 +102,12 @@ class MessageRepository implements IMessageRepository {
   LocalStore? get store => _store;
 
   /// 消息撤回
+  @override
   Future<void> recallMessage(String conversationId, String messageId) async {
     await _dio.post('/conversations/$conversationId/messages/$messageId/recall');
   }
 
+  @override
   Future<List<Message>> getMessages(
     String conversationId, {
     int? beforeSeq,
@@ -160,6 +162,7 @@ class MessageRepository implements IMessageRepository {
     return messages;
   }
 
+  @override
   Future<ImageUploadResult> uploadImage(
     String filePath, {
     void Function(double progress)? onProgress,
@@ -178,6 +181,7 @@ class MessageRepository implements IMessageRepository {
     return ImageUploadResult.fromJson(res.data as Map<String, dynamic>);
   }
 
+  @override
   Future<VideoUploadResult> uploadVideo(
     String videoPath,
     String thumbnailPath,
@@ -203,6 +207,7 @@ class MessageRepository implements IMessageRepository {
     return VideoUploadResult.fromJson(res.data as Map<String, dynamic>);
   }
 
+  @override
   Future<FileUploadResult> uploadFile(
     String filePath, {
     void Function(double progress)? onProgress,
@@ -222,6 +227,7 @@ class MessageRepository implements IMessageRepository {
   }
 
   /// 获取会话已读位置
+  @override
   Future<Map<String, int>> getReadSeq(String conversationId) async {
     final res = await _dio.get('/conversations/$conversationId/read-seq');
     final Map<String, dynamic> data =
@@ -242,6 +248,7 @@ class MessageRepository implements IMessageRepository {
 
   /// 下载文件到本地目录
   /// 返回本地文件路径
+  @override
   Future<String> downloadFile(
     String url,
     String savePath, {
@@ -289,6 +296,7 @@ class MessageRepository implements IMessageRepository {
   // ─── 转发 ───
 
   /// 转发消息（单条/合并）
+  @override
   Future<Map<String, dynamic>> forwardMessage({
     required String sourceConvId,
     required List<String> messageIds,
@@ -306,6 +314,7 @@ class MessageRepository implements IMessageRepository {
   // ─── 置顶 ───
 
   /// 置顶消息
+  @override
   Future<Map<String, dynamic>> pinMessage(String convId, String messageId) async {
     final res = await _dio.post('/conversations/$convId/messages/pin', data: {
       'message_id': messageId,
@@ -314,11 +323,13 @@ class MessageRepository implements IMessageRepository {
   }
 
   /// 取消置顶
+  @override
   Future<void> unpinMessage(String convId, String pinId) async {
     await _dio.delete('/conversations/$convId/messages/pin/$pinId');
   }
 
   /// 查询置顶列表
+  @override
   Future<List<Map<String, dynamic>>> getPinnedMessages(String convId) async {
     final res = await _dio.get('/conversations/$convId/messages/pinned');
     return (res.data as List).cast<Map<String, dynamic>>();
