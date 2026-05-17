@@ -9,9 +9,10 @@ import '../data/message.dart';
 import 'chat_file_mixin.dart';
 import 'chat_pin_mixin.dart';
 import 'chat_select_mixin.dart';
+import 'chat_ws_mixin.dart';
 import 'chat_state.dart';
 
-class ChatCubit extends Cubit<ChatState> with ChatFileMixin, ChatPinMixin, ChatSelectMixin {
+class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPinMixin, ChatSelectMixin {
   final IMessageRepository _repository;
   final WsClient _wsClient;
   @override
@@ -26,10 +27,6 @@ class ChatCubit extends Cubit<ChatState> with ChatFileMixin, ChatPinMixin, ChatS
   @override
   final VoidCallback? onConversationChanged;
 
-  StreamSubscription? _chatMessageSub;
-  StreamSubscription? _messageAckSub;
-  StreamSubscription? _messageRecalledSub;
-  StreamSubscription? _pinChangedSub;
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
   final LocalStore? _store;
@@ -37,7 +34,6 @@ class ChatCubit extends Cubit<ChatState> with ChatFileMixin, ChatPinMixin, ChatS
   int _peerReadSeq = 0;
   Map<String, int> _membersReadSeq = {};
   Timer? _readReceiptTimer;
-  StreamSubscription? _readReceiptSub;
   int _readSeqVersion = 0;
 
   int get peerReadSeq => _peerReadSeq;
@@ -103,6 +99,33 @@ class ChatCubit extends Cubit<ChatState> with ChatFileMixin, ChatPinMixin, ChatS
     onConversationChanged?.call();
   }
 
+  // ─── WS 回调实现 ───
+
+  @override
+  void onChatMessage(WsFrame frame) => _handleIncomingMessage(frame);
+
+  @override
+  void onMessageAck(WsFrame frame) => _handleMessageAck(frame);
+
+  @override
+  void onMessageRecalled(WsFrame frame) => handleMessageRecalled(frame);
+
+  @override
+  void onPinChanged(WsFrame frame) => loadPinnedMessages();
+
+  @override
+  void onReadReceipt(WsFrame frame) {
+    final notif = ReadReceiptNotification.fromBuffer(frame.payload);
+    if (notif.conversationId != conversationId) return;
+    if (isGroup) {
+      _membersReadSeq[notif.userId] = notif.readSeq.toInt();
+    } else {
+      _peerReadSeq = notif.readSeq.toInt();
+    }
+    final s = state;
+    if (s is ChatLoaded) emit(s.copyWith(readSeqVersion: ++_readSeqVersion));
+  }
+
   ChatCubit({
     required IMessageRepository repository,
     required WsClient wsClient,
@@ -117,21 +140,7 @@ class ChatCubit extends Cubit<ChatState> with ChatFileMixin, ChatPinMixin, ChatS
         _wsClient = wsClient,
         _store = store,
         super(const ChatInitial()) {
-    _chatMessageSub = _wsClient.chatMessageStream.listen(_handleIncomingMessage);
-    _messageAckSub = _wsClient.messageAckStream.listen(_handleMessageAck);
-    _messageRecalledSub = _wsClient.messageRecalledStream.listen(handleMessageRecalled);
-    _pinChangedSub = _wsClient.pinChangedStream.listen((_) => loadPinnedMessages());
-    _readReceiptSub = _wsClient.readReceiptStream.listen((frame) {
-      final notif = ReadReceiptNotification.fromBuffer(frame.payload);
-      if (notif.conversationId != conversationId) return;
-      if (isGroup) {
-        _membersReadSeq[notif.userId] = notif.readSeq.toInt();
-      } else {
-        _peerReadSeq = notif.readSeq.toInt();
-      }
-      final s = state;
-      if (s is ChatLoaded) emit(s.copyWith(readSeqVersion: ++_readSeqVersion));
-    });
+    initWsListeners();
   }
 
   Future<void> loadMessages() async {
@@ -381,11 +390,7 @@ class ChatCubit extends Cubit<ChatState> with ChatFileMixin, ChatPinMixin, ChatS
 
   @override
   Future<void> close() {
-    _chatMessageSub?.cancel();
-    _messageAckSub?.cancel();
-    _messageRecalledSub?.cancel();
-    _pinChangedSub?.cancel();
-    _readReceiptSub?.cancel();
+    disposeWsListeners();
     _readReceiptTimer?.cancel();
     return super.close();
   }
