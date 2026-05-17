@@ -206,6 +206,19 @@ class Message {
     if (extra == null || !isFile) return null;
     try { return FileExtra.fromJson(extra!); } catch (_) { return null; }
   }
+
+  /// 生成会话列表预览文本
+  String preview({String? currentUserId}) {
+    if (isRecalled) {
+      return senderId == currentUserId ? '你撤回了一条消息' : '$senderName撤回了一条消息';
+    }
+    return switch (type) {
+      MessageType.image => '[图片]',
+      MessageType.video => '[视频]',
+      MessageType.file => '[文件]',
+      _ => content,
+    };
+  }
 }
 
 /// 置顶消息

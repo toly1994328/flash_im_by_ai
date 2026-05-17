@@ -86,13 +86,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       return;
     }
     final last = messages.last;
-    final preview = last.isRecalled
-        ? (last.senderId == currentUserId ? '你撤回了一条消息' : '${last.senderName}撤回了一条消息')
-        : last.isText ? last.content
-        : last.isImage ? '[图片]'
-        : last.isVideo ? '[视频]'
-        : last.isFile ? '[文件]'
-        : last.content;
+    final preview = last.preview(currentUserId: currentUserId);
     store.updateConversation(conversationId,
       lastMessagePreview: preview,
       lastMessageAt: last.createdAt.millisecondsSinceEpoch,
