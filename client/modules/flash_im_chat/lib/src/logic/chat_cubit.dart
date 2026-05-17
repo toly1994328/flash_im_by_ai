@@ -6,6 +6,7 @@ import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageTyp
 import 'package:flash_im_cache/flash_im_cache.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
+import '../data/message_ext.dart';
 import 'chat_file_mixin.dart';
 import 'chat_pin_mixin.dart';
 import 'chat_select_mixin.dart';
@@ -328,19 +329,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       final store = _repository.store;
       if (confirmedMessage != null && store != null) {
         final msg = confirmedMessage!;
-        final cached = CachedMessage(
-          id: msg.id,
-          conversationId: msg.conversationId,
-          senderId: msg.senderId,
-          senderName: msg.senderName,
-          senderAvatar: msg.senderAvatar,
-          seq: msg.seq,
-          msgType: msg.type.index,
-          content: msg.content,
-          extra: msg.extra != null ? jsonEncode(msg.extra) : null,
-          createdAt: msg.createdAt.millisecondsSinceEpoch,
-        );
-        store.cacheMessages([cached], conversationId: msg.conversationId);
+        store.cacheMessages([msg.toCached()], conversationId: msg.conversationId);
       }
     } catch (_) {}
   }

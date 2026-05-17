@@ -5,6 +5,7 @@ import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:fx_logger/fx_logger.dart';
 import 'i_message_repository.dart';
 import 'message.dart';
+import 'message_ext.dart';
 
 class ImageUploadResult {
   final String originalUrl;
@@ -143,18 +144,7 @@ class MessageRepository implements IMessageRepository {
 
     // HTTP 拉到的消息写入本地缓存
     if (_store != null && messages.isNotEmpty) {
-      final cached = messages.map((m) => CachedMessage(
-        id: m.id,
-        conversationId: m.conversationId,
-        senderId: m.senderId,
-        senderName: m.senderName,
-        senderAvatar: m.senderAvatar,
-        seq: m.seq,
-        msgType: m.type.index,
-        content: m.content,
-        extra: m.extra != null ? jsonEncode(m.extra) : null,
-        createdAt: m.createdAt.millisecondsSinceEpoch,
-      )).toList();
+      final cached = messages.map((m) => m.toCached()).toList();
       _store!.cacheMessages(cached, conversationId: conversationId);
       _log.d('cached ${cached.length} messages to local');
     }

@@ -8,6 +8,7 @@ import 'package:flash_im_core/flash_im_core.dart' as proto show MessageRecalled;
 
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
+import '../data/message_ext.dart';
 import 'chat_state.dart';
 
 /// 消息撤回与置顶的 Mixin。
@@ -90,19 +91,7 @@ mixin ChatPinMixin on Cubit<ChatState> {
     final store = localStore;
     if (recalledMessage != null && store != null) {
       final msg = recalledMessage!;
-      final cached = CachedMessage(
-        id: msg.id,
-        conversationId: msg.conversationId,
-        senderId: msg.senderId,
-        senderName: msg.senderName,
-        senderAvatar: msg.senderAvatar,
-        seq: msg.seq,
-        msgType: msg.type.index,
-        content: msg.content,
-        extra: msg.extra != null ? jsonEncode(msg.extra) : null,
-        createdAt: msg.createdAt.millisecondsSinceEpoch,
-      );
-      store.cacheMessages([cached], conversationId: msg.conversationId);
+      store.cacheMessages([msg.toCached()], conversationId: msg.conversationId);
       // 如果撤回的是最后一条消息，更新会话预览
       final s2 = state;
       if (s2 is ChatLoaded) {
