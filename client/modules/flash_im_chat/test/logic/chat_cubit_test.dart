@@ -1,6 +1,7 @@
 import 'package:bloc_test/bloc_test.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:flash_im_chat/src/data/message.dart';
+import 'package:flash_im_chat/src/logic/chat_context.dart';
 import 'package:flash_im_chat/src/logic/chat_cubit.dart';
 import 'package:flash_im_chat/src/logic/chat_state.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
@@ -40,9 +41,11 @@ void main() {
       ChatCubit(
         repository: mockRepo,
         wsClient: fakeWs,
-        conversationId: conversationId,
-        currentUserId: currentUserId,
-        currentUserName: TestFixtures.defaultUserName,
+        context: ChatContext(
+          conversationId: conversationId,
+          currentUserId: currentUserId,
+          currentUserName: TestFixtures.defaultUserName,
+        ),
         store: mockStore,
       );
 

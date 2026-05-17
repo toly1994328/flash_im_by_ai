@@ -377,11 +377,13 @@ class _HomePageState extends State<HomePage> {
           create: (_) => ChatCubit(
             repository: context.read<MessageRepository>(),
             wsClient: context.read<WsClient>(),
-            conversationId: conversation.id,
-            currentUserId: user.userId.toString(),
-            currentUserName: user.nickname,
-            currentUserAvatar: user.avatar,
-            isGroup: conversation.isGroup,
+            context: ChatContext(
+              conversationId: conversation.id,
+              currentUserId: user.userId.toString(),
+              currentUserName: user.nickname,
+              currentUserAvatar: user.avatar,
+              isGroup: conversation.isGroup,
+            ),
             onConversationChanged: () => _convCubit.loadConversations(),
           )..loadMessages(),
           child: ChatPage(
@@ -505,11 +507,13 @@ class _HomePageState extends State<HomePage> {
                         create: (_) => ChatCubit(
                           repository: context.read<MessageRepository>(),
                           wsClient: context.read<WsClient>(),
-                          conversationId: conversation.id,
-                          currentUserId: user.userId.toString(),
-                          currentUserName: user.nickname,
-                          currentUserAvatar: user.avatar,
-                          isGroup: true,
+                          context: ChatContext(
+                            conversationId: conversation.id,
+                            currentUserId: user.userId.toString(),
+                            currentUserName: user.nickname,
+                            currentUserAvatar: user.avatar,
+                            isGroup: true,
+                          ),
                           onConversationChanged: () => _convCubit.loadConversations(),
                         )..loadMessages(),
                         child: ChatPage(
@@ -604,10 +608,12 @@ class _HomePageState extends State<HomePage> {
             create: (_) => ChatCubit(
               repository: context.read<MessageRepository>(),
               wsClient: context.read<WsClient>(),
-              conversationId: conv.id,
-              currentUserId: user.userId.toString(),
-              currentUserName: user.nickname,
-              currentUserAvatar: user.avatar,
+              context: ChatContext(
+                conversationId: conv.id,
+                currentUserId: user.userId.toString(),
+                currentUserName: user.nickname,
+                currentUserAvatar: user.avatar,
+              ),
               onConversationChanged: () => _convCubit.loadConversations(),
             )..loadMessages(),
             child: ChatPage(
@@ -680,11 +686,13 @@ class _HomePageState extends State<HomePage> {
             create: (_) => ChatCubit(
               repository: context.read<MessageRepository>(),
               wsClient: context.read<WsClient>(),
-              conversationId: conv.id,
-              currentUserId: user.userId.toString(),
-              currentUserName: user.nickname,
-              currentUserAvatar: user.avatar,
-              isGroup: true,
+              context: ChatContext(
+                conversationId: conv.id,
+                currentUserId: user.userId.toString(),
+                currentUserName: user.nickname,
+                currentUserAvatar: user.avatar,
+                isGroup: true,
+              ),
               onConversationChanged: () => _convCubit.loadConversations(),
             )..loadMessages(),
             child: ChatPage(

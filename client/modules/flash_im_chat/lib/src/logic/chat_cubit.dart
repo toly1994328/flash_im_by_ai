@@ -7,6 +7,7 @@ import 'package:flash_im_cache/flash_im_cache.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import '../data/message_ext.dart';
+import 'chat_context.dart';
 import 'chat_file_mixin.dart';
 import 'chat_pin_mixin.dart';
 import 'chat_select_mixin.dart';
@@ -16,17 +17,18 @@ import 'chat_state.dart';
 class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPinMixin, ChatSelectMixin {
   final IMessageRepository _repository;
   final WsClient _wsClient;
-  @override
-  final String conversationId;
-  @override
-  final String currentUserId;
-  @override
-  final String currentUserName;
-  @override
-  final String? currentUserAvatar;
-  final bool isGroup;
+  final ChatContext chatCtx;
   @override
   final VoidCallback? onConversationChanged;
+
+  @override
+  String get conversationId => chatCtx.conversationId;
+  @override
+  String get currentUserId => chatCtx.currentUserId;
+  @override
+  String get currentUserName => chatCtx.currentUserName;
+  @override
+  String? get currentUserAvatar => chatCtx.currentUserAvatar;
 
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
@@ -112,7 +114,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   void onReadReceipt(WsFrame frame) {
     final notif = ReadReceiptNotification.fromBuffer(frame.payload);
     if (notif.conversationId != conversationId) return;
-    if (isGroup) {
+    if (chatCtx.isGroup) {
       _membersReadSeq[notif.userId] = notif.readSeq.toInt();
     } else {
       _peerReadSeq = notif.readSeq.toInt();
@@ -124,15 +126,12 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   ChatCubit({
     required IMessageRepository repository,
     required WsClient wsClient,
-    required this.conversationId,
-    required this.currentUserId,
-    required this.currentUserName,
-    this.currentUserAvatar,
-    this.isGroup = false,
+    required ChatContext context,
     this.onConversationChanged,
     LocalStore? store,
   })  : _repository = repository,
         _wsClient = wsClient,
+        chatCtx = context,
         _store = store,
         super(const ChatInitial()) {
     initWsListeners();
@@ -207,7 +206,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     }
 
     // 群聊引用回复时，静默 @被引用者
-    if (isGroup && current.replyTo != null && current.replyTo!.senderId != currentUserId) {
+    if (chatCtx.isGroup && current.replyTo != null && current.replyTo!.senderId != currentUserId) {
       final replySenderId = current.replyTo!.senderId;
       final existingMentions = (extra?['mentions'] as List?) ?? [];
       final alreadyMentioned = existingMentions.any((m) => m['user_id'] == replySenderId);
@@ -381,7 +380,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   Future<void> _loadReadSeq() async {
     try {
       final res = await _repository.getReadSeq(conversationId);
-      if (isGroup) {
+      if (chatCtx.isGroup) {
         _membersReadSeq = res;
       } else if (res.isNotEmpty) {
         _peerReadSeq = res.values.first;
