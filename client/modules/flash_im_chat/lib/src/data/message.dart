@@ -208,9 +208,9 @@ class Message {
   }
 
   /// 生成会话列表预览文本
-  String preview({String? currentUserId}) {
+  String preview({bool isSelf = false}) {
     if (isRecalled) {
-      return senderId == currentUserId ? '你撤回了一条消息' : '$senderName撤回了一条消息';
+      return isSelf ? '你撤回了一条消息' : '$senderName撤回了一条消息';
     }
     return switch (type) {
       MessageType.image => '[图片]',

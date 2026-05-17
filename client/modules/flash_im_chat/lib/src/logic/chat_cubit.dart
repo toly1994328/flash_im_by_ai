@@ -86,7 +86,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       return;
     }
     final last = messages.last;
-    final preview = last.preview(currentUserId: currentUserId);
+    final preview = last.preview(isSelf: last.senderId == currentUserId);
     store.updateConversation(conversationId,
       lastMessagePreview: preview,
       lastMessageAt: last.createdAt.millisecondsSinceEpoch,
