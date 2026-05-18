@@ -5,6 +5,13 @@ fileMatchPattern: "**/*.dart"
 
 # Flutter 前端代码风格
 
+## 代码质量
+
+- 单个文件超过 500 行考虑拆分，可以基于 mixin 合理拆分职能。
+- 3 个以上参数总是成组传递时，提取为值对象（如 ChatContext）。
+- 重复出现的转换逻辑用 extension 封装（如 `Message.toCached()`）。
+- async 操作后使用 BuildContext 前必须检查 mounted。
+
 ## 分层职责
 
 - **view 层**：纯 UI 构建，不写业务逻辑。
