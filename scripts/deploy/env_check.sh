@@ -123,32 +123,44 @@ else
 fi
 
 # 检查数据库是否存在
-if command -v psql &>/dev/null; then
+if command -v psql &>/dev/null && systemctl is-active --quiet postgresql 2>/dev/null; then
   if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
     check_pass "数据库 '$DB_NAME' 已存在"
   else
-    check_warn "数据库 '$DB_NAME' 不存在"
-    echo "  创建：sudo -u postgres createdb $DB_NAME"
+    info "数据库 '$DB_NAME' 不存在，正在创建..."
+    if sudo -u postgres createdb "$DB_NAME" 2>/dev/null; then
+      check_pass "数据库 '$DB_NAME' 已创建"
+    else
+      check_fail "数据库 '$DB_NAME' 创建失败"
+    fi
+  fi
+
+  # 执行迁移
+  if [ -d "$MIGRATIONS_DIR" ] && sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+    MIGRATION_COUNT=$(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | wc -l)
+    if [ "$MIGRATION_COUNT" -gt 0 ]; then
+      info "执行数据库迁移（$MIGRATION_COUNT 个文件）..."
+      MIGRATE_OK=0
+      MIGRATE_FAIL=0
+      for f in "$MIGRATIONS_DIR"/*.sql; do
+        if sudo -u postgres psql -d "$DB_NAME" -f "$f" &>/dev/null; then
+          MIGRATE_OK=$((MIGRATE_OK + 1))
+        else
+          MIGRATE_FAIL=$((MIGRATE_FAIL + 1))
+        fi
+      done
+      if [ "$MIGRATE_FAIL" -eq 0 ]; then
+        check_pass "迁移完成（$MIGRATE_OK 个文件全部成功）"
+      else
+        check_warn "迁移部分失败：$MIGRATE_OK 成功，$MIGRATE_FAIL 失败（可能是重复执行）"
+      fi
+    fi
   fi
 fi
 
 echo ""
 
-# ─── 4. 迁移文件 ───
-
-info "━━━ 数据库迁移 ━━━"
-echo ""
-
-if [ -d "$MIGRATIONS_DIR" ]; then
-  MIGRATION_COUNT=$(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | wc -l)
-  check_pass "迁移目录存在，共 $MIGRATION_COUNT 个 SQL 文件"
-else
-  check_fail "迁移目录不存在：$MIGRATIONS_DIR"
-fi
-
-echo ""
-
-# ─── 5. 配置文件 ───
+# ─── 4. 配置文件 ───
 
 info "━━━ 配置文件 ━━━"
 echo ""
@@ -181,7 +193,7 @@ fi
 
 echo ""
 
-# ─── 6. uploads 目录 ───
+# ─── 5. uploads 目录 ───
 
 info "━━━ 文件存储 ━━━"
 echo ""
@@ -197,7 +209,7 @@ fi
 
 echo ""
 
-# ─── 7. 二进制文件 ───
+# ─── 6. 二进制文件 ───
 
 info "━━━ 可执行文件 ━━━"
 echo ""
@@ -219,7 +231,7 @@ fi
 
 echo ""
 
-# ─── 8. 端口检测 ───
+# ─── 7. 端口检测 ───
 
 info "━━━ 端口检测 ━━━"
 echo ""
@@ -233,7 +245,7 @@ fi
 
 echo ""
 
-# ─── 9. 防火墙 ───
+# ─── 8. 防火墙 ───
 
 info "━━━ 防火墙 ━━━"
 echo ""
