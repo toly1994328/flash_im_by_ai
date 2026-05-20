@@ -140,5 +140,4 @@ stateDiagram-v2
 - 开发顺序：样式改造（纯前端）→ Emoji 面板（纯前端）→ 语音消息（前后端）
 - 样式改造和 Emoji 面板可以独立完成，不依赖后端
 - 语音消息复杂度最高：录音插件选型、权限声明、上传接口、proto 新增类型、气泡 UI
-- 参考项目 `docs/ref/flash_im-main` 中有完整的语音输入实现（VoiceInputWidget + RecordManager），可直接参考移植
 - 面板互斥切换是交互细节的重点，需要确保键盘高度和面板高度一致，避免页面跳动

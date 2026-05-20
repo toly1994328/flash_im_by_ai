@@ -2,7 +2,6 @@
 
 基于 design.md 设计，列出需要创建/修改的具体细节。
 三层架构：data / logic / view，与其他模块保持一致。
-参考项目：`docs/ref/flash_im-main/app/packages/im_chat/`
 
 ---
 

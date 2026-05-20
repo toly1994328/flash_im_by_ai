@@ -206,7 +206,7 @@ RecordManager（工具层）
 
 | 决策 | 方案 | 理由 |
 |------|------|------|
-| 录音库 | `record` ^5.2.0 | 参考项目已验证，API 简洁，支持 Android/iOS/Windows |
+| 录音库 | `record` ^5.2.0 | API 简洁，支持 Android/iOS/Windows |
 | 权限管理 | `permission_handler` ^11.0.0 | 项目中已有依赖（扫码页用过） |
 | Emoji 数据 | 硬编码常用表情列表 | 简单直接，不需要额外包 |
 | 音频播放 | `just_audio` ^0.9.0 | 轻量，支持网络 URL 播放 |

@@ -21,7 +21,7 @@
 
 ## 二、技术方案
 
-采用 **首消息认证（First-Message Auth）** 模式，参考 `flash_im-main` 参考项目的实现：
+采用 **首消息认证（First-Message Auth）** 模式：
 
 ```mermaid
 sequenceDiagram

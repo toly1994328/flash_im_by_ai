@@ -121,14 +121,14 @@ client/lib/src/
 | 在线状态集合放 WsClient | WsClient 内部维护 `_onlineUserIds`，不单独建 Cubit | 在线状态是全局的、和 WS 连接生命周期绑定的，放 WsClient 最自然 |
 | 已读上报 1 秒防抖 | ChatCubit 内部 Timer，同一会话内合并多次上报 | 避免快速滚动时频繁发送 WS 帧 |
 | peerReadSeq 放 ChatCubit | 每个 ChatCubit 实例维护自己会话的 peerReadSeq | 页面级状态，离开页面即销毁 |
-| 已读标记单聊和群聊都做 | 单聊用 peerReadSeq，群聊用 membersReadSeq 映射 | 群聊显示"N人已读"，参考项目已实现 |
+| 已读标记单聊和群聊都做 | 单聊用 peerReadSeq，群聊用 membersReadSeq 映射 | 群聊显示"N人已读" |
 | 群聊初始已读位置 | 扩展 GET /groups/{id}/detail 返回 members 的 last_read_seq | 进入群聊时一次性获取 |
 | 在线绿点放好友列表 | FriendCubit 监听在线状态变化，FriendListPage 渲染绿点 | 在线状态和好友关系强相关 |
 | ChatPage 在线状态 | 单聊 ChatPage AppBar 副标题显示"在线"/"离线"文字（无圆点） | 只在单聊显示，群聊不显示 |
 | 初始 peerReadSeq | 进入聊天页时调独立 HTTP 接口 GET /conversations/{id}/read-seq | 独立接口避免 loadMore 重复返回已读位置 |
 | 活跃会话不累加未读 | ConversationListCubit 维护 activeConversationId，收到 ConversationUpdate 时跳过未读累加并调 markRead | 避免用户在聊天页时返回看到幽灵未读，markRead 保证后端一致 |
 | 会话列表在线绿点 | ConversationTile 接收 isOnline 参数，单聊头像右下角绿点 | 和好友列表绿点统一样式（0xFF07C160，12px，白色边框 2px） |
-| 在线绿点样式 | 微信绿 0xFF07C160，12px，白色边框 2px，Positioned bottom: -2, right: -2 | 参考项目一致 |
+| 在线绿点样式 | 微信绿 0xFF07C160，12px，白色边框 2px，Positioned bottom: -2, right: -2 | 微信风格统一 |
 
 ### 第三方依赖
 

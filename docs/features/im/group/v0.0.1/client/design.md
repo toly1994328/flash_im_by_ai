@@ -181,9 +181,9 @@ Repository (数据访问)
 | CreateGroupPage 的好友数据来源 | 由调用方传入 `List<SelectableMember>`（含 letter 字段） | 避免 flash_im_group 依赖 flash_im_friend，letter 由调用方用 PinyinUtil 计算 |
 | 群名自动拼接 | 前端拼接成员昵称（≤3 人全拼，>3 人前三 + "等"），传给后端 | 不改后端，群名仍是必填字段 |
 | 通讯录"群聊"入口 | MyGroupsPage（群聊列表 + 搜索） | 替代原来的"搜索群聊"直接跳搜索页，更符合微信交互 |
-| 单聊详情页放哪个模块 | flash_im_chat | 它是 ChatPage 的子页面，且参考项目也放在 im_chat 中 |
-| 宫格头像 | GroupAvatarWidget 解析 grid: 前缀渲染九宫格 | 参照参考项目 GroupAvatar 组件，放在 flash_shared |
-| 系统消息样式 | sender_id=999999999 时居中灰色标签 | 参照参考项目 _buildSystemMessage |
+| 单聊详情页放哪个模块 | flash_im_chat | 它是 ChatPage 的子页面 |
+| 宫格头像 | GroupAvatarWidget 解析 grid: 前缀渲染九宫格 | 放在 flash_shared 通用组件 |
+| 系统消息样式 | sender_id=999999999 时居中灰色标签 | 统一系统消息展示 |
 | 右上角菜单 | WxPopupMenuButton 弹出尖角气泡 | 微信风格，放在 flash_shared 通用组件 |
 | ConversationListCubit 修复 | _handleUpdate 保留 avatar 字段 | 群聊收到新消息后 avatar 不丢失 |
 
@@ -216,6 +216,6 @@ Repository (数据访问)
 | 功能 | 理由 |
 |------|------|
 | 群详情页（群信息/成员列表/群设置） | 属于群管理域，下一章 |
-| 群聊消息预览拼接发送者昵称 | 后端 generate_preview 不拼接昵称，与参考项目一致 |
+| 群聊消息预览拼接发送者昵称 | 后端 generate_preview 不拼接昵称，前端自行处理 |
 | @提醒 | 依赖群成员列表，进阶功能 |
 | 群消息已读回执 | 复杂度高，进阶功能 |

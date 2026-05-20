@@ -3,7 +3,6 @@
 基于 design.md 设计，列出需要创建/修改的具体细节。
 三层架构：data / logic / view，与其他模块保持一致。
 使用 flutter create --template=package 创建模块。
-核心流程参考 `docs/ref/flash_im-main/app/packages/im_conversation/`。
 
 ---
 
@@ -172,7 +171,7 @@ class ConversationListCubit extends Cubit<ConversationListState> {
 
 文件：`client/modules/flash_im_conversation/lib/src/view/conversation_tile.dart`（新建）
 
-参考项目的会话列表项样式：
+会话列表项样式：
 
 ```dart
 class ConversationTile extends StatelessWidget {

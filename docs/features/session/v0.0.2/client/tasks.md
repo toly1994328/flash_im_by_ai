@@ -136,4 +136,4 @@ flash_session/lib/src/
 ## 任务 11：编译验证 ✅
 
 - `flutter analyze` 零 error（项目自身代码）
-- 所有 info/warning 均来自 playground 或 docs/ref 参考项目
+- 所有 info/warning 均来自 playground 或 docs/ref

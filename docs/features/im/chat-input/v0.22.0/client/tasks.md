@@ -4,7 +4,6 @@
 
 全局约束：
 - UI 风格参考 `.kiro/skills/flash-im-ui-style`
-- 参考实现：`docs/ref/flash_im-main/app/packages/im_chat/lib/src/presentation/widgets/`
 - 日志使用 fx_logger
 - 已有 14 个 ChatCubit 测试不能破坏
 
@@ -133,9 +132,9 @@ bool _isVoiceMode = false;
 
 文件：`client/modules/flash_im_chat/lib/src/view/voice_input/record_manager.dart`（新建）
 
-### 5.1 参考实现 `⬜`
+### 5.1 核心 API `⬜`
 
-直接参考 `docs/ref/flash_im-main/.../voice_input/record_manager.dart`，核心 API：
+使用 `record` 包的 `AudioRecorder`，录制 WAV 格式，核心 API：
 
 ```dart
 class RecordManager {
@@ -164,7 +163,7 @@ class RecordManager {
 
 ### 6.2 波形动画（可选） `⬜`
 
-简单的随机高度条形动画，录音中显示。参考项目有 CustomPainter 实现。
+简单的随机高度条形动画，录音中显示。
 
 ### 6.3 ImVoiceInput 封装 `⬜`
 

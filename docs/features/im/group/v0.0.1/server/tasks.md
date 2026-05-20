@@ -7,7 +7,6 @@
 - 创建群聊（POST /conversations type=group）放在 `im-conversation/routes.rs`（不需要 dispatcher）
 - 错误处理统一用 `StatusCode` 返回
 - SQL 使用参数化查询
-- 参考项目路径：`docs/ref/flash_im-main/backend/crates/im-conversation/`
 
 ---
 
