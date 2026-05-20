@@ -71,6 +71,21 @@ if ! command -v apt &> /dev/null; then
   fail "此脚本仅支持 apt 包管理器（Ubuntu/Debian）"
 fi
 
+# 检测 swap，内存不足时自动创建
+TOTAL_MEM=$(free -m | awk '/^Mem:/{print $2}')
+SWAP_SIZE=$(free -m | awk '/^Swap:/{print $2}')
+if [ "$SWAP_SIZE" -eq 0 ] && [ "$TOTAL_MEM" -lt 4096 ]; then
+  warn "内存 ${TOTAL_MEM}MB 且无 swap，Rust 编译可能 OOM，正在创建 2G swap..."
+  fallocate -l 2G /swapfile
+  chmod 600 /swapfile
+  mkswap /swapfile &> /dev/null
+  swapon /swapfile
+  if ! grep -q '/swapfile' /etc/fstab; then
+    echo '/swapfile none swap sw 0 0' >> /etc/fstab
+  fi
+  ok "swap 已创建并启用（2G）"
+fi
+
 info "项目目录：$PROJECT_ROOT"
 info "服务端目录：$SERVER_DIR"
 echo ""
