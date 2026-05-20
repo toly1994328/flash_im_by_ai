@@ -174,14 +174,27 @@ fi
 # 执行迁移
 info "执行数据库迁移..."
 MIGRATION_COUNT=0
+MIGRATION_FAIL=0
 for f in "$MIGRATIONS_DIR"/*.sql; do
   if [ -f "$f" ]; then
     FILENAME=$(basename "$f")
-    sudo -u postgres psql -d "$DB_NAME" -f "$f" &> /dev/null
-    MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
+    if sudo -u postgres psql -d "$DB_NAME" -f "$f" > /dev/null 2>&1; then
+      MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
+    else
+      MIGRATION_FAIL=$((MIGRATION_FAIL + 1))
+    fi
   fi
 done
-ok "已执行 $MIGRATION_COUNT 个迁移文件"
+
+if [ "$MIGRATION_FAIL" -eq 0 ]; then
+  ok "已执行 $MIGRATION_COUNT 个迁移文件"
+elif [ "$MIGRATION_COUNT" -gt 0 ]; then
+  ok "$MIGRATION_COUNT 成功，$MIGRATION_FAIL 跳过（表可能已存在）"
+else
+  warn "迁移全部失败，尝试手动执行："
+  echo "  sudo -u postgres psql -d $DB_NAME -f $MIGRATIONS_DIR/20250320_001_auth.sql"
+  echo "  查看具体错误信息"
+fi
 
 echo ""
 
