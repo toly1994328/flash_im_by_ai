@@ -226,7 +226,7 @@ if [ -f "$BINARY_PATH" ]; then
   fi
 else
   check_fail "二进制文件不存在：$BINARY_PATH"
-  echo "  请在本地编译后上传：python scripts/server/build.py root@$(hostname -I | awk '{print $1}')"
+  echo "  请在本地编译后上传：python scripts/deploy/build.py root@$(hostname -I | awk '{print $1}')"
 fi
 
 echo ""

@@ -4,7 +4,7 @@
 #
 # 用法：
 #   1. 把项目代码上传到服务器（git clone 或 scp）
-#   2. 在服务器上执行：bash scripts/server/deploy.sh
+#   2. 在服务器上执行：bash scripts/deploy/deploy.sh
 #
 # 支持：Ubuntu 22.04 / 24.04（其他 Debian 系发行版应该也行）
 # 需要：root 权限
@@ -63,7 +63,7 @@ echo ""
 
 # 必须是 root
 if [ "$EUID" -ne 0 ]; then
-  fail "请用 root 权限运行：sudo bash scripts/server/deploy.sh"
+  fail "请用 root 权限运行：sudo bash scripts/deploy/deploy.sh"
 fi
 
 # 必须是 Debian/Ubuntu 系

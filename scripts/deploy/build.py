@@ -5,8 +5,8 @@
 在本地编译出 Linux x86_64 的 Release 二进制，可选上传到服务器。
 
 用法：
-  python scripts/server/build.py                        # 只编译
-  python scripts/server/build.py root@47.96.123.45     # 编译并上传
+  python scripts/deploy/build.py                        # 只编译
+  python scripts/deploy/build.py root@47.96.123.45     # 编译并上传
 
 前置条件：
   - 已安装 Rust：https://rustup.rs
@@ -161,7 +161,7 @@ def main():
         print()
         info("接下来在服务器上执行部署脚本：")
         print(f"  ssh {remote_host}")
-        print(f"  cd /opt/flash_im && bash scripts/server/deploy.sh")
+        print(f"  cd /opt/flash_im && bash scripts/deploy/deploy.sh")
     else:
         info("编译完成。手动上传：")
         if SYSTEM == "Windows":
@@ -170,7 +170,7 @@ def main():
             print(f"  scp {BINARY_PATH} root@你的服务器IP:{REMOTE_DIR}/target/release/{BINARY_NAME}")
         print()
         info("然后在服务器上执行部署脚本：")
-        print("  bash scripts/server/deploy.sh")
+        print("  bash scripts/deploy/deploy.sh")
 
     print()
 
