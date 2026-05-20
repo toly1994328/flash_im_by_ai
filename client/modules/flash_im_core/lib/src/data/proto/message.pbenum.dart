@@ -23,16 +23,22 @@ class MessageType extends $pb.ProtobufEnum {
       MessageType._(2, _omitEnumNames ? '' : 'VIDEO');
   static const MessageType FILE =
       MessageType._(3, _omitEnumNames ? '' : 'FILE');
+  static const MessageType AUDIO =
+      MessageType._(4, _omitEnumNames ? '' : 'AUDIO');
+  static const MessageType FORWARD =
+      MessageType._(5, _omitEnumNames ? '' : 'FORWARD');
 
   static const $core.List<MessageType> values = <MessageType>[
     TEXT,
     IMAGE,
     VIDEO,
     FILE,
+    AUDIO,
+    FORWARD,
   ];
 
   static final $core.List<MessageType?> _byValue =
-      $pb.ProtobufEnum.$_initByValueList(values, 3);
+      $pb.ProtobufEnum.$_initByValueList(values, 5);
   static MessageType? valueOf($core.int value) =>
       value < 0 || value >= _byValue.length ? null : _byValue[value];
 

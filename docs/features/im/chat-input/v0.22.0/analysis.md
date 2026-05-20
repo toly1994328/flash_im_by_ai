@@ -80,12 +80,13 @@ stateDiagram-v2
 
 | 时刻 | 事件 | 处理 | 产生的新事件 |
 |------|------|------|-------------|
-| T0 | 点击麦克风 | 设置 isVoiceMode=true，收起键盘和面板 | UI 切换 |
-| T1 | 手指按下按钮 | 请求录音权限 → 开始录音 → 启动计时器 | 波形动画开始 |
+| T0 | 点击麦克风 | 设置 isVoiceMode=true，收起键盘和面板 | UI 切换（不检测权限） |
+| T1 | 手指按下按钮 | 检测 hasPermission → 无权限则 requestPermission 后直接 return | 首次弹出系统授权弹窗 |
+| T1' | 手指按下按钮（已有权限） | startRecording → 启动计时器 | 录音开始，UI 显示"松开 发送" |
 | T2 | 手指移动 | 检测是否超出按钮区域，更新 UI 状态（录音中/取消中） | — |
-| T3a | 原地松手 | 停止录音 → 检查时长 → 上传音频文件 → 发送消息 | ChatCubit.sendAudio |
+| T3a | 原地松手 | 停止录音 → 检查时长（<1s 提示太短）→ 上传音频文件 → 发送消息 | ChatCubit.sendAudio |
 | T3b | 上滑松手 | 取消录音，删除临时文件 | — |
-| T4 | 上传完成 | 通过 WS 发送 type=4 的消息帧（content=audioUrl, extra={duration}) | ACK |
+| T4 | 上传完成 | 通过 WS 发送 type=4 的消息帧（content=fileUrl, extra={duration_ms, file_size}） | ACK |
 
 ### 状态流转
 
@@ -111,9 +112,9 @@ stateDiagram-v2
 
 | 编号 | 功能节点 | 层级 | 简介 |
 |------|---------|------|------|
-| P-21 | Emoji 表情面板 | 前端业务 | 常用表情网格，点击插入光标位置 |
-| P-22 | 语音消息输入 | 前端业务 | 按住录音、松手发送、上滑取消 |
-| D-10 | 语音消息类型 | 领域 | msg_type=4，extra 含 duration |
+| P-54 | Emoji 表情面板 | 前端业务 | 常用表情网格，点击插入光标位置 |
+| P-55 | 语音消息输入 | 前端业务 | 按住录音、松手发送、上滑取消 |
+| D-41 | 语音消息类型 | 领域 | msg_type=4，extra 含 duration_ms |
 
 注：输入栏样式改造为纯视觉调整，不分配编号。
 
@@ -121,7 +122,7 @@ stateDiagram-v2
 
 | 依赖节点 | 依赖方式 | 是否已有 |
 |----------|---------|---------|
-| 文件上传接口（app-storage） | POST /api/upload/audio | ❌ 需新增（复用 upload/file 逻辑） |
+| 文件上传接口（app-storage） | POST /api/upload/file | ✅ 已有（音频作为普通文件上传） |
 | WS 消息类型 | proto MessageType.AUDIO = 4 | ❌ 需在 proto 中新增 |
 | ChatFileMixin | sendAudioFromFile 方法 | ❌ 需新增 |
 | 录音插件 | record 或 flutter_sound | ❌ 需引入 |
@@ -131,8 +132,8 @@ stateDiagram-v2
 
 | 接口 | 定义方 | 消费方 | 说明 |
 |------|--------|--------|------|
-| POST /api/upload/audio | app-storage | 前端 | 上传音频文件，返回 {audio_url, duration_ms} |
-| WS ChatMessage (type=4) | im-message | 前端 | 语音消息帧，content=url, extra={duration_ms} |
+| POST /api/upload/file | app-storage | 前端 | 上传音频文件，返回 {file_url, file_name, file_size, file_type} |
+| WS ChatMessage (type=4) | im-message | 前端 | 语音消息帧，content=file_url, extra={duration_ms, file_size}。duration_ms 由客户端录音计时提供 |
 
 ## 四、结论
 

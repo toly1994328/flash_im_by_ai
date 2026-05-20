@@ -23,13 +23,15 @@ const MessageType$json = {
     {'1': 'IMAGE', '2': 1},
     {'1': 'VIDEO', '2': 2},
     {'1': 'FILE', '2': 3},
+    {'1': 'AUDIO', '2': 4},
+    {'1': 'FORWARD', '2': 5},
   ],
 };
 
 /// Descriptor for `MessageType`. Decode as a `google.protobuf.EnumDescriptorProto`.
 final $typed_data.Uint8List messageTypeDescriptor = $convert.base64Decode(
-    'CgtNZXNzYWdlVHlwZRIICgRURVhUEAASCQoFSU1BR0UQARIJCgVWSURFTxACEggKBEZJTEUQAw'
-    '==');
+    'CgtNZXNzYWdlVHlwZRIICgRURVhUEAASCQoFSU1BR0UQARIJCgVWSURFTxACEggKBEZJTEUQAx'
+    'IJCgVBVURJTxAEEgsKB0ZPUldBUkQQBQ==');
 
 @$core.Deprecated('Use messageStatusDescriptor instead')
 const MessageStatus$json = {
@@ -142,6 +144,13 @@ const ConversationUpdate$json = {
     {'1': 'last_message_at', '3': 3, '4': 1, '5': 3, '10': 'lastMessageAt'},
     {'1': 'unread_count', '3': 4, '4': 1, '5': 5, '10': 'unreadCount'},
     {'1': 'total_unread', '3': 5, '4': 1, '5': 5, '10': 'totalUnread'},
+    {
+      '1': 'last_message_extra',
+      '3': 6,
+      '4': 1,
+      '5': 9,
+      '10': 'lastMessageExtra'
+    },
   ],
 };
 
@@ -150,7 +159,8 @@ final $typed_data.Uint8List conversationUpdateDescriptor = $convert.base64Decode
     'ChJDb252ZXJzYXRpb25VcGRhdGUSJwoPY29udmVyc2F0aW9uX2lkGAEgASgJUg5jb252ZXJzYX'
     'Rpb25JZBIwChRsYXN0X21lc3NhZ2VfcHJldmlldxgCIAEoCVISbGFzdE1lc3NhZ2VQcmV2aWV3'
     'EiYKD2xhc3RfbWVzc2FnZV9hdBgDIAEoA1INbGFzdE1lc3NhZ2VBdBIhCgx1bnJlYWRfY291bn'
-    'QYBCABKAVSC3VucmVhZENvdW50EiEKDHRvdGFsX3VucmVhZBgFIAEoBVILdG90YWxVbnJlYWQ=');
+    'QYBCABKAVSC3VucmVhZENvdW50EiEKDHRvdGFsX3VucmVhZBgFIAEoBVILdG90YWxVbnJlYWQS'
+    'LAoSbGFzdF9tZXNzYWdlX2V4dHJhGAYgASgJUhBsYXN0TWVzc2FnZUV4dHJh');
 
 @$core.Deprecated('Use groupInfoUpdateDescriptor instead')
 const GroupInfoUpdate$json = {
@@ -258,3 +268,20 @@ final $typed_data.Uint8List messageRecalledDescriptor = $convert.base64Decode(
     'Cg9NZXNzYWdlUmVjYWxsZWQSHQoKbWVzc2FnZV9pZBgBIAEoCVIJbWVzc2FnZUlkEicKD2Nvbn'
     'ZlcnNhdGlvbl9pZBgCIAEoCVIOY29udmVyc2F0aW9uSWQSGwoJc2VuZGVyX2lkGAMgASgJUghz'
     'ZW5kZXJJZBIfCgtzZW5kZXJfbmFtZRgEIAEoCVIKc2VuZGVyTmFtZQ==');
+
+@$core.Deprecated('Use pinChangedNotificationDescriptor instead')
+const PinChangedNotification$json = {
+  '1': 'PinChangedNotification',
+  '2': [
+    {'1': 'conversation_id', '3': 1, '4': 1, '5': 9, '10': 'conversationId'},
+    {'1': 'message_id', '3': 2, '4': 1, '5': 9, '10': 'messageId'},
+    {'1': 'action', '3': 3, '4': 1, '5': 9, '10': 'action'},
+    {'1': 'pinned_by', '3': 4, '4': 1, '5': 9, '10': 'pinnedBy'},
+  ],
+};
+
+/// Descriptor for `PinChangedNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List pinChangedNotificationDescriptor = $convert.base64Decode(
+    'ChZQaW5DaGFuZ2VkTm90aWZpY2F0aW9uEicKD2NvbnZlcnNhdGlvbl9pZBgBIAEoCVIOY29udm'
+    'Vyc2F0aW9uSWQSHQoKbWVzc2FnZV9pZBgCIAEoCVIJbWVzc2FnZUlkEhYKBmFjdGlvbhgDIAEo'
+    'CVIGYWN0aW9uEhsKCXBpbm5lZF9ieRgEIAEoCVIIcGlubmVkQnk=');

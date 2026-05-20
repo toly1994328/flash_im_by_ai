@@ -238,6 +238,64 @@ mixin ChatFileMixin on Cubit<ChatState> {
     }
   }
 
+  // ─── 语音发送 ───
+
+  /// 从录音文件发送语音消息
+  Future<void> sendAudioFromFile(String filePath, int durationMs) async {
+    final current = state;
+    if (current is! ChatLoaded) return;
+
+    final localId = 'local_${nextLocalId()}';
+    final fileSize = await File(filePath).length();
+    final audioExtra = {'duration_ms': durationMs, 'file_size': fileSize};
+
+    final localMessage = Message.sending(
+      localId: localId,
+      conversationId: conversationId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatar: currentUserAvatar,
+      content: filePath,
+      type: MessageType.audio,
+      extra: audioExtra,
+    );
+    emit(current.copyWith(messages: [...current.messages, localMessage]));
+
+    try {
+      final result = await repository.uploadFile(filePath, onProgress: (p) {
+        _log.d('audio progress: ${(p * 100).toInt()}%');
+      });
+
+      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      pendingMessages[clientId] = localId;
+
+      final extra = {'duration_ms': durationMs, 'file_size': result.fileSize};
+
+      final latest = state;
+      if (latest is ChatLoaded) {
+        final updated = latest.messages.map((m) {
+          if (m.id == localId) {
+            return m.copyWith(content: result.fileUrl, extra: extra);
+          }
+          return m;
+        }).toList();
+        emit(latest.copyWith(messages: updated));
+      }
+
+      wsClient.sendMessage(
+        conversationId: conversationId,
+        content: result.fileUrl,
+        type: proto.MessageType.AUDIO,
+        extra: utf8.encode(jsonEncode(extra)),
+        clientId: clientId,
+      );
+
+      setupTimeout(clientId, localId, const Duration(seconds: 15));
+    } catch (e) {
+      markFailed(localId);
+    }
+  }
+
   // ─── 文件下载 ───
 
   /// 下载文件

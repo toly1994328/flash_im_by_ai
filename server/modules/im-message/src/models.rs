@@ -49,6 +49,7 @@ pub fn generate_preview(content: &str, msg_type: i16) -> String {
         1 => "[图片]".to_string(),
         2 => "[视频]".to_string(),
         3 => "[文件]".to_string(),
+        4 => "[语音]".to_string(),
         _ => {
             if content.chars().count() > 50 {
                 format!("{}...", content.chars().take(50).collect::<String>())

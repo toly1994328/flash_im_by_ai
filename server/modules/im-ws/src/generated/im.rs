@@ -270,6 +270,7 @@ pub enum MessageType {
     Image = 1,
     Video = 2,
     File = 3,
+    Audio = 4,
     Forward = 5,
 }
 impl MessageType {
@@ -283,6 +284,7 @@ impl MessageType {
             Self::Image => "IMAGE",
             Self::Video => "VIDEO",
             Self::File => "FILE",
+            Self::Audio => "AUDIO",
             Self::Forward => "FORWARD",
         }
     }
@@ -293,6 +295,7 @@ impl MessageType {
             "IMAGE" => Some(Self::Image),
             "VIDEO" => Some(Self::Video),
             "FILE" => Some(Self::File),
+            "AUDIO" => Some(Self::Audio),
             "FORWARD" => Some(Self::Forward),
             _ => None,
         }

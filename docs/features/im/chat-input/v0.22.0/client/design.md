@@ -43,14 +43,29 @@ tags: [输入框, emoji, 语音消息, UI优化]
 
 ```dart
 enum MessageType {
-  text,    // 0
-  image,   // 1
-  video,   // 2
-  file,    // 3
-  audio,   // 4  ← 新增
-  forward, // 5
+  text(0),
+  image(1),
+  video(2),
+  file(3),
+  audio(4),    // ← 新增
+  forward(5);
+
+  final int value;
+  const MessageType(this.value);
+
+  static MessageType fromInt(int v) => switch (v) {
+    1 => image,
+    2 => video,
+    3 => file,
+    4 => audio,
+    5 => forward,
+    _ => text,
+  };
 }
 ```
+
+> 设计要点：所有 int↔enum 转换收敛到 `MessageType.fromInt()` 和 `type.value`，
+> 新增消息类型只需改枚举一处，避免 fromJson / fromCached / toCached 多处遗漏。
 
 语音消息的 extra：
 
@@ -63,16 +78,16 @@ enum MessageType {
 
 ### 接口契约
 
-**POST /api/upload/audio** — 上传音频文件
-
-复用现有 app-storage 的文件上传逻辑，返回格式：
+**POST /api/upload/file** — 上传音频文件（复用现有文件上传接口）
 
 ```json
 // Request: multipart/form-data, field: "file"
 // Response:
 {
-  "audio_url": "/uploads/audio/2026/05/xxx.wav",
-  "file_size": 83200
+  "file_url": "/uploads/file/2026/05/xxx.wav",
+  "file_name": "xxx.wav",
+  "file_size": 83200,
+  "file_type": "wav"
 }
 ```
 
@@ -102,18 +117,27 @@ sequenceDiagram
     participant Server as 后端
 
     U->>Input: 点击麦克风图标
-    Input->>Input: 切换为语音模式
+    Input->>Input: 切换为语音模式（不检测权限）
     U->>Input: 按住"说话"按钮
-    Input->>Recorder: startRecording()
-    Recorder-->>Input: 录音中（波形动画）
-    U->>Input: 松手
-    Input->>Recorder: stopRecording()
-    Recorder-->>Input: 返回文件路径 + 时长
-    Input->>Cubit: sendAudioFromFile(path, duration)
-    Cubit->>Server: POST /api/upload/file (audio)
-    Server-->>Cubit: {file_url, file_size}
-    Cubit->>Server: WS sendMessage(type=AUDIO)
-    Server-->>Cubit: ACK
+    Input->>Recorder: hasPermission()
+    alt 无权限
+        Recorder-->>Input: false
+        Input->>Recorder: requestPermission()
+        Recorder-->>Input: 弹出系统授权弹窗
+        Input-->>U: 直接 return（不管授权结果）
+    else 有权限
+        Recorder-->>Input: true
+        Input->>Recorder: startRecording()
+        Recorder-->>Input: 录音中
+        U->>Input: 松手
+        Input->>Recorder: stopRecording()
+        Recorder-->>Input: 返回文件路径 + 时长
+        Input->>Cubit: sendAudioFromFile(path, durationMs)
+        Cubit->>Server: POST /api/upload/file (audio)
+        Server-->>Cubit: {file_url, file_size}
+        Cubit->>Server: WS sendMessage(type=AUDIO)
+        Server-->>Cubit: ACK
+    end
 ```
 
 ### 面板切换逻辑
@@ -137,14 +161,26 @@ stateDiagram-v2
 ### 项目结构
 
 ```
-flash_im_chat/lib/src/view/
-├── chat_input.dart              ← 重写：微信风格输入栏
-├── emoji_panel.dart             ← 新增：Emoji 表情面板
-├── voice_input/
-│   ├── voice_input_widget.dart  ← 新增：按住说话 UI + 波形动画
-│   └── record_manager.dart      ← 新增：录音管理器（封装 record 包）
-├── bubble/
-│   └── audio_bubble.dart        ← 新增：语音消息气泡（时长 + 播放按钮）
+flash_im_chat/
+├── assets/icons/
+│   ├── ic_voice.svg             ← 新增：语音图标
+│   └── ic_keyboard.svg          ← 新增：键盘图标
+├── lib/src/
+│   ├── data/
+│   │   ├── message.dart         ← 修改：MessageType 增强枚举 + audio 类型
+│   │   ├── message_ext.dart     ← 修改：toCached 使用 type.value
+│   │   └── message_repository.dart ← 修改：_fromCached 使用 MessageType.fromInt
+│   ├── logic/
+│   │   └── chat_file_mixin.dart ← 修改：新增 sendAudioFromFile
+│   └── view/
+│       ├── chat_input.dart      ← 重写：微信风格输入栏 + TapRegion
+│       ├── emoji_panel.dart     ← 新增：Emoji 表情面板
+│       ├── voice_input/
+│       │   ├── voice_input_widget.dart ← 新增：按住说话 UI
+│       │   └── record_manager.dart     ← 新增：录音管理器
+│       └── bubble/
+│           ├── audio_bubble.dart       ← 新增：语音消息气泡
+│           └── message_bubble.dart     ← 修改：新增 audio case
 ```
 
 ### 职责划分
@@ -170,20 +206,34 @@ RecordManager（工具层）
 
 | 决策 | 方案 | 理由 |
 |------|------|------|
-| 录音库 | `record` ^5.1.0 | 参考项目已验证，API 简洁，支持 Android/iOS |
+| 录音库 | `record` ^5.2.0 | 参考项目已验证，API 简洁，支持 Android/iOS/Windows |
 | 权限管理 | `permission_handler` ^11.0.0 | 项目中已有依赖（扫码页用过） |
 | Emoji 数据 | 硬编码常用表情列表 | 简单直接，不需要额外包 |
 | 音频播放 | `just_audio` ^0.9.0 | 轻量，支持网络 URL 播放 |
-| 波形动画 | 自定义 CustomPainter | 参考项目已有实现，不需要额外包 |
+| SVG 图标 | `flutter_svg` ^2.0.0 | 语音/键盘切换使用自定义 SVG 图标 |
+| 点击外部收起面板 | `TapRegion` + groupId | Flutter 原生组件，无需额外依赖 |
+| MessageType 枚举 | 带 value 的增强枚举 + `fromInt` 工厂 | 收敛 int↔enum 转换到一处，新增类型不会遗漏 |
 
 ### 第三方依赖
 
 | 依赖 | 用途 | 已有/需新增 |
 |------|------|-----------|
-| record | 录音 | ❌ 需新增 ^5.1.0 |
+| record | 录音 | ❌ 需新增 ^5.2.0 |
 | permission_handler | 权限请求 | ✅ 已有 |
 | path_provider | 临时文件路径 | ✅ 已有 |
+| path | 文件路径拼接 | ❌ 需新增 ^1.9.0 |
 | just_audio | 语音播放 | ❌ 需新增 ^0.9.0 |
+| flutter_svg | SVG 图标渲染 | ❌ 需新增 ^2.0.0（主项目 dependency_overrides） |
+
+### 依赖兼容性处理
+
+主项目 `client/pubspec.yaml` 的 `dependency_overrides`：
+
+```yaml
+dependency_overrides:
+  record_linux: ^1.3.0      # record_linux 0.7.x 与 record_platform_interface 1.5.0 不兼容
+  flutter_svg: ^2.3.0       # 子模块依赖需通过主项目 override 解析
+```
 
 ## 6. 验收标准
 

@@ -923,6 +923,97 @@ class MessageRecalled extends $pb.GeneratedMessage {
   void clearSenderName() => $_clearField(4);
 }
 
+class PinChangedNotification extends $pb.GeneratedMessage {
+  factory PinChangedNotification({
+    $core.String? conversationId,
+    $core.String? messageId,
+    $core.String? action,
+    $core.String? pinnedBy,
+  }) {
+    final result = create();
+    if (conversationId != null) result.conversationId = conversationId;
+    if (messageId != null) result.messageId = messageId;
+    if (action != null) result.action = action;
+    if (pinnedBy != null) result.pinnedBy = pinnedBy;
+    return result;
+  }
+
+  PinChangedNotification._();
+
+  factory PinChangedNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory PinChangedNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'PinChangedNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aOS(1, _omitFieldNames ? '' : 'conversationId')
+    ..aOS(2, _omitFieldNames ? '' : 'messageId')
+    ..aOS(3, _omitFieldNames ? '' : 'action')
+    ..aOS(4, _omitFieldNames ? '' : 'pinnedBy')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PinChangedNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  PinChangedNotification copyWith(
+          void Function(PinChangedNotification) updates) =>
+      super.copyWith((message) => updates(message as PinChangedNotification))
+          as PinChangedNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static PinChangedNotification create() => PinChangedNotification._();
+  @$core.override
+  PinChangedNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static PinChangedNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<PinChangedNotification>(create);
+  static PinChangedNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $core.String get conversationId => $_getSZ(0);
+  @$pb.TagNumber(1)
+  set conversationId($core.String value) => $_setString(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasConversationId() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearConversationId() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $core.String get messageId => $_getSZ(1);
+  @$pb.TagNumber(2)
+  set messageId($core.String value) => $_setString(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasMessageId() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearMessageId() => $_clearField(2);
+
+  @$pb.TagNumber(3)
+  $core.String get action => $_getSZ(2);
+  @$pb.TagNumber(3)
+  set action($core.String value) => $_setString(2, value);
+  @$pb.TagNumber(3)
+  $core.bool hasAction() => $_has(2);
+  @$pb.TagNumber(3)
+  void clearAction() => $_clearField(3);
+
+  @$pb.TagNumber(4)
+  $core.String get pinnedBy => $_getSZ(3);
+  @$pb.TagNumber(4)
+  set pinnedBy($core.String value) => $_setString(3, value);
+  @$pb.TagNumber(4)
+  $core.bool hasPinnedBy() => $_has(3);
+  @$pb.TagNumber(4)
+  void clearPinnedBy() => $_clearField(4);
+}
+
 const $core.bool _omitFieldNames =
     $core.bool.fromEnvironment('protobuf.omit_field_names');
 const $core.bool _omitMessageNames =

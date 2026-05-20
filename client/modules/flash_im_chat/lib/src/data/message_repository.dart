@@ -256,13 +256,7 @@ class MessageRepository implements IMessageRepository {
 
   /// CachedMessage → Message
   Message _fromCached(CachedMessage c) {
-    final parsedType = switch (c.msgType) {
-      1 => MessageType.image,
-      2 => MessageType.video,
-      3 => MessageType.file,
-      5 => MessageType.forward,
-      _ => MessageType.text,
-    };
+    final parsedType = MessageType.fromInt(c.msgType);
     Map<String, dynamic>? extra;
     if (c.extra != null && c.extra!.isNotEmpty) {
       try {

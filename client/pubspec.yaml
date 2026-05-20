@@ -85,6 +85,10 @@ hooks:
     sqlite3:
       source: system
 
+dependency_overrides:
+  record_linux: ^1.3.0
+  flutter_svg: ^2.3.0
+
 # The following section is specific to Flutter packages.
 flutter:
 

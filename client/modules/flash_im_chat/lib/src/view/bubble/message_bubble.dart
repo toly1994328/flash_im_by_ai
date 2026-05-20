@@ -6,6 +6,7 @@ import 'text_bubble.dart';
 import 'image_bubble.dart';
 import 'video_bubble.dart';
 import 'file_bubble.dart';
+import 'audio_bubble.dart';
 import 'reply_bubble.dart';
 
 class MessageBubble extends StatelessWidget {
@@ -226,6 +227,11 @@ class MessageBubble extends StatelessWidget {
         uploadProgress: uploadProgress,
         downloadInfo: fileDownloadInfo,
         onTap: onFileTap,
+      ),
+      MessageType.audio => AudioBubble(
+        message: message,
+        isMe: isMe,
+        baseUrl: baseUrl,
       ),
       _ => TextBubble(message: message, isMe: isMe),
     };

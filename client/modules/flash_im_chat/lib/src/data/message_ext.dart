@@ -13,7 +13,7 @@ extension MessageCacheExt on Message {
         senderName: senderName,
         senderAvatar: senderAvatar,
         seq: seq,
-        msgType: type.index,
+        msgType: type.value,
         content: content,
         extra: extra != null ? jsonEncode(extra) : null,
         createdAt: createdAt.millisecondsSinceEpoch,

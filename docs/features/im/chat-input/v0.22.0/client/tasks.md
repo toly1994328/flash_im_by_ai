@@ -12,16 +12,16 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — 添加依赖（record, just_audio）
-2. ⬜ 任务 2 — 输入栏样式改造（纯 UI）
-3. ⬜ 任务 3 — Emoji 面板
-4. ⬜ 任务 4 — 面板互斥切换逻辑
-5. ⬜ 任务 5 — RecordManager 录音管理器
-6. ⬜ 任务 6 — VoiceInputWidget 语音输入 UI
-7. ⬜ 任务 7 — ChatFileMixin 新增 sendAudioFromFile
-8. ⬜ 任务 8 — AudioBubble 语音气泡
-9. ⬜ 任务 9 — Proto 新增 AUDIO 类型 + 后端 generate_preview
-10. ⬜ 任务 10 — 权限声明（Android/iOS）
+1. ✅ 任务 1 — 添加依赖（record, just_audio, permission_handler, path, flutter_svg）
+2. ✅ 任务 2 — 输入栏样式改造（纯 UI）
+3. ✅ 任务 3 — Emoji 面板
+4. ✅ 任务 4 — 面板互斥切换逻辑 + TapRegion 点击外部收起
+5. ✅ 任务 5 — RecordManager 录音管理器
+6. ✅ 任务 6 — VoiceInputWidget 语音输入 UI
+7. ✅ 任务 7 — ChatFileMixin 新增 sendAudioFromFile
+8. ✅ 任务 8 — AudioBubble 语音气泡
+9. ✅ 任务 9 — Proto 新增 AUDIO 类型 + 后端 generate_preview（已在第 5 步完成）
+10. ✅ 任务 10 — 权限声明（Android/iOS）
 11. ⬜ 任务 11 — 编译验证 + 测试 + 手动验收
 
 ---
@@ -217,40 +217,12 @@ Future<void> sendAudioFromFile(String filePath, int durationMs) async {
 
 ---
 
-## 任务 9：Proto + 后端 — AUDIO 类型 `⬜ 待处理`
+## 任务 9：Proto + 后端 — AUDIO 类型 `✅ 已完成`
 
-### 9.1 message.proto `⬜`
-
-文件：`server/modules/im-ws/proto/message.proto`
-
-```protobuf
-enum MessageType {
-  TEXT = 0;
-  IMAGE = 1;
-  VIDEO = 2;
-  FILE = 3;
-  AUDIO = 4;   // ← 新增
-  FORWARD = 5;
-}
-```
-
-编译：`cargo build`（build.rs 自动编译 proto）
-
-### 9.2 generate_preview `⬜`
-
-文件：`server/modules/im-message/src/models.rs`
-
-```rust
-pub fn generate_preview(content: &str, msg_type: i16) -> String {
-    match msg_type {
-        1 => "[图片]",
-        2 => "[视频]",
-        3 => "[文件]",
-        4 => "[语音]",  // ← 新增
-        _ => ...
-    }
-}
-```
+> 已在第 5 步（后端实现）中完成：
+> - `proto/message.proto` 新增 `AUDIO = 4`
+> - `server/modules/im-message/src/models.rs` generate_preview 新增 `4 => "[语音]"`
+> - cargo build + clippy 通过
 
 ### 9.3 前端 proto 同步 `⬜`
 

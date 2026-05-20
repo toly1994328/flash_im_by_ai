@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.0.1_operation（消息操作）
+最后更新：v0.22.0（聊天输入框优化）
 
 ---
 
@@ -74,6 +74,7 @@
 | D-38 | 会话内消息搜索 | im-message (routes) | 后端 | v0.0.1_search | ✅ |
 | D-39 | 增量消息查询 | im-message (routes) | 后端 | v0.0.1_cache | ✅ |
 | D-40 | 消息撤回 | im-message (routes) | 后端 | v0.0.1_operation | ✅ |
+| D-41 | 语音消息类型 | im-message (models) | 后端 | v0.22.0 | ✅ |
 
 ### 前端基础层（F）
 
@@ -153,6 +154,8 @@
 | P-51 | 多选模式 | flash_im_chat (chat_cubit + chat_page) | v0.0.1_operation | ✅ |
 | P-52 | 本地删除 | flash_im_chat (chat_cubit) + flash_im_cache (local_trash) | v0.0.1_operation | ✅ |
 | P-53 | 删除确认弹窗 | flash_im_chat (chat_page) + tolyui_feedback_modal | v0.0.1_operation | ✅ |
+| P-54 | Emoji 表情面板 | flash_im_chat (emoji_panel) | v0.22.0 | ✅ |
+| P-55 | 语音消息输入 | flash_im_chat (voice_input + audio_bubble) | v0.22.0 | ✅ |
 
 
 ---
@@ -243,6 +246,7 @@ graph TB
         D37[D-37 消息搜索]
         D38[D-38 会话内消息搜索]
         D40[D-40 消息撤回]
+        D41[D-41 语音消息类型]
     end
     subgraph 前端基础层
         F01[F-01 登录注册页]
@@ -314,6 +318,8 @@ graph TB
         P51[P-51 多选模式]
         P52[P-52 本地删除]
         P53[P-53 删除确认弹窗]
+        P54[P-54 Emoji表情面板]
+        P55[P-55 语音消息输入]
     end
 
     %% 本地缓存 v0.0.1_cache：新增节点
@@ -539,6 +545,15 @@ graph TB
     P51 --> P48
     P52 --> F15
     P53 --> P52
+
+    %% 聊天输入框优化 v0.22.0：后端依赖
+    D41 --> D06
+
+    %% 聊天输入框优化 v0.22.0：前端依赖
+    P54 --> P11
+    P55 --> P11
+    P55 -.->|HTTP 上传| I11
+    P55 --> D41
 ```
 
 ---
@@ -568,6 +583,7 @@ graph TB
 | v0.17.0 | 2026-04-28 | 112 | [trace/v0.17.0_2026-04-28.md](trace/v0.17.0_2026-04-28.md) |
 | v0.18.0 | 2026-05-01 | 116 | [trace/v0.18.0_2026-05-01.md](trace/v0.18.0_2026-05-01.md) |
 | v0.19.0 | 2026-05-02 | 124 | [trace/v0.19.0_2026-05-02.md](trace/v0.19.0_2026-05-02.md) |
+| v0.22.0 | 2026-05-20 | 127 | [trace/v0.22.0_2026-05-20.md](trace/v0.22.0_2026-05-20.md) |
 
 ---
 

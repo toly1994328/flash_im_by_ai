@@ -2,7 +2,26 @@ import 'dart:convert';
 
 enum MessageStatus { sending, sent, failed }
 
-enum MessageType { text, image, video, file, forward }
+enum MessageType {
+  text(0),
+  image(1),
+  video(2),
+  file(3),
+  audio(4),
+  forward(5);
+
+  final int value;
+  const MessageType(this.value);
+
+  static MessageType fromInt(int v) => switch (v) {
+    1 => image,
+    2 => video,
+    3 => file,
+    4 => audio,
+    5 => forward,
+    _ => text,
+  };
+}
 
 class VideoExtra {
   final String thumbnailUrl;
@@ -107,13 +126,7 @@ class Message {
 
   factory Message.fromJson(Map<String, dynamic> json) {
     final rawType = json['msg_type'] as int? ?? 0;
-    final parsedType = switch (rawType) {
-      1 => MessageType.image,
-      2 => MessageType.video,
-      3 => MessageType.file,
-      5 => MessageType.forward,
-      _ => MessageType.text,
-    };
+    final parsedType = MessageType.fromInt(rawType);
 
     Map<String, dynamic>? extra;
     final rawExtra = json['extra'];
@@ -189,6 +202,7 @@ class Message {
   bool get isImage => type == MessageType.image;
   bool get isVideo => type == MessageType.video;
   bool get isFile => type == MessageType.file;
+  bool get isAudio => type == MessageType.audio;
   bool get isForward => type == MessageType.forward;
 
   /// 是否系统消息（sender_id=0）
@@ -216,6 +230,7 @@ class Message {
       MessageType.image => '[图片]',
       MessageType.video => '[视频]',
       MessageType.file => '[文件]',
+      MessageType.audio => '[语音]',
       _ => content,
     };
   }

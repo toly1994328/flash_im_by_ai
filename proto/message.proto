@@ -6,6 +6,7 @@ enum MessageType {
   IMAGE = 1;
   VIDEO = 2;
   FILE = 3;
+  AUDIO = 4;
   FORWARD = 5;
 }
 

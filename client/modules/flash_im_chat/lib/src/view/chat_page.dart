@@ -326,6 +326,7 @@ class _ChatPageState extends State<ChatPage> {
                                 ? chatState.replyTo!.content
                                 : chatState.replyTo!.isImage ? '[图片]'
                                 : chatState.replyTo!.isVideo ? '[视频]'
+                                : chatState.replyTo!.isAudio ? '[语音]'
                                 : '[文件]',
                             onClose: () => cubit.clearReplyTo(),
                           ),
@@ -358,6 +359,7 @@ class _ChatPageState extends State<ChatPage> {
                             }
                           },
                           onSendFile: (path) => cubit.sendFileFromPicker(path),
+                          onSendAudio: (path, durationMs) => cubit.sendAudioFromFile(path, durationMs),
                         ),
                       ],
                     );

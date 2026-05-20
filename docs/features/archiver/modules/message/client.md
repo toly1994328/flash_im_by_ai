@@ -1,6 +1,6 @@
 # 消息域 — 客户端局域网络
 
-涉及节点：F-06~F-08, P-06~P-18
+涉及节点：F-06~F-08, P-06~P-18, P-54~P-55, D-41
 
 ---
 
@@ -12,7 +12,7 @@
 
 | 模块 | 位置 | 职责（一句话） |
 |------|------|--------------|
-| flash_im_chat | client/modules/flash_im_chat/ | 聊天页面：消息列表、发送（文本/图片/视频/文件）、接收、历史加载、预览/播放/下载 |
+| flash_im_chat | client/modules/flash_im_chat/ | 聊天页面：消息列表、发送（文本/图片/视频/文件/语音）、接收、历史加载、预览/播放/下载、Emoji 面板 |
 | flash_im_core | client/modules/flash_im_core/ | WS 通信层：连接管理、帧编解码、帧分发（chatMessageStream/messageAckStream） |
 | flash_shared | client/modules/flash_shared/ | 跨模块共享 UI：AvatarWidget |
 
@@ -53,7 +53,7 @@ graph TD
 | P-07 | 文本消息发送 | flash_im_chat (chat_cubit.dart) | 乐观更新 + WS 发帧 + 10s 超时标记 failed |
 | P-08 | 实时接收 | flash_im_chat (chat_cubit.dart) | 监听 chatMessageStream，解析 type/extra，过滤/去重/追加 |
 | P-09 | 状态流转 | flash_im_chat (chat_cubit.dart) | 监听 messageAckStream，匹配 pending 更新 sending → sent |
-| P-10 | 功能面板 | flash_im_chat (chat_input.dart) | 输入框"+"按钮，弹出 2×2 网格面板：照片/拍照/视频/文件 |
+| P-10 | 功能面板 | flash_im_chat (chat_input.dart) | 微信风格输入栏：灰色容器 + 白色圆角输入框 + 面板互斥切换 + TapRegion 点击外部收起 |
 | P-11 | 图片消息气泡 | flash_im_chat (message_bubble.dart) | 本地/网络图片自适应，extra 宽高等比占位，上传蒙层 |
 | P-12 | 视频消息气泡 | flash_im_chat (message_bubble.dart) | 缩略图 + 播放按钮 + 时长，extra 宽高等比占位 |
 | P-13 | 文件消息气泡 | flash_im_chat (message_bubble.dart) | 文件卡片（文件名+大小+类型图标），下载状态/进度背景填充 |
@@ -62,6 +62,8 @@ graph TD
 | P-16 | 文件发送流程 | flash_im_chat (chat_cubit.dart) | 读取本地文件大小 → 占位消息 → 上传 → 更新 content+extra → WS 发送 → ACK |
 | P-17 | 视频播放页 | flash_im_chat (video_player_page.dart) | video_player 全屏播放，暂停/进度拖动 |
 | P-18 | 图片全屏预览 | flash_im_chat (image_preview_page.dart) | InteractiveViewer 缩放/平移 |
+| P-54 | Emoji 表情面板 | flash_im_chat (emoji_panel.dart) | 常用表情网格（48 个），点击插入光标位置 |
+| P-55 | 语音消息输入 | flash_im_chat (voice_input/ + audio_bubble.dart) | 按住录音、松手发送、上滑取消、权限检测、语音气泡播放 |
 
 ---
 
@@ -153,7 +155,7 @@ sequenceDiagram
 | SendMessageRequest | P-07/P-14~P-16 | 服务端 dispatcher | type + content + extra(bytes) + client_id |
 | ChatMessage | 服务端 broadcaster | P-08 | 接收消息，解析 type/extra |
 | MessageAck | 服务端 dispatcher | P-09 | message_id + seq |
-| MessageType 枚举 | 全局共享 | P-14~P-16, P-08 | TEXT=0, IMAGE=1, VIDEO=2, FILE=3 |
+| MessageType 枚举 | 全局共享 | P-14~P-16, P-08, P-55 | TEXT=0, IMAGE=1, VIDEO=2, FILE=3, AUDIO=4, FORWARD=5 |
 
 **HTTP 接口**（通过 MessageRepository 消费）
 
@@ -162,7 +164,7 @@ sequenceDiagram
 | GET /conversations/:id/messages | P-06 | 历史消息查询 |
 | POST /api/upload/image | P-14 | 图片上传 |
 | POST /api/upload/video | P-15 | 视频上传（含缩略图+元数据） |
-| POST /api/upload/file | P-16 | 文件上传 |
+| POST /api/upload/file | P-16, P-55 | 文件上传（含语音文件） |
 | GET /uploads/{path} | P-11/P-12/P-17/P-18 | 静态文件访问（图片/视频/缩略图） |
 
 ---
@@ -177,7 +179,9 @@ sequenceDiagram
 |------|---------|---------|---------|
 | WsClient | 登录后 main.dart 创建 | 退出登录时 dispose | 应用级 |
 | MessageRepository | main.dart 创建 | 应用退出 | 应用级 |
+| RecordManager | 单例，首次使用时创建 | 应用退出 | 应用级 |
 | ChatCubit | 点击会话进入聊天页时 BlocProvider 创建 | 聊天页关闭时 close | 页面级 |
+| AudioPlayer | AudioBubble initState | AudioBubble dispose | Widget 级 |
 | VideoPlayerController | VideoPlayerPage initState | VideoPlayerPage dispose | 页面级 |
 
 ### 订阅关系
@@ -201,3 +205,4 @@ sequenceDiagram
 |------|------|
 | v0.0.3 | 初始：P-06~P-09, F-06~F-07。文本消息完整链路（发送、接收、历史加载、乐观更新、ACK） |
 | v0.0.4_media | 新增 F-08（VideoThumbnailService）、P-10~P-18。Message 模型扩展 type/extra，ChatInput 功能面板，MessageBubble 多类型渲染（图片/视频/文件），图片全屏预览，视频播放页，文件预览+下载页。ChatState 新增 uploadProgress + fileDownloads。WsClient.sendMessage 支持 type/extra。自己发的图片/视频始终显示本地文件。文件气泡下载状态由 ChatCubit 管理 |
+| v0.22.0 | 新增 P-54（Emoji 面板）、P-55（语音消息）、D-41（AUDIO 类型）。ChatInput 重写为微信风格（灰色容器 + 白色圆角输入框 + 面板互斥切换 + TapRegion + SVG 图标）。MessageType 重构为带 value 的增强枚举 + fromInt 工厂方法。ChatFileMixin 新增 sendAudioFromFile。AudioBubble 语音气泡（just_audio 播放）。RecordManager 单例封装 record 包。权限策略：按住时检测，无权限请求后直接 return |
