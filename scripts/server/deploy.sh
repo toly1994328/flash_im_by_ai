@@ -19,6 +19,9 @@
 
 set -e
 
+# 非交互模式，避免 apt 弹出对话框卡住脚本
+export DEBIAN_FRONTEND=noninteractive
+
 # ─── 颜色输出 ───
 
 RED='\033[0;31m'
@@ -99,8 +102,9 @@ check_package "git"
 
 if [ -n "$PACKAGES_TO_INSTALL" ]; then
   echo ""
+  info "正在更新包索引..."
+  apt update
   info "安装缺失的包：$PACKAGES_TO_INSTALL"
-  apt update -qq
   apt install -y $PACKAGES_TO_INSTALL
   ok "系统依赖安装完成"
 fi
@@ -112,9 +116,7 @@ echo ""
 info "━━━ 第 2 步：检测 Rust 环境 ━━━"
 
 # 尝试加载 cargo 环境
-if [ -f "$HOME/.cargo/env" ]; then
-  source "$HOME/.cargo/env"
-fi
+export PATH="$HOME/.cargo/bin:$PATH"
 
 if command -v rustc &> /dev/null; then
   RUST_VER=$(rustc --version)
@@ -122,7 +124,7 @@ if command -v rustc &> /dev/null; then
 else
   warn "Rust 未安装，正在安装..."
   curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
-  source "$HOME/.cargo/env"
+  export PATH="$HOME/.cargo/bin:$PATH"
   ok "Rust 安装完成：$(rustc --version)"
 fi
 
