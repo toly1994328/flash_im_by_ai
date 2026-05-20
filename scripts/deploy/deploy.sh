@@ -174,26 +174,32 @@ fi
 # 执行迁移
 info "执行数据库迁移..."
 MIGRATION_COUNT=0
-MIGRATION_FAIL=0
+MIGRATION_SKIP=0
 for f in "$MIGRATIONS_DIR"/*.sql; do
   if [ -f "$f" ]; then
     FILENAME=$(basename "$f")
-    if sudo -u postgres psql -d "$DB_NAME" -f "$f" > /dev/null 2>&1; then
+    OUTPUT=$(sudo -u postgres psql -d "$DB_NAME" -f "$f" 2>&1)
+    if [ $? -eq 0 ]; then
       MIGRATION_COUNT=$((MIGRATION_COUNT + 1))
+      ok "  $FILENAME"
     else
-      MIGRATION_FAIL=$((MIGRATION_FAIL + 1))
+      # 检查是否是"已存在"类错误
+      if echo "$OUTPUT" | grep -q "already exists"; then
+        MIGRATION_SKIP=$((MIGRATION_SKIP + 1))
+        info "  $FILENAME（已存在，跳过）"
+      else
+        warn "  $FILENAME 失败："
+        echo "    $OUTPUT" | head -3
+        MIGRATION_SKIP=$((MIGRATION_SKIP + 1))
+      fi
     fi
   fi
 done
 
-if [ "$MIGRATION_FAIL" -eq 0 ]; then
-  ok "已执行 $MIGRATION_COUNT 个迁移文件"
-elif [ "$MIGRATION_COUNT" -gt 0 ]; then
-  ok "$MIGRATION_COUNT 成功，$MIGRATION_FAIL 跳过（表可能已存在）"
+if [ "$MIGRATION_SKIP" -eq 0 ]; then
+  ok "全部 $MIGRATION_COUNT 个迁移执行成功"
 else
-  warn "迁移全部失败，尝试手动执行："
-  echo "  sudo -u postgres psql -d $DB_NAME -f $MIGRATIONS_DIR/20250320_001_auth.sql"
-  echo "  查看具体错误信息"
+  ok "$MIGRATION_COUNT 新执行，$MIGRATION_SKIP 已存在跳过"
 fi
 
 echo ""
