@@ -28,7 +28,7 @@ SERVER_DIR = os.path.join(PROJECT_ROOT, "server")
 TARGET = "x86_64-unknown-linux-gnu"
 BINARY_NAME = "flash-im"
 BINARY_PATH = os.path.join(SERVER_DIR, "target", TARGET, "release", BINARY_NAME)
-REMOTE_DIR = "/opt/flash_im/server"
+REMOTE_DIR = "~/server/flash_im"
 
 SYSTEM = platform.system()
 
@@ -131,18 +131,35 @@ def main():
 
     # ─── 编译 ───
 
+    info(f"目标平台：{TARGET}")
     info("开始编译（Release 模式），可能需要几分钟...")
     print()
 
-    run(["cross", "build", "--release", "--target", TARGET], cwd=SERVER_DIR)
+    if SYSTEM == "Windows":
+        info("Windows 环境，使用 Docker 容器编译...")
+        server_dir_posix = SERVER_DIR.replace("\\", "/")
+        proto_dir_posix = os.path.join(PROJECT_ROOT, "proto").replace("\\", "/")
+        run([
+            "docker", "run", "--rm",
+            "-v", f"{server_dir_posix}:/project",
+            "-v", f"{proto_dir_posix}:/proto",
+            "-w", "/project",
+            "rust:latest",
+            "bash", "-c",
+            "apt-get update -qq && apt-get install -y -qq protobuf-compiler > /dev/null 2>&1 && cargo build --release",
+        ])
+        binary_path = os.path.join(SERVER_DIR, "target", "release", BINARY_NAME)
+    else:
+        run(["cross", "build", "--release", "--target", TARGET], cwd=SERVER_DIR)
+        binary_path = BINARY_PATH
 
-    if not os.path.isfile(BINARY_PATH):
+    if not os.path.isfile(binary_path):
         fail("编译失败，未找到二进制文件")
 
     print()
     ok("编译成功！")
-    info(f"二进制路径：{BINARY_PATH}")
-    info(f"文件大小：{file_size_human(BINARY_PATH)}")
+    info(f"二进制路径：{binary_path}")
+    info(f"文件大小：{file_size_human(binary_path)}")
     print()
 
     # ─── 上传（可选） ───
@@ -150,27 +167,26 @@ def main():
     if remote_host:
         info(f"上传到 {remote_host}:{REMOTE_DIR} ...")
 
+        # 停止服务
+        info("停止远程服务...")
+        subprocess.run(["ssh", remote_host, "systemctl stop flash-im"], capture_output=True)
+
         # 创建远程目录
-        run(["ssh", remote_host, f"mkdir -p {REMOTE_DIR}/target/release"])
+        run(["ssh", remote_host, f"mkdir -p {REMOTE_DIR}"])
 
-        # 上传二进制
-        remote_path = f"{remote_host}:{REMOTE_DIR}/target/release/{BINARY_NAME}"
-        run(["scp", BINARY_PATH, remote_path])
+        # 上传二进制（远程文件名固定为 flash-im）
+        remote_path = f"{remote_host}:{REMOTE_DIR}/{BINARY_NAME}"
+        run(["scp", binary_path, remote_path])
 
-        ok("上传完成！")
-        print()
-        info("接下来在服务器上执行部署脚本：")
-        print(f"  ssh {remote_host}")
-        print(f"  cd /opt/flash_im && bash scripts/deploy/deploy.sh")
+        # 赋予可执行权限并重启服务
+        run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/{BINARY_NAME}"])
+        info("重启远程服务...")
+        run(["ssh", remote_host, "systemctl restart flash-im"])
+
+        ok("部署完成！")
     else:
-        info("编译完成。手动上传：")
-        if SYSTEM == "Windows":
-            print(f"  scp {BINARY_PATH} root@你的服务器IP:{REMOTE_DIR}/target/release/{BINARY_NAME}")
-        else:
-            print(f"  scp {BINARY_PATH} root@你的服务器IP:{REMOTE_DIR}/target/release/{BINARY_NAME}")
-        print()
-        info("然后在服务器上执行部署脚本：")
-        print("  bash scripts/deploy/deploy.sh")
+        info("编译完成。上传到服务器：")
+        print(f"  python scripts/deploy/build.py root@你的服务器IP")
 
     print()
 

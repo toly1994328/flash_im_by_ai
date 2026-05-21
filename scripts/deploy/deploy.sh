@@ -51,7 +51,7 @@ SERVER_PORT="9600"
 JWT_SECRET="${FLASH_JWT_SECRET:-$(openssl rand -hex 32)}"
 
 SERVICE_NAME="flash-im"
-BINARY_PATH="$SERVER_DIR/target/release/flash-im"
+BINARY_PATH="$SERVER_DIR/flash-im"
 
 # ─── 前置检查 ───
 

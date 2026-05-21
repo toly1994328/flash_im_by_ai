@@ -2,21 +2,7 @@
 #
 # 闪讯 IM — 服务器运行环境检测
 #
-# 只检测运行所需的环境（不包括编译），确保服务能正常启动。
-#
-# 用法：bash scripts/deploy/env_check.sh
-#
-# 检测项：
-#   - 操作系统与架构
-#   - 内存与 swap（不足时自动创建 swap）
-#   - PostgreSQL 是否安装并运行
-#   - 数据库是否存在
-#   - 迁移文件是否已执行
-#   - .env 配置文件
-#   - uploads 目录
-#   - 二进制文件是否存在
-#   - 端口是否被占用
-#   - 防火墙状态
+# 在部署目录下执行，检测运行所需的环境是否就绪。
 #
 
 set -e
@@ -36,11 +22,10 @@ fail()  { echo -e "${RED}[FAIL]${NC} $1"; }
 
 # ─── 配置 ───
 
-PROJECT_ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-SERVER_DIR="$PROJECT_ROOT/server"
-MIGRATIONS_DIR="$SERVER_DIR/migrations"
-ENV_FILE="$SERVER_DIR/.env"
-BINARY_PATH="$SERVER_DIR/target/release/flash-im"
+WORK_DIR="$(pwd)"
+MIGRATIONS_DIR="$WORK_DIR/migrations"
+ENV_FILE="$WORK_DIR/.env"
+BINARY_PATH="$WORK_DIR/flash-im"
 SERVER_PORT="9600"
 DB_NAME="flash_im"
 
@@ -124,8 +109,20 @@ fi
 
 # 检查数据库是否存在
 if command -v psql &>/dev/null && systemctl is-active --quiet postgresql 2>/dev/null; then
-  if sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
+  # 列出所有数据库
+  DB_LIST=$(sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | sed 's/^ *//' | grep -v '^$' | grep -v '^template')
+  info "已有数据库：$DB_LIST"
+
+  if echo "$DB_LIST" | grep -qw "$DB_NAME"; then
     check_pass "数据库 '$DB_NAME' 已存在"
+    # 列出表
+    TABLE_LIST=$(sudo -u postgres psql -d "$DB_NAME" -Atc "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;" 2>/dev/null)
+    if [ -n "$TABLE_LIST" ]; then
+      TABLE_COUNT=$(echo "$TABLE_LIST" | wc -l)
+      info "已有 $TABLE_COUNT 张表：$(echo $TABLE_LIST | tr '\n' ' ')"
+    else
+      warn "数据库 '$DB_NAME' 中没有表，需要执行迁移"
+    fi
   else
     info "数据库 '$DB_NAME' 不存在，正在创建..."
     if sudo -u postgres createdb "$DB_NAME" 2>/dev/null; then
@@ -139,21 +136,8 @@ if command -v psql &>/dev/null && systemctl is-active --quiet postgresql 2>/dev/
   if [ -d "$MIGRATIONS_DIR" ] && sudo -u postgres psql -lqt 2>/dev/null | cut -d \| -f 1 | grep -qw "$DB_NAME"; then
     MIGRATION_COUNT=$(ls "$MIGRATIONS_DIR"/*.sql 2>/dev/null | wc -l)
     if [ "$MIGRATION_COUNT" -gt 0 ]; then
-      info "执行数据库迁移（$MIGRATION_COUNT 个文件）..."
-      MIGRATE_OK=0
-      MIGRATE_FAIL=0
-      for f in "$MIGRATIONS_DIR"/*.sql; do
-        if sudo -u postgres psql -d "$DB_NAME" -f "$f" &>/dev/null; then
-          MIGRATE_OK=$((MIGRATE_OK + 1))
-        else
-          MIGRATE_FAIL=$((MIGRATE_FAIL + 1))
-        fi
-      done
-      if [ "$MIGRATE_FAIL" -eq 0 ]; then
-        check_pass "迁移完成（$MIGRATE_OK 个文件全部成功）"
-      else
-        check_warn "迁移部分失败：$MIGRATE_OK 成功，$MIGRATE_FAIL 失败（可能是重复执行）"
-      fi
+      check_pass "迁移文件就绪（$MIGRATION_COUNT 个 SQL 文件）"
+      info "执行迁移请运行：bash db.sh migrate"
     fi
   fi
 fi
@@ -170,6 +154,16 @@ if [ -f "$ENV_FILE" ]; then
   # 检查关键配置项
   if grep -q "DATABASE_URL" "$ENV_FILE"; then
     check_pass "DATABASE_URL 已配置"
+    # 验证数据库连接密码是否正确
+    DB_URL=$(grep "^DATABASE_URL" "$ENV_FILE" | sed 's/^DATABASE_URL=//' | tr -d ' \r\n')
+    if command -v psql &>/dev/null && [ -n "$DB_URL" ]; then
+      DB_RESULT=$(timeout 5 psql "$DB_URL" -c "SELECT 1;" 2>&1 || true)
+      if echo "$DB_RESULT" | grep -q "1 row"; then
+        check_pass "数据库连接验证通过"
+      else
+        check_warn "数据库连接验证未通过（不影响服务运行）"
+      fi
+    fi
   else
     check_fail "DATABASE_URL 缺失"
   fi
@@ -198,7 +192,7 @@ echo ""
 info "━━━ 文件存储 ━━━"
 echo ""
 
-UPLOADS_DIR="$SERVER_DIR/uploads"
+UPLOADS_DIR="$WORK_DIR/uploads"
 if [ -d "$UPLOADS_DIR" ]; then
   check_pass "uploads 目录存在"
 else
@@ -238,7 +232,15 @@ echo ""
 
 if ss -tlnp 2>/dev/null | grep -q ":$SERVER_PORT "; then
   PROC=$(ss -tlnp | grep ":$SERVER_PORT " | awk '{print $NF}')
+  PID=$(echo "$PROC" | grep -oE 'pid=[0-9]+' | head -1 | cut -d= -f2)
   check_warn "端口 $SERVER_PORT 已被占用：$PROC"
+  if [ -n "$PID" ]; then
+    echo "  关闭占用进程：kill $PID"
+    echo "  强制关闭：    kill -9 $PID"
+  else
+    echo "  查看占用：ss -tlnp | grep :$SERVER_PORT"
+    echo "  手动关闭：kill <PID>"
+  fi
 else
   check_pass "端口 $SERVER_PORT 可用"
 fi
