@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.22.0（聊天输入框优化）
+最后更新：v0.23.0（认证增强：GitHub OAuth + 登录记录 + 欢迎消息）
 
 ---
 
@@ -29,6 +29,8 @@
 | I-12 | 静态文件服务 | main.rs (tower-http) | 后端 | v0.0.4_media | ✅ |
 | I-13 | AppError 统一错误处理 | flash-core | 后端 | v0.0.3_group | ✅ |
 | I-14 | 本地数据库 | flash_im_cache (drift + SQLite) | 前端 | v0.0.1_cache | ✅ |
+| I-15 | GitHub OAuth 登录 | flash-auth (oauth/github) | 后端 | v0.23.0 | ✅ |
+| I-16 | 登录日志记录 | flash-auth (login_log) | 后端 | v0.23.0 | ✅ |
 
 ### 领域层（D）
 
@@ -75,6 +77,7 @@
 | D-39 | 增量消息查询 | im-message (routes) | 后端 | v0.0.1_cache | ✅ |
 | D-40 | 消息撤回 | im-message (routes) | 后端 | v0.0.1_operation | ✅ |
 | D-41 | 语音消息类型 | im-message (models) | 后端 | v0.22.0 | ✅ |
+| D-42 | 欢迎消息 | flash-auth (welcome) | 后端 | v0.23.0 | ✅ |
 
 ### 前端基础层（F）
 
@@ -324,7 +327,10 @@ graph TB
 
     %% 本地缓存 v0.0.1_cache：新增节点
     I14[I-14 本地数据库]
+    I15[I-15 GitHub OAuth]
+    I16[I-16 登录日志]
     D39[D-39 增量消息查询]
+    D42[D-42 欢迎消息]
     F15[F-15 LocalStore]
     F16[F-16 SyncEngine]
 
@@ -554,6 +560,13 @@ graph TB
     P55 --> P11
     P55 -.->|HTTP 上传| I11
     P55 --> D41
+
+    %% 认证增强 v0.23.0：依赖
+    I15 --> I02
+    I15 -.->|HTTP| I01
+    I16 --> I01
+    D42 --> I16
+    D42 --> I01
 ```
 
 ---
@@ -584,6 +597,7 @@ graph TB
 | v0.18.0 | 2026-05-01 | 116 | [trace/v0.18.0_2026-05-01.md](trace/v0.18.0_2026-05-01.md) |
 | v0.19.0 | 2026-05-02 | 124 | [trace/v0.19.0_2026-05-02.md](trace/v0.19.0_2026-05-02.md) |
 | v0.22.0 | 2026-05-20 | 127 | [trace/v0.22.0_2026-05-20.md](trace/v0.22.0_2026-05-20.md) |
+| v0.23.0 | 2026-05-23 | 130 | [trace/v0.23.0_2026-05-23.md](trace/v0.23.0_2026-05-23.md) |
 
 ---
 
@@ -604,3 +618,4 @@ graph TB
 | 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |
 | 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
 | 消息操作 | [operation/client.md](modules/operation/client.md) | D-40, F-17, P-48~P-53 |
+| 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, D-42 |
