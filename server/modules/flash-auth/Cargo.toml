@@ -14,3 +14,5 @@ chrono.workspace = true
 jsonwebtoken.workspace = true
 argon2.workspace = true
 rand.workspace = true
+reqwest = { version = "0.12", features = ["json"] }
+async-trait = "0.1"

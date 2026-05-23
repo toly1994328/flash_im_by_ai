@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../../data/auth_repository.dart';
+import '../../../data/device_info.dart';
 import '../../../data/login_result.dart';
 import 'login_strategy.dart';
 
@@ -24,8 +25,8 @@ class PasswordLoginStrategy extends LoginStrategy {
   }
 
   @override
-  Future<LoginResult> login(AuthRepository repo) {
-    return repo.login(phone, credential, 'password');
+  Future<LoginResult> login(AuthRepository repo, {DeviceInfo? deviceInfo}) {
+    return repo.login(phone, credential, 'password', deviceInfo: deviceInfo);
   }
 
   @override

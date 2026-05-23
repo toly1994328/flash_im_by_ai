@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../data/auth_repository.dart';
 import '../data/login_result.dart';
 import '../logic/login/login_mixin.dart';
@@ -56,9 +59,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
                   strategy: smsStrategy,
                   isLoading: isLoading,
                   onSendSms: () async {
-                    setState(() => isLoading = true);
                     await smsStrategy.sendSms();
-                    if (mounted) setState(() => isLoading = false);
                   },
                 )
               else
@@ -70,12 +71,18 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
               ),
               const SizedBox(height: 32),
               ActionButton(
-                enabled: canLogin,
+                enabled: canLogin || isLoading,
                 loading: isLoading,
                 onPressed: login,
               ),
               const SizedBox(height: 24),
               _buildModeToggle(),
+              if (Platform.isAndroid || Platform.isIOS) ...[
+                const SizedBox(height: 32),
+                _buildDivider(),
+                const SizedBox(height: 16),
+                _buildGithubButton(),
+              ],
             ],
           ),
         ),
@@ -89,6 +96,37 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
       child: Text(
         isSmsMode ? '使用密码登录 →' : '使用验证码登录 →',
         style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Row(
+      children: [
+        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          child: Text('其他登录方式', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+        ),
+        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
+      ],
+    );
+  }
+
+  Widget _buildGithubButton() {
+    return GestureDetector(
+      onTap: isLoading ? null : () => loginWithGithub(context),
+      child: Column(
+        children: [
+          SvgPicture.asset(
+            'assets/icons/github.svg',
+            package: 'flash_auth',
+            width: 44,
+            height: 44,
+          ),
+          const SizedBox(height: 6),
+          const Text('GitHub', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
+        ],
       ),
     );
   }

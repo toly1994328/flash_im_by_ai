@@ -33,6 +33,7 @@ MIGRATIONS = [
     "20260419_006_group_join.sql",
     "20260420_007_group_manage.sql",
     "20260508_008_pinned_messages.sql",
+    "20260523_010_login_logs.sql",
 ]
 
 # ─── 平台相关路径 ───

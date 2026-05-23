@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'device_info.dart';
 import 'login_result.dart';
 
 /// 认证仓库 — 只负责认证行为（登录、发送验证码）
@@ -21,17 +22,28 @@ class AuthRepository {
   }
 
   /// 登录（验证码或密码）
-  /// 只返回 LoginResult（token + userId + hasPassword）
-  /// 获取用户资料由组装层调用 UserRepository 完成
   Future<LoginResult> login(
     String phone,
     String credential,
-    String type,
-  ) async {
+    String type, {
+    DeviceInfo? deviceInfo,
+  }) async {
     final res = await _dio.post('/auth/login', data: {
       'phone': phone,
       'type': type,
       'credential': credential,
+      if (deviceInfo != null) 'device_info': deviceInfo.toJson(),
+    });
+    final loginResult = LoginResult.fromJson(res.data as Map<String, dynamic>);
+    await _saveToken(loginResult.token);
+    return loginResult;
+  }
+
+  /// GitHub OAuth 登录
+  Future<LoginResult> loginWithGithub(String code, {DeviceInfo? deviceInfo}) async {
+    final res = await _dio.post('/auth/github', data: {
+      'code': code,
+      if (deviceInfo != null) 'device_info': deviceInfo.toJson(),
     });
     final loginResult = LoginResult.fromJson(res.data as Map<String, dynamic>);
     await _saveToken(loginResult.token);

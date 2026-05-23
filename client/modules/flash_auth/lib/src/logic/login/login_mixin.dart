@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
+import '../../data/device_info.dart';
+import '../../view/github_auth_page.dart';
 import '../../view/login_page.dart';
 import 'strategy/login_strategy.dart';
 import 'strategy/sms_login_strategy.dart';
@@ -54,12 +56,31 @@ mixin LoginMixin on State<LoginPage> {
   Future<void> login() async {
     setState(() => isLoading = true);
     try {
-      final result = await currentStrategy.login(widget.authRepository);
+      final deviceInfo = await DeviceInfo.collect();
+      final result = await currentStrategy.login(widget.authRepository, deviceInfo: deviceInfo);
       if (!mounted) return;
-      // 登录成功，通过回调交给组装层处理
       widget.onLoginSuccess(result);
     } catch (e) {
       if (mounted) showToast('登录失败: $e');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  Future<void> loginWithGithub(BuildContext context) async {
+    final code = await Navigator.of(context).push<String>(
+      MaterialPageRoute(builder: (_) => const GitHubAuthPage()),
+    );
+    if (code == null || !mounted) return;
+
+    setState(() => isLoading = true);
+    try {
+      final deviceInfo = await DeviceInfo.collect();
+      final result = await widget.authRepository.loginWithGithub(code, deviceInfo: deviceInfo);
+      if (!mounted) return;
+      widget.onLoginSuccess(result);
+    } catch (e) {
+      if (mounted) showToast('GitHub 登录失败: $e');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

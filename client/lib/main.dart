@@ -47,6 +47,13 @@ void main() async {
   LocalStore? localStore;
   SyncEngine? syncEngine;
 
+  void disposeCache() {
+    syncEngine?.dispose();
+    localStore?.dispose();
+    syncEngine = null;
+    localStore = null;
+  }
+
   Future<void> initCache() async {
     final log = FxLog('Cache');
     final user = sessionCubit.state.user;
@@ -55,8 +62,6 @@ void main() async {
       log.d('user is null, skipping cache init');
       return;
     }
-    localStore?.dispose();
-    syncEngine?.dispose();
     log.d('opening database for userId=${user.userId}');
     localStore = await DriftLocalStore.open(user.userId);
     conversationRepo.setStore(localStore!);
@@ -97,6 +102,13 @@ void main() async {
       router.go('/home');
     },
   );
+
+  // 监听登出：session 结束时销毁缓存
+  sessionCubit.stream.listen((state) {
+    if (state.status == SessionStatus.ended) {
+      disposeCache();
+    }
+  });
 
   runApp(
     MultiRepositoryProvider(

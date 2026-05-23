@@ -317,11 +317,12 @@ class _ChatInputState extends State<ChatInput> {
                   : Icons.emoji_emotions_outlined,
               onTap: _onTapEmoji,
             ),
-            // + 更多
-            _buildIconButton(
-              icon: Icons.add_circle_outline_rounded,
-              onTap: _onTapMore,
-            ),
+            // + 更多（有文字时隐藏）
+            if (!_hasText || _isVoiceMode)
+              _buildIconButton(
+                icon: Icons.add_circle_outline_rounded,
+                onTap: _onTapMore,
+              ),
             // 发送按钮（有文字时显示）
             if (_hasText && !_isVoiceMode) _buildSendButton(),
           ],
@@ -385,18 +386,20 @@ class _ChatInputState extends State<ChatInput> {
   Widget _buildSendButton() {
     return GestureDetector(
       onTap: _send,
-      child: Container(
-        height: 28,
-        alignment: Alignment.center,
-        padding: const EdgeInsets.symmetric(horizontal: 12),
-        margin: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF3B82F6),
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: const Text(
-          '发送',
-          style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+        child: Container(
+          height: 28,
+          alignment: Alignment.center,
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF3B82F6),
+            borderRadius: BorderRadius.circular(16),
+          ),
+          child: const Text(
+            '发送',
+            style: TextStyle(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
+          ),
         ),
       ),
     );

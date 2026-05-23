@@ -27,6 +27,39 @@ class AvatarWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final av = avatar ?? '';
+    if (av == 'identicon:system') {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFF3B82F6),
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        child: Icon(Icons.notifications, color: Colors.white, size: size * 0.55),
+      );
+    }
+    if (av == 'identicon:team') {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFF3B82F6),
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        child: Icon(Icons.flash_on, color: Colors.white, size: size * 0.55),
+      );
+    }
+    if (av.startsWith('system:')) {
+      return Container(
+        width: size,
+        height: size,
+        decoration: BoxDecoration(
+          color: const Color(0xFF3B82F6),
+          borderRadius: BorderRadius.circular(borderRadius),
+        ),
+        child: Icon(Icons.notifications, color: Colors.white, size: size * 0.55),
+      );
+    }
     if (av.startsWith('identicon:')) {
       final seed = av.substring('identicon:'.length);
       return IdenticonAvatar(

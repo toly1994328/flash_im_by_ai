@@ -1,18 +1,24 @@
 use argon2::{Argon2, PasswordHash, PasswordVerifier};
 use axum::{
-    extract::State,
+    extract::{ConnectInfo, State},
     http::StatusCode,
     Json,
 };
 use chrono::Utc;
 use rand::Rng;
+use std::net::SocketAddr;
 use std::sync::Arc;
 
 use flash_core::state::AppState;
 use super::jwt::generate_token;
+use super::login_log::{is_first_login, record_login};
 use super::model::{
-    LoginRequest, LoginResponse, LoginType, SmsRequest, SmsResponse,
+    DeviceInfo, LoginRequest, LoginResponse, LoginType,
+    OAuthLoginRequest, SmsRequest, SmsResponse,
 };
+use super::oauth::{OAuthProvider, find_or_create_by_oauth};
+use super::oauth::github::GitHubProvider;
+use super::welcome::send_welcome;
 
 /// POST /auth/sms — 发送验证码，写入 sms_codes 表
 pub async fn send_sms(
@@ -44,14 +50,70 @@ pub async fn send_sms(
 /// POST /auth/login — 统一登录接口
 pub async fn login(
     State(state): State<Arc<AppState>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<LoginRequest>,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     validate_phone(&req.phone)?;
 
-    match req.login_type {
+    let result = match req.login_type {
         LoginType::Sms => login_with_sms(&state, &req).await,
         LoginType::Password => login_with_password(&state, &req).await,
+    }?;
+
+    // 首次登录发欢迎消息
+    let first = is_first_login(&state.db, result.user_id).await.unwrap_or(false);
+    if first {
+        let _ = send_welcome(&state.db, result.user_id).await;
     }
+
+    // 记录登录日志
+    let ip = addr.ip().to_string();
+    let _ = record_login(&state.db, result.user_id, Some(&ip), &req.device_info).await;
+
+    Ok(result)
+}
+
+/// POST /auth/github — GitHub OAuth 登录
+pub async fn github_login(
+    State(state): State<Arc<AppState>>,
+    ConnectInfo(addr): ConnectInfo<SocketAddr>,
+    Json(req): Json<OAuthLoginRequest>,
+) -> Result<Json<LoginResponse>, StatusCode> {
+    let provider = GitHubProvider::from_env();
+    let ip = addr.ip().to_string();
+
+    oauth_login_flow(&provider, &req.code, &req.device_info, Some(&ip), &state.db)
+        .await
+        .map(Json)
+        .map_err(|e| { println!("❌ GitHub login error: {:?}", e); StatusCode::UNAUTHORIZED })
+}
+
+/// OAuth 登录统一流程
+async fn oauth_login_flow(
+    provider: &dyn OAuthProvider,
+    code: &str,
+    device_info: &DeviceInfo,
+    ip: Option<&str>,
+    db: &sqlx::PgPool,
+) -> Result<LoginResponse, flash_core::AppError> {
+    let token = provider.exchange_token(code).await?;
+    let info = provider.get_user_info(&token).await?;
+    let (account_id, is_new) = find_or_create_by_oauth(db, &info).await?;
+
+    // 首次登录发欢迎消息
+    let first = is_first_login(db, account_id).await.unwrap_or(false);
+    if first || is_new {
+        let _ = send_welcome(db, account_id).await;
+    }
+
+    // 记录登录日志
+    let _ = record_login(db, account_id, ip, device_info).await;
+
+    Ok(LoginResponse {
+        token: generate_token(account_id),
+        user_id: account_id,
+        has_password: false,
+    })
 }
 
 // ─── 内部函数 ───

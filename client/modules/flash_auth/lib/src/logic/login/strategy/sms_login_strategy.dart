@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 
 import '../../../data/auth_repository.dart';
+import '../../../data/device_info.dart';
 import '../../../data/login_result.dart';
 import 'login_strategy.dart';
 
@@ -36,8 +37,8 @@ class SmsLoginStrategy extends LoginStrategy {
   }
 
   @override
-  Future<LoginResult> login(AuthRepository repo) {
-    return repo.login(phone, credential, 'sms');
+  Future<LoginResult> login(AuthRepository repo, {DeviceInfo? deviceInfo}) {
+    return repo.login(phone, credential, 'sms', deviceInfo: deviceInfo);
   }
 
   Future<void> sendSms() async {

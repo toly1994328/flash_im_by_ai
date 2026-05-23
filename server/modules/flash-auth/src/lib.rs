@@ -1,7 +1,10 @@
 mod handler;
 mod jwt;
+mod login_log;
 mod model;
+mod oauth;
 mod routes;
+mod welcome;
 
 use axum::Router;
 use flash_core::state::AppState;
