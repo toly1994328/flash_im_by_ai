@@ -24,17 +24,14 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
 MIGRATIONS_DIR = os.path.join(PROJECT_ROOT, "server", "migrations")
 
-MIGRATIONS = [
-    "20250320_001_auth.sql",
-    "20260329_002_conversations.sql",
-    "20260330_003_messages.sql",
-    "20260407_004_friends.sql",
-    "20260412_005_group.sql",
-    "20260419_006_group_join.sql",
-    "20260420_007_group_manage.sql",
-    "20260508_008_pinned_messages.sql",
-    "20260523_010_login_logs.sql",
-]
+
+def get_migrations():
+    """自动读取 migrations 目录下所有 .sql 文件，按文件名排序"""
+    if not os.path.isdir(MIGRATIONS_DIR):
+        return []
+    files = [f for f in os.listdir(MIGRATIONS_DIR) if f.endswith('.sql')]
+    files.sort()
+    return files
 
 # ─── 平台相关路径 ───
 
@@ -118,11 +115,12 @@ def reset_database():
 
 def run_migrations():
     print("[DB] Running migrations...")
-    for name in MIGRATIONS:
+    migrations = get_migrations()
+    if not migrations:
+        print("  [WARN] No migration files found")
+        return
+    for name in migrations:
         path = os.path.normpath(os.path.join(MIGRATIONS_DIR, name))
-        if not os.path.exists(path):
-            print(f"  [WARN] {name} not found, skipping")
-            continue
         r = psql(file=path)
         status = "OK" if r.returncode == 0 else "FAIL"
         print(f"  [{status}] {name}")

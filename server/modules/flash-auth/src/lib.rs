@@ -3,6 +3,7 @@ mod jwt;
 mod login_log;
 mod model;
 mod oauth;
+mod email;
 mod routes;
 mod welcome;
 

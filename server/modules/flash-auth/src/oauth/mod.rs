@@ -1,4 +1,5 @@
 pub mod github;
+pub mod apple;
 
 use flash_core::AppError;
 use sqlx::PgPool;

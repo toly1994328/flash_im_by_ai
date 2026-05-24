@@ -6,6 +6,9 @@ import '../../view/login_page.dart';
 import 'strategy/login_strategy.dart';
 import 'strategy/sms_login_strategy.dart';
 import 'strategy/password_login_strategy.dart';
+import 'strategy/email_login_strategy.dart';
+
+enum LoginTab { email, phone }
 
 enum LoginMode {
   sms('sms'),
@@ -18,15 +21,21 @@ enum LoginMode {
 mixin LoginMixin on State<LoginPage> {
   late final SmsLoginStrategy smsStrategy;
   late final PasswordLoginStrategy passwordStrategy;
+  late final EmailLoginStrategy emailStrategy;
 
+  LoginTab tab = LoginTab.phone;
   LoginMode mode = LoginMode.sms;
   bool agreed = false;
   bool isLoading = false;
 
+  bool get isEmailTab => tab == LoginTab.email;
   bool get isSmsMode => mode == LoginMode.sms;
 
   /// 当前激活的策略
-  LoginStrategy get currentStrategy => isSmsMode ? smsStrategy : passwordStrategy;
+  LoginStrategy get currentStrategy {
+    if (isEmailTab) return emailStrategy;
+    return isSmsMode ? smsStrategy : passwordStrategy;
+  }
 
   bool get canLogin => agreed && !isLoading && currentStrategy.isValid;
 
@@ -38,13 +47,26 @@ mixin LoginMixin on State<LoginPage> {
     passwordStrategy = PasswordLoginStrategy(
       refresh: () => setState(() {}),
     );
+    emailStrategy = EmailLoginStrategy(
+      sendEmailCodeCallback: (email) => widget.authRepository.sendEmailCode(email),
+      refresh: () => setState(() {}),
+    );
     smsStrategy.listen();
     passwordStrategy.listen();
+    emailStrategy.listen();
   }
 
   void disposeMixin() {
     smsStrategy.dispose();
     passwordStrategy.dispose();
+    emailStrategy.dispose();
+  }
+
+  void switchTab(LoginTab newTab) {
+    setState(() {
+      tab = newTab;
+      mode = LoginMode.sms;
+    });
   }
 
   void toggleMode() {
@@ -86,6 +108,21 @@ mixin LoginMixin on State<LoginPage> {
       widget.onLoginSuccess(result);
     } catch (e) {
       if (mounted) showToast('GitHub 登录失败: $e');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
+  }
+
+  /// Apple 登录（由 LoginPage 传入 identityToken）
+  Future<void> loginWithAppleToken(String identityToken) async {
+    setState(() => isLoading = true);
+    try {
+      final deviceInfo = await DeviceInfo.collect();
+      final result = await widget.authRepository.loginWithApple(identityToken, deviceInfo: deviceInfo);
+      if (!mounted) return;
+      widget.onLoginSuccess(result);
+    } catch (e) {
+      if (mounted) showToast('Apple 登录失败');
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

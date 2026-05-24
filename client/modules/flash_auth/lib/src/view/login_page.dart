@@ -1,15 +1,16 @@
-import 'dart:io';
-
 import 'package:flutter/material.dart';
-import 'package:flutter_svg/flutter_svg.dart';
+import 'package:flutter/services.dart';
 import 'package:oktoast/oktoast.dart';
 import '../data/auth_repository.dart';
 import '../data/login_result.dart';
 import '../logic/login/login_mixin.dart';
 import 'components/sms_login_form.dart';
 import 'components/password_login_form.dart';
+import 'components/email_login_form.dart';
 import 'components/agreement_row.dart';
 import 'components/action_button.dart';
+import 'components/login_segment_tab.dart';
+import 'components/other_login_row.dart';
 
 /// 登录成功回调 — 由组装层注入，负责写入 session、跳转等
 typedef OnLoginSuccess = void Function(LoginResult result);
@@ -43,32 +44,26 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      body: SafeArea(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 32),
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.transparent
+      ),
+      child: Scaffold(
+        backgroundColor: Colors.white,
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(horizontal: 46),
           child: Column(
             children: [
+              const SizedBox(height: 80),
+              _BrandHeader(
+                onDebugDoubleTap: () {
+                  smsStrategy.phoneCtrl.text = '13800010001';
+                },
+              ),
               const SizedBox(height: 60),
-              _BrandHeader(onDebugDoubleTap: () {
-                smsStrategy.phoneCtrl.text = '13800010001';
-              }),
-              const SizedBox(height: 48),
-              if (isSmsMode)
-                SmsLoginForm(
-                  strategy: smsStrategy,
-                  isLoading: isLoading,
-                  onSendSms: () async {
-                    if (!agreed) {
-                      showToast('请先阅读并同意用户协议和隐私政策');
-                      return;
-                    }
-                    await smsStrategy.sendSms();
-                  },
-                )
-              else
-                PasswordLoginForm(strategy: passwordStrategy),
+              LoginSegmentTab(current: tab, onChanged: switchTab),
+              const SizedBox(height: 16),
+              _buildForm(),
               const SizedBox(height: 36),
               AgreementRow(
                 checked: agreed,
@@ -82,9 +77,14 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
                 onPressed: login,
               ),
               const SizedBox(height: 48),
-              _buildDivider(),
-              const SizedBox(height: 20),
-              _buildOtherLoginRow(),
+              OtherLoginRow(
+                isLoading: isLoading,
+                showPasswordToggle: true,
+                isSmsMode: isSmsMode,
+                onGithub: () => loginWithGithub(context),
+                onApple: _handleAppleLogin,
+                onToggleMode: toggleMode,
+              ),
             ],
           ),
         ),
@@ -92,78 +92,52 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     );
   }
 
-  Widget _buildOtherLoginRow() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        if (Platform.isAndroid || Platform.isIOS) ...[
-          _buildGithubItem(),
-          const SizedBox(width: 24),
-        ],
-        _buildOtherLoginItem(
-          icon: Icons.lock_outline,
-          label: isSmsMode ? '密码登录' : '验证码登录',
-          onTap: toggleMode,
-        ),
-      ],
-    );
+  Widget _buildForm() {
+    if (isEmailTab) {
+      if (isSmsMode) {
+        return EmailLoginForm(
+          strategy: emailStrategy,
+          isLoading: isLoading,
+          onSendCode: () async {
+            if (!agreed) {
+              showToast('请先阅读并同意用户协议和隐私政策');
+              return;
+            }
+            await emailStrategy.sendCode();
+          },
+        );
+      }
+      return PasswordLoginForm(strategy: passwordStrategy);
+    }
+    if (isSmsMode) {
+      return SmsLoginForm(
+        strategy: smsStrategy,
+        isLoading: isLoading,
+        onSendSms: () async {
+          if (!agreed) {
+            showToast('请先阅读并同意用户协议和隐私政策');
+            return;
+          }
+          await smsStrategy.sendSms();
+        },
+      );
+    }
+    return PasswordLoginForm(strategy: passwordStrategy);
   }
 
-  Widget _buildOtherLoginItem({required IconData icon, required String label, required VoidCallback onTap}) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF5F5F5),
-              borderRadius: BorderRadius.circular(24),
-            ),
-            child: Icon(icon, size: 22, color: const Color(0xFF555555)),
-          ),
-          const SizedBox(height: 6),
-          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDivider() {
-    return Row(
-      children: [
-        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 12),
-          child: Text('其他登录方式', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
-        ),
-        const Expanded(child: Divider(color: Color(0xFFE0E0E0))),
-      ],
-    );
-  }
-
-  Widget _buildGithubItem() {
-    return GestureDetector(
-      onTap: isLoading ? null : () => loginWithGithub(context),
-      child: Column(
-        children: [
-          SvgPicture.asset(
-            'assets/icons/github.svg',
-            package: 'flash_auth',
-            width: 48,
-            height: 48,
-          ),
-          const SizedBox(height: 6),
-          const Text('GitHub', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),
-        ],
-      ),
-    );
+  Future<void> _handleAppleLogin() async {
+    if (!agreed) {
+      showToast('请先阅读并同意用户协议和隐私政策');
+      return;
+    }
+    // TODO: 接入 sign_in_with_apple 插件
+    showToast('Apple 登录功能即将上线');
   }
 }
 
 class _BrandHeader extends StatelessWidget {
   final VoidCallback? onDebugDoubleTap;
+
   const _BrandHeader({this.onDebugDoubleTap});
 
   @override
@@ -177,12 +151,20 @@ class _BrandHeader extends StatelessWidget {
         const SizedBox(height: 8),
         const Text(
           'FLASH IM',
-          style: TextStyle(fontSize: 30, fontWeight: FontWeight.w900, letterSpacing: 2),
+          style: TextStyle(
+            fontSize: 30,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+          ),
         ),
         const SizedBox(height: 6),
         Text(
           '连接此刻，不止于此',
-          style: TextStyle(fontSize: 14, color: Colors.grey[600], letterSpacing: 4),
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.grey[600],
+            letterSpacing: 4,
+          ),
         ),
       ],
     );

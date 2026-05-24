@@ -17,10 +17,16 @@ class AuthRepository {
     await prefs.setString('auth_token', token);
   }
 
-  /// 发送验证码
+  /// 发送短信验证码
   Future<String> sendSms(String phone) async {
     final res = await _dio.post('/auth/sms', data: {'phone': phone});
     return res.data['code'] as String;
+  }
+
+  /// 发送邮箱验证码
+  Future<String?> sendEmailCode(String email) async {
+    final res = await _dio.post('/auth/email/code', data: {'email': email});
+    return res.data['code'] as String?;
   }
 
   /// 登录（验证码或密码）
@@ -45,6 +51,17 @@ class AuthRepository {
   Future<LoginResult> loginWithGithub(String code, {DeviceInfo? deviceInfo}) async {
     final res = await _dio.post('/auth/github', data: {
       'code': code,
+      if (deviceInfo != null) 'device_info': deviceInfo.toJson(),
+    });
+    final loginResult = LoginResult.fromJson(res.data as Map<String, dynamic>);
+    await _saveToken(loginResult.token);
+    return loginResult;
+  }
+
+  /// Apple OAuth 登录
+  Future<LoginResult> loginWithApple(String identityToken, {DeviceInfo? deviceInfo}) async {
+    final res = await _dio.post('/auth/apple', data: {
+      'identity_token': identityToken,
       if (deviceInfo != null) 'device_info': deviceInfo.toJson(),
     });
     final loginResult = LoginResult.fromJson(res.data as Map<String, dynamic>);
