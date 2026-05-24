@@ -5,6 +5,9 @@ import 'package:go_router/go_router.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 
+import 'settings_page.dart';
+import 'my_qr_code_page.dart';
+
 /// 微信风格"我"页面
 class ProfilePage extends StatelessWidget {
   const ProfilePage({super.key});
@@ -36,13 +39,10 @@ class ProfilePage extends StatelessWidget {
               // 功能列表
               _buildGroup([
                 _buildActionRow(
-                  icon: Icons.lock_outline,
+                  icon: Icons.qr_code,
                   iconColor: const Color(0xFF3B82F6),
-                  label: hasPassword ? '修改密码' : '设置密码',
-                  onTap: () => _pushPage(
-                    context,
-                    hasPassword ? const ChangePasswordPage() : const SetPasswordPage(),
-                  ),
+                  label: '我的名片',
+                  onTap: () => _pushPage(context, MyQrCodePage(user: user!)),
                 ),
               ]),
               const SizedBox(height: 8),
@@ -51,28 +51,12 @@ class ProfilePage extends StatelessWidget {
                   icon: Icons.settings_outlined,
                   iconColor: const Color(0xFF3B82F6),
                   label: '设置',
-                  onTap: () {},
-                ),
-              ]),
-              const SizedBox(height: 8),
-              // 退出登录
-              Container(
-                color: Colors.white,
-                child: InkWell(
-                  onTap: () async {
-                    context.read<WsClient>().disconnect();
-                    await context.read<SessionCubit>().deactivate();
-                    if (!context.mounted) return;
-                    context.go('/login');
-                  },
-                  child: const Padding(
-                    padding: EdgeInsets.symmetric(vertical: 14),
-                    child: Center(
-                      child: Text('退出登录', style: TextStyle(fontSize: 16, color: Colors.red)),
-                    ),
+                  onTap: () => _pushPage(
+                    context,
+                    SettingsPage(hasPassword: hasPassword),
                   ),
                 ),
-              ),
+              ]),
             ],
           ),
           ),

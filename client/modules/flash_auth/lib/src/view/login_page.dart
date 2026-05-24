@@ -68,6 +68,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
               AgreementRow(
                 checked: agreed,
                 onTap: () => setState(() => agreed = !agreed),
+                baseUrl: widget.authRepository.baseUrl,
               ),
               const SizedBox(height: 32),
               ActionButton(
@@ -75,14 +76,10 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
                 loading: isLoading,
                 onPressed: login,
               ),
-              const SizedBox(height: 24),
-              _buildModeToggle(),
-              if (Platform.isAndroid || Platform.isIOS) ...[
-                const SizedBox(height: 32),
-                _buildDivider(),
-                const SizedBox(height: 16),
-                _buildGithubButton(),
-              ],
+              const SizedBox(height: 48),
+              _buildDivider(),
+              const SizedBox(height: 20),
+              _buildOtherLoginRow(),
             ],
           ),
         ),
@@ -90,12 +87,40 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     );
   }
 
-  Widget _buildModeToggle() {
+  Widget _buildOtherLoginRow() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        if (Platform.isAndroid || Platform.isIOS) ...[
+          _buildGithubItem(),
+          const SizedBox(width: 24),
+        ],
+        _buildOtherLoginItem(
+          icon: Icons.lock_outline,
+          label: isSmsMode ? '密码登录' : '验证码登录',
+          onTap: toggleMode,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOtherLoginItem({required IconData icon, required String label, required VoidCallback onTap}) {
     return GestureDetector(
-      onTap: toggleMode,
-      child: Text(
-        isSmsMode ? '使用密码登录 →' : '使用验证码登录 →',
-        style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+      onTap: onTap,
+      child: Column(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF5F5F5),
+              borderRadius: BorderRadius.circular(24),
+            ),
+            child: Icon(icon, size: 22, color: const Color(0xFF555555)),
+          ),
+          const SizedBox(height: 6),
+          Text(label, style: const TextStyle(fontSize: 12, color: Color(0xFF999999))),
+        ],
       ),
     );
   }
@@ -113,7 +138,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     );
   }
 
-  Widget _buildGithubButton() {
+  Widget _buildGithubItem() {
     return GestureDetector(
       onTap: isLoading ? null : () => loginWithGithub(context),
       child: Column(
@@ -121,8 +146,8 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
           SvgPicture.asset(
             'assets/icons/github.svg',
             package: 'flash_auth',
-            width: 44,
-            height: 44,
+            width: 48,
+            height: 48,
           ),
           const SizedBox(height: 6),
           const Text('GitHub', style: TextStyle(fontSize: 12, color: Color(0xFF999999))),

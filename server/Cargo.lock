@@ -731,7 +731,7 @@ dependencies = [
 
 [[package]]
 name = "flash-im"
-version = "0.1.2"
+version = "0.1.4"
 dependencies = [
  "app-storage",
  "axum",

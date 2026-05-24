@@ -5,3 +5,4 @@ library;
 
 export 'src/task.dart' show StartupTask, OnStartupComplete;
 export 'src/splash_page.dart' show SplashPage;
+export 'src/privacy_consent_dialog.dart' show PrivacyConsentDialog;

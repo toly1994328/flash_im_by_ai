@@ -1,15 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'privacy_consent_dialog.dart';
 import 'task.dart';
 
 class SplashPage extends StatefulWidget {
   final List<StartupTask> tasks;
   final OnStartupComplete onComplete;
+  final String? baseUrl;
+  final void Function(BuildContext context, String title, String url)? onViewPolicy;
 
   const SplashPage({
     super.key,
     required this.tasks,
     required this.onComplete,
+    this.baseUrl,
+    this.onViewPolicy,
   });
 
   @override
@@ -18,6 +24,7 @@ class SplashPage extends StatefulWidget {
 
 class _SplashPageState extends State<SplashPage> {
   String? _error;
+  Map<Type, dynamic>? _results;
 
   @override
   void initState() {
@@ -34,7 +41,8 @@ class _SplashPageState extends State<SplashPage> {
         Future.delayed(const Duration(milliseconds: 1500)),
       ]);
       if (!mounted) return;
-      widget.onComplete(results);
+      _results = results;
+      _checkPrivacyConsent();
     } catch (e) {
       if (mounted) setState(() => _error = e.toString());
     }
@@ -44,6 +52,40 @@ class _SplashPageState extends State<SplashPage> {
     for (final task in widget.tasks) {
       results[task.runtimeType] = await task.execute();
     }
+  }
+
+  Future<void> _checkPrivacyConsent() async {
+    final prefs = await SharedPreferences.getInstance();
+    final agreed = prefs.getBool('privacy_agreed') ?? false;
+
+    if (agreed) {
+      widget.onComplete(_results!);
+    } else {
+      if (!mounted) return;
+      _showPrivacyDialog();
+    }
+  }
+
+  void _showPrivacyDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PrivacyConsentDialog(
+        onAgree: () async {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setBool('privacy_agreed', true);
+          if (!mounted) return;
+          Navigator.of(context).pop();
+          widget.onComplete(_results!);
+        },
+        onViewAgreement: widget.onViewPolicy != null
+            ? () => widget.onViewPolicy!(context, '用户协议', '${widget.baseUrl}/static/agreement.html')
+            : null,
+        onViewPrivacy: widget.onViewPolicy != null
+            ? () => widget.onViewPolicy!(context, '隐私政策', '${widget.baseUrl}/static/privacy.html')
+            : null,
+      ),
+    );
   }
 
   @override

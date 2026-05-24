@@ -7,3 +7,4 @@ library;
 export 'src/data/auth_repository.dart' show AuthRepository;
 export 'src/data/login_result.dart' show LoginResult;
 export 'src/view/login_page.dart' show LoginPage, OnLoginSuccess;
+export 'src/view/policy_page.dart' show PolicyPage;

@@ -6,7 +6,7 @@
 
 用法：
   python scripts/deploy/build.py                        # 只编译
-  python scripts/deploy/build.py root@47.96.123.45     # 编译并上传
+  python scripts/deploy/build.py root@82.157.176.209     # 编译并上传
 
 前置条件：
   - 已安装 Rust：https://rustup.rs

@@ -1,4 +1,7 @@
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+
+import '../policy_page.dart';
 
 const _kPrimary = Color(0xFF3B82F6);
 
@@ -6,39 +9,53 @@ const _kPrimary = Color(0xFF3B82F6);
 class AgreementRow extends StatelessWidget {
   final bool checked;
   final VoidCallback onTap;
+  final String baseUrl;
 
   const AgreementRow({
     super.key,
     required this.checked,
     required this.onTap,
+    required this.baseUrl,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      behavior: HitTestBehavior.opaque,
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _CheckIcon(checked: checked),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text.rich(
-              TextSpan(
-                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-                children: const [
-                  TextSpan(text: '登录即代表您同意'),
-                  TextSpan(text: '《用户协议》', style: TextStyle(color: _kPrimary)),
-                  TextSpan(text: '和'),
-                  TextSpan(text: '《隐私政策》', style: TextStyle(color: _kPrimary)),
-                  TextSpan(text: '，未注册绑定的手机号验证成功后将自动注册'),
-                ],
-              ),
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        GestureDetector(
+          onTap: onTap,
+          child: _CheckIcon(checked: checked),
+        ),
+        const SizedBox(width: 8),
+        Expanded(
+          child: Text.rich(
+            TextSpan(
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+              children: [
+                const TextSpan(text: '登录即代表您同意'),
+                _linkSpan(context, '《用户协议》', '用户协议', '$baseUrl/static/agreement.html'),
+                const TextSpan(text: '和'),
+                _linkSpan(context, '《隐私政策》', '隐私政策', '$baseUrl/static/privacy.html'),
+                const TextSpan(text: '，未注册绑定的手机号验证成功后将自动注册'),
+              ],
             ),
           ),
-        ],
-      ),
+        ),
+      ],
+    );
+  }
+
+  TextSpan _linkSpan(BuildContext context, String text, String title, String url) {
+    return TextSpan(
+      text: text,
+      style: const TextStyle(color: _kPrimary),
+      recognizer: TapGestureRecognizer()
+        ..onTap = () {
+          Navigator.of(context).push(MaterialPageRoute(
+            builder: (_) => PolicyPage(title: title, url: url),
+          ));
+        },
     );
   }
 }

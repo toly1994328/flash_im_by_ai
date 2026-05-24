@@ -1,0 +1,5 @@
+# 强制这些文件使用 LF 换行符（避免 Windows CRLF 导致服务器读取异常）
+*.env eol=lf
+*.sh eol=lf
+*.sql eol=lf
+*.properties eol=lf
