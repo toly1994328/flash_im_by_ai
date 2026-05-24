@@ -1,6 +1,9 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../data/auth_repository.dart';
 import '../data/login_result.dart';
 import '../logic/login/login_mixin.dart';
@@ -130,8 +133,30 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
       showToast('请先阅读并同意用户协议和隐私政策');
       return;
     }
-    // TODO: 接入 sign_in_with_apple 插件
-    showToast('Apple 登录功能即将上线');
+    if (!Platform.isIOS) {
+      showToast('Apple 登录仅支持 iOS 设备');
+      return;
+    }
+    setState(() => isLoading = true);
+    try {
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [AppleIDAuthorizationScopes.email],
+      );
+      final identityToken = credential.identityToken;
+      if (identityToken == null) {
+        showToast('未获取到 Apple 授权信息');
+        return;
+      }
+      await loginWithAppleToken(identityToken);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      if (e.code != AuthorizationErrorCode.canceled) {
+        if (mounted) showToast('Apple 登录失败');
+      }
+    } catch (e) {
+      if (mounted) showToast('Apple 登录失败');
+    } finally {
+      if (mounted) setState(() => isLoading = false);
+    }
   }
 }
 

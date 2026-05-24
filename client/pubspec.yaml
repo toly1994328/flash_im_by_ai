@@ -98,6 +98,7 @@ dependency_overrides:
   device_info_plus: ^11.0.0
   package_info_plus: ^8.0.0
   uuid: ^4.5.0
+  sign_in_with_apple: ^6.1.0
 
 # The following section is specific to Flutter packages.
 flutter:

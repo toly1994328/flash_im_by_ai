@@ -30,9 +30,11 @@ class OtherLoginRow extends StatelessWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            if (Platform.isAndroid || Platform.isIOS) ...[
+            if (Platform.isIOS) ...[
               _buildAppleItem(),
               const SizedBox(width: 24),
+            ],
+            if (Platform.isAndroid || Platform.isIOS) ...[
               _buildGithubItem(),
               const SizedBox(width: 24),
             ],
