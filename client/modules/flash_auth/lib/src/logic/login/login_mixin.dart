@@ -68,6 +68,11 @@ mixin LoginMixin on State<LoginPage> {
   }
 
   Future<void> loginWithGithub(BuildContext context) async {
+    if (!agreed) {
+      showToast('请先阅读并同意用户协议和隐私政策');
+      return;
+    }
+
     final code = await Navigator.of(context).push<String>(
       MaterialPageRoute(builder: (_) => const GitHubAuthPage()),
     );

@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:oktoast/oktoast.dart';
 import '../data/auth_repository.dart';
 import '../data/login_result.dart';
 import '../logic/login/login_mixin.dart';
@@ -59,6 +60,10 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
                   strategy: smsStrategy,
                   isLoading: isLoading,
                   onSendSms: () async {
+                    if (!agreed) {
+                      showToast('请先阅读并同意用户协议和隐私政策');
+                      return;
+                    }
                     await smsStrategy.sendSms();
                   },
                 )

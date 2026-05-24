@@ -90,7 +90,7 @@ def main():
         os.makedirs(dest_dir, exist_ok=True)
 
         info("构建 AAB（Google Play 格式）...")
-        run(f"flutter build appbundle --release {dart_defines}")
+        run(f"flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info {dart_defines} -v")
         output = os.path.join(CLIENT_DIR, "build", "app", "outputs", "bundle", "release", "app-release.aab")
         if os.path.isfile(output):
             dest = os.path.join(dest_dir, "flash_im.aab")
@@ -103,7 +103,13 @@ def main():
     else:
         # 同时构建 arm64 和 armeabi-v7a
         target_platforms = ",".join(p["flag"] for p in PLATFORMS)
-        cmd = f"flutter build apk --release --target-platform {target_platforms} --split-per-abi {dart_defines}"
+        cmd = (
+            f"flutter build apk --release"
+            f" --target-platform {target_platforms}"
+            f" --split-per-abi"
+            f" --obfuscate --split-debug-info=build/debug-info"
+            f" {dart_defines} -v"
+        )
         info(f"构建 APK（{', '.join(p['folder'] for p in PLATFORMS)}）...")
         run(cmd)
 

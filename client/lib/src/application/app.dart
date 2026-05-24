@@ -10,6 +10,8 @@ class FlashApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return OKToast(
+      position: ToastPosition.bottom,
+      textPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: MaterialApp.router(
         title: 'Flash IM',
         debugShowCheckedModeBanner: false,
