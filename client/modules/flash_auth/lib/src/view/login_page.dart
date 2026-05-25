@@ -21,11 +21,13 @@ typedef OnLoginSuccess = void Function(LoginResult result);
 class LoginPage extends StatefulWidget {
   final AuthRepository authRepository;
   final OnLoginSuccess onLoginSuccess;
+  final bool enableSMS;
 
   const LoginPage({
     super.key,
     required this.authRepository,
     required this.onLoginSuccess,
+    this.enableSMS = true,
   });
 
   @override
@@ -64,7 +66,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
                 },
               ),
               const SizedBox(height: 60),
-              LoginSegmentTab(current: tab, onChanged: switchTab),
+              LoginSegmentTab(current: tab, onChanged: switchTab, enableSMS: widget.enableSMS),
               const SizedBox(height: 16),
               _buildForm(),
               const SizedBox(height: 36),
@@ -82,7 +84,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
               const SizedBox(height: 48),
               OtherLoginRow(
                 isLoading: isLoading,
-                showPasswordToggle: true,
+                showPasswordToggle: widget.enableSMS,
                 isSmsMode: isSmsMode,
                 onGithub: () => loginWithGithub(context),
                 onApple: _handleAppleLogin,
@@ -110,6 +112,11 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
           },
         );
       }
+      return PasswordLoginForm(strategy: passwordStrategy);
+    }
+    // phone tab
+    if (!widget.enableSMS) {
+      // enableSMS=false 时，phone tab 就是密码登录
       return PasswordLoginForm(strategy: passwordStrategy);
     }
     if (isSmsMode) {

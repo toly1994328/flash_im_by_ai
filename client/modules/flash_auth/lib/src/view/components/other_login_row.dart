@@ -29,25 +29,34 @@ class OtherLoginRow extends StatelessWidget {
         const SizedBox(height: 20),
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            if (Platform.isIOS) ...[
-              _buildAppleItem(),
-              const SizedBox(width: 24),
-            ],
-            if (Platform.isAndroid || Platform.isIOS) ...[
-              _buildGithubItem(),
-              const SizedBox(width: 24),
-            ],
-            if (showPasswordToggle)
-              _buildIconItem(
-                icon: Icons.lock_outline,
-                label: isSmsMode ? '密码登录' : '验证码登录',
-                onTap: onToggleMode,
-              ),
-          ],
+          children: _buildItems(),
         ),
       ],
     );
+  }
+
+  List<Widget> _buildItems() {
+    final items = <Widget>[];
+    if (Platform.isIOS || Platform.isMacOS) {
+      items.add(_buildAppleItem());
+    }
+    items.add(_buildGithubItem());
+    if (showPasswordToggle) {
+      items.add(_buildIconItem(
+        icon: Icons.lock_outline,
+        label: isSmsMode ? '密码登录' : '验证码登录',
+        onTap: onToggleMode,
+      ));
+    }
+    // 在 items 之间插入间距
+    final result = <Widget>[];
+    for (var i = 0; i < items.length; i++) {
+      result.add(items[i]);
+      if (i < items.length - 1) {
+        result.add(const SizedBox(width: 24));
+      }
+    }
+    return result;
   }
 
   Widget _buildDivider() {

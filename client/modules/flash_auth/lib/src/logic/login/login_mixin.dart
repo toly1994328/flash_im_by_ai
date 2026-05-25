@@ -33,7 +33,8 @@ mixin LoginMixin on State<LoginPage> {
 
   /// 当前激活的策略
   LoginStrategy get currentStrategy {
-    if (isEmailTab) return emailStrategy;
+    if (isEmailTab) return isSmsMode ? emailStrategy : passwordStrategy;
+    if (!widget.enableSMS) return passwordStrategy;
     return isSmsMode ? smsStrategy : passwordStrategy;
   }
 
