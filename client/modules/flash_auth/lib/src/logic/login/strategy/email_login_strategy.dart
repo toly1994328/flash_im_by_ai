@@ -56,6 +56,7 @@ class EmailLoginStrategy extends LoginStrategy {
       if (code != null) {
         codeCtrl.text = code;
       }
+      showToast('验证码已发送');
     } on DioException catch (e) {
       if (e.response?.statusCode == 429) {
         showToast('发送过于频繁，请稍后再试');

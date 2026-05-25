@@ -8,3 +8,4 @@ docs/ref
 .kiro/steering/illustrator.md
 */build/
 scripts/release/
+.DS_Store
