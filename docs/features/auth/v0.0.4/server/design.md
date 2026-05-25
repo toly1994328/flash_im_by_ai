@@ -47,21 +47,29 @@ tags: [apple-login, email-login, oauth, smtp]
 #### email_codes 表（新建）
 
 ```sql
-CREATE TABLE IF NOT EXISTS email_codes (
-    email       VARCHAR(255) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS verify_codes (
+    identifier  VARCHAR(255) NOT NULL,
+    channel     VARCHAR(10) NOT NULL,
+    scene       VARCHAR(20) NOT NULL DEFAULT 'login',
     code        VARCHAR(6) NOT NULL,
+    status      SMALLINT NOT NULL DEFAULT 0,
     expires_at  TIMESTAMPTZ NOT NULL,
     request_ip  VARCHAR(45),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    sender      VARCHAR(255),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (identifier, channel, scene)
 );
 ```
 
 | 决策 | 理由 |
 |------|------|
-| email 为主键，UPSERT 覆盖 | 同 sms_codes 设计，同一邮箱只保留最新验证码 |
+| 统一 verify_codes 表替代 sms_codes + email_codes | 避免每种验证方式建一张表，结构完全重复 |
+| channel 区分通道（sms/email） | 同一 identifier 不同通道各自独立 |
+| scene 区分场景（login/reset_password/bind） | 同一邮箱不同场景互不干扰 |
+| status（0=待验证 1=已使用 2=已过期） | 不删除记录，保留审计轨迹 |
+| sender 记录发送方邮箱 | 统计每日发送量，便于多邮箱切换 |
 | 有效期 5 分钟 | 安全性与用户体验的平衡 |
 | request_ip 记录请求来源 | 用于 IP 维度频率限制 |
-| 频率限制：同一邮箱或同一 IP 60 秒内只能发一次 | 用 created_at 判断 |
 
 #### auth_credentials 表（已有，无需修改）
 

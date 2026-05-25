@@ -139,8 +139,8 @@ sequenceDiagram
 | 用户账号 | Apple 再次登录 | 已存在 | 不变（直接签发 token） |
 | 用户账号 | 邮箱首次验证码登录 | 不存在 | 已创建（auth_type=email） |
 | 用户账号 | 邮箱再次登录 | 已存在 | 不变 |
-| email_codes | 发送验证码 | 无/旧记录 | 新验证码（5 分钟有效） |
-| email_codes | 验证成功 | 有记录 | 删除 |
+| verify_codes | 发送验证码 | 无/旧记录 | 新验证码（status=0，5 分钟有效） |
+| verify_codes | 验证成功 | status=0 | status=1（已使用） |
 
 ---
 
@@ -151,7 +151,7 @@ sequenceDiagram
 | 编号 | 功能节点 | 层级 | 简介 |
 |------|---------|------|------|
 | I-17 | Apple OAuth 登录 | 基础设施 | Apple identity_token 验证 + 用户创建 |
-| I-18 | 邮箱验证码发送 | 基础设施 | 生成验证码 + SMTP 发送邮件 |
+| I-18 | 邮箱验证码发送 | 基础设施 | 生成验证码 + SMTP 发送邮件 + verify_codes 表 |
 | I-19 | 邮箱登录 | 基础设施 | 邮箱验证码/密码登录 + 自动注册 |
 
 ### 前置依赖

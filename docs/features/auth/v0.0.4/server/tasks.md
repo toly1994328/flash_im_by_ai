@@ -12,34 +12,41 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — 数据库迁移（email_codes 表）
-2. ⬜ 任务 2 — 添加 lettre 依赖
-3. ⬜ 任务 3 — 邮件发送器（email/sender.rs）
-4. ⬜ 任务 4 — 邮件模块入口（email/mod.rs）
-5. ⬜ 任务 5 — Apple OAuth Provider（oauth/apple.rs）
-6. ⬜ 任务 6 — 扩展 model.rs（新增请求结构体 + LoginType）
-7. ⬜ 任务 7 — 扩展 handler.rs（新增 handler + 扩展 login）
-8. ⬜ 任务 8 — 扩展 routes.rs（新增路由）
-9. ⬜ 任务 9 — 环境变量配置（.env）
-10. ⬜ 任务 10 — 编译验证
+1. ✅ 任务 1 — 数据库迁移（verify_codes 表）
+2. ✅ 任务 2 — 添加 lettre 依赖
+3. ✅ 任务 3 — 邮件发送器（email/sender.rs）
+4. ✅ 任务 4 — 邮件模块入口（email/mod.rs）
+5. ✅ 任务 5 — Apple OAuth Provider（oauth/apple.rs）
+6. ✅ 任务 6 — 扩展 model.rs（新增请求结构体 + LoginType）
+7. ✅ 任务 7 — 扩展 handler.rs（新增 handler + 扩展 login）
+8. ✅ 任务 8 — 扩展 routes.rs（新增路由）
+9. ✅ 任务 9 — 环境变量配置（.env）
+10. ✅ 任务 10 — 编译验证
 
 ---
 
-## 任务 1：数据库迁移 `⬜ 待处理`
+## 任务 1：数据库迁移 `✅ 已完成`
 
-文件：`server/migrations/20260524_011_email_codes.sql`（新建）
+文件：`server/migrations/20260524_011_verify_codes.sql`（新建）
 
-### 1.1 创建 email_codes 表 `⬜`
+### 1.1 创建 verify_codes 表 `✅`
 
 ```sql
-CREATE TABLE IF NOT EXISTS email_codes (
-    email       VARCHAR(255) PRIMARY KEY,
+CREATE TABLE IF NOT EXISTS verify_codes (
+    identifier  VARCHAR(255) NOT NULL,
+    channel     VARCHAR(10) NOT NULL,
+    scene       VARCHAR(20) NOT NULL DEFAULT 'login',
     code        VARCHAR(6) NOT NULL,
+    status      SMALLINT NOT NULL DEFAULT 0,  -- 0=待验证 1=已使用 2=已过期
     expires_at  TIMESTAMPTZ NOT NULL,
     request_ip  VARCHAR(45),
-    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    sender      VARCHAR(255),
+    created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY (identifier, channel, scene)
 );
 ```
+
+同时删除 `001_auth.sql` 中旧的 `sms_codes` 建表语句。
 
 ---
 

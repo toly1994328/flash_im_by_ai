@@ -11,13 +11,13 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — AuthRepository 扩展（sendEmailCode + loginWithApple）
-2. ⬜ 任务 2 — EmailLoginStrategy（邮箱验证码策略）
-3. ⬜ 任务 3 — EmailLoginForm 组件
-4. ⬜ 任务 4 — LoginMixin 扩展（Tab 状态 + emailStrategy）
-5. ⬜ 任务 5 — LoginPage 改造（顶部 Tab + Apple 图标）
-6. ⬜ 任务 6 — 添加 sign_in_with_apple 依赖
-7. ⬜ 任务 7 — 编译验证
+1. ✅ 任务 1 — AuthRepository 扩展（sendEmailCode + loginWithApple）
+2. ✅ 任务 2 — EmailLoginStrategy（邮箱验证码策略）
+3. ✅ 任务 3 — EmailLoginForm 组件
+4. ✅ 任务 4 — LoginMixin 扩展（Tab 状态 + emailStrategy）
+5. ✅ 任务 5 — LoginPage 改造（顶部 Tab + Apple 图标）
+6. ✅ 任务 6 — 添加 sign_in_with_apple 依赖
+7. ✅ 任务 7 — 编译验证
 
 ---
 

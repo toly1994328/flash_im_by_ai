@@ -38,10 +38,3 @@ CREATE TABLE auth_credentials (
 
 CREATE INDEX idx_auth_credentials_account ON auth_credentials(account_id);
 
--- 短信验证码
-CREATE TABLE sms_codes (
-    phone      VARCHAR(20)  PRIMARY KEY,
-    code       VARCHAR(6)   NOT NULL,
-    expires_at TIMESTAMPTZ  NOT NULL,
-    created_at TIMESTAMPTZ  NOT NULL DEFAULT NOW()
-);

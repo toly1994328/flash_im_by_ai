@@ -23,7 +23,7 @@ use super::oauth::apple::AppleProvider;
 use super::email::sender::{self, SmtpConfig};
 use super::welcome::send_welcome;
 
-/// POST /auth/sms — 发送验证码，写入 sms_codes 表
+/// POST /auth/sms — 发送验证码，写入 verify_codes 表
 pub async fn send_sms(
     State(state): State<Arc<AppState>>,
     Json(req): Json<SmsRequest>,
@@ -36,9 +36,9 @@ pub async fn send_sms(
     println!("📱 验证码 [{}] -> {}", req.phone, code);
 
     sqlx::query(
-        "INSERT INTO sms_codes (phone, code, expires_at, created_at)
-         VALUES ($1, $2, $3, NOW())
-         ON CONFLICT (phone) DO UPDATE SET code = $2, expires_at = $3, created_at = NOW()"
+        "INSERT INTO verify_codes (identifier, channel, scene, code, expires_at, created_at)
+         VALUES ($1, 'sms', 'login', $2, $3, NOW())
+         ON CONFLICT (identifier, channel, scene) DO UPDATE SET code = $2, expires_at = $3, created_at = NOW()"
     )
     .bind(&req.phone)
     .bind(&code)
@@ -125,7 +125,7 @@ pub async fn send_email_code(
 
     // 频率限制：同一邮箱或同一 IP 60 秒内只能发一次
     let recent: Option<(chrono::DateTime<Utc>,)> = sqlx::query_as(
-        "SELECT created_at FROM email_codes WHERE email = $1 OR request_ip = $2 ORDER BY created_at DESC LIMIT 1"
+        "SELECT created_at FROM verify_codes WHERE identifier = $1 OR request_ip = $2 ORDER BY created_at DESC LIMIT 1"
     )
     .bind(&req.email)
     .bind(&ip)
@@ -148,14 +148,15 @@ pub async fn send_email_code(
 
     // 存入数据库
     sqlx::query(
-        "INSERT INTO email_codes (email, code, expires_at, request_ip, created_at)
-         VALUES ($1, $2, $3, $4, NOW())
-         ON CONFLICT (email) DO UPDATE SET code = $2, expires_at = $3, request_ip = $4, created_at = NOW()"
+        "INSERT INTO verify_codes (identifier, channel, scene, code, expires_at, request_ip, sender, created_at)
+         VALUES ($1, 'email', 'login', $2, $3, $4, $5, NOW())
+         ON CONFLICT (identifier, channel, scene) DO UPDATE SET code = $2, expires_at = $3, request_ip = $4, sender = $5, status = 0, created_at = NOW()"
     )
     .bind(&req.email)
     .bind(&code)
     .bind(expires_at)
     .bind(&ip)
+    .bind(std::env::var("EMAIL_USERNAME").unwrap_or_default())
     .execute(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -225,7 +226,7 @@ async fn login_with_sms(
     req: &LoginRequest,
 ) -> Result<Json<LoginResponse>, StatusCode> {
     let row: Option<(String, chrono::DateTime<Utc>,)> = sqlx::query_as(
-        "SELECT code, expires_at FROM sms_codes WHERE phone = $1"
+        "SELECT code, expires_at FROM verify_codes WHERE identifier = $1 AND channel = 'sms' AND scene = 'login' AND status = 0"
     )
     .bind(&req.phone)
     .fetch_optional(&state.db)
@@ -238,7 +239,7 @@ async fn login_with_sms(
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    let _ = sqlx::query("DELETE FROM sms_codes WHERE phone = $1")
+    let _ = sqlx::query("UPDATE verify_codes SET status = 1 WHERE identifier = $1 AND channel = 'sms' AND scene = 'login'")
         .bind(&req.phone)
         .execute(&state.db)
         .await;
@@ -345,7 +346,7 @@ async fn login_with_email(
 
     // 先尝试验证码登录
     let row: Option<(String, chrono::DateTime<Utc>,)> = sqlx::query_as(
-        "SELECT code, expires_at FROM email_codes WHERE email = $1"
+        "SELECT code, expires_at FROM verify_codes WHERE identifier = $1 AND channel = 'email' AND scene = 'login' AND status = 0"
     )
     .bind(email)
     .fetch_optional(&state.db)
@@ -355,7 +356,7 @@ async fn login_with_email(
     if let Some((stored_code, expires_at)) = row {
         if stored_code == req.credential && Utc::now() <= expires_at {
             // 验证码匹配，删除记录
-            let _ = sqlx::query("DELETE FROM email_codes WHERE email = $1")
+            let _ = sqlx::query("UPDATE verify_codes SET status = 1 WHERE identifier = $1 AND channel = 'email' AND scene = 'login'")
                 .bind(email)
                 .execute(&state.db)
                 .await;

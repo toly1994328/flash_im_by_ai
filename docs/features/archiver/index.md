@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.23.0（认证增强：GitHub OAuth + 登录记录 + 欢迎消息）
+最后更新：v0.25.0（认证增强：Apple 登录 + 邮箱登录 + 登录页 Tab 切换）
 
 ---
 
@@ -31,6 +31,9 @@
 | I-14 | 本地数据库 | flash_im_cache (drift + SQLite) | 前端 | v0.0.1_cache | ✅ |
 | I-15 | GitHub OAuth 登录 | flash-auth (oauth/github) | 后端 | v0.23.0 | ✅ |
 | I-16 | 登录日志记录 | flash-auth (login_log) | 后端 | v0.23.0 | ✅ |
+| I-17 | Apple OAuth 登录 | flash-auth (oauth/apple) | 后端 | v0.25.0 | ✅ |
+| I-18 | 邮箱验证码发送 | flash-auth (email/sender) | 后端 | v0.25.0 | ✅ |
+| I-19 | 邮箱登录 | flash-auth (handler) | 后端 | v0.25.0 | ✅ |
 
 ### 领域层（D）
 
@@ -159,6 +162,14 @@
 | P-53 | 删除确认弹窗 | flash_im_chat (chat_page) + tolyui_feedback_modal | v0.0.1_operation | ✅ |
 | P-54 | Emoji 表情面板 | flash_im_chat (emoji_panel) | v0.22.0 | ✅ |
 | P-55 | 语音消息输入 | flash_im_chat (voice_input + audio_bubble) | v0.22.0 | ✅ |
+| P-56 | 隐私协议弹窗 | flash_starter (privacy_consent_dialog) | v0.24.0 | ✅ |
+| P-57 | 设置页 | home/profile (settings_page) | v0.24.0 | ✅ |
+| P-58 | 关于闪讯页 | home/profile (about_page) | v0.24.0 | ✅ |
+| P-59 | 我的名片页 | home/profile (my_qr_code_page) | v0.24.0 | ✅ |
+| P-60 | 协议查看页 | flash_auth (policy_page) | v0.24.0 | ✅ |
+| P-61 | 登录页 Tab 切换 | flash_auth (login_segment_tab) | v0.25.0 | ✅ |
+| P-62 | 邮箱登录表单 | flash_auth (email_login_form) | v0.25.0 | ✅ |
+| P-63 | Apple 登录入口 | flash_auth (login_page) | v0.25.0 | ✅ |
 
 
 ---
@@ -198,7 +209,7 @@ graph TB
         S[Storage<br/>文件上传与存储<br/>I-10 ~ I-12]
     end
     subgraph Auth
-        A[Auth<br/>认证与用户身份<br/>I-01 ~ I-04, I-15 ~ I-16, D-42]
+        A[Auth<br/>认证与用户身份<br/>I-01 ~ I-04, I-15 ~ I-19, D-42]
     end
     subgraph Search
         R[Search<br/>全局搜索<br/>D-35 ~ D-38, F-14, P-44 ~ P-47]
@@ -243,13 +254,21 @@ graph LR
     I01 --> I03[I-03 Token验证]
     I01 --> I04[I-04 用户资料]
     I02 --> I15[I-15 GitHub OAuth]
+    I02 --> I17[I-17 Apple OAuth]
+    I02 --> I18[I-18 邮箱验证码]
+    I18 --> I19[I-19 邮箱登录]
     I01 --> I16[I-16 登录日志]
     I16 --> D42[D-42 欢迎消息]
     F01[F-01 登录注册页] -.->|HTTP| I02
     F01 -.->|HTTP| I15
+    F01 -.->|HTTP| I17
+    F01 -.->|HTTP| I19
     F02[F-02 用户会话] -.->|HTTP| I04
     F03[F-03 启动流程] --> F01
     F03 --> F02
+    P56[P-56 Tab切换] --> P57[P-57 邮箱表单]
+    P56 --> F01
+    P58[P-58 Apple入口] -.->|HTTP| I17
 ```
 
 ### IM 域
@@ -374,6 +393,8 @@ graph LR
 | v0.19.0 | 2026-05-02 | 124 | [trace/v0.19.0_2026-05-02.md](trace/v0.19.0_2026-05-02.md) |
 | v0.22.0 | 2026-05-20 | 127 | [trace/v0.22.0_2026-05-20.md](trace/v0.22.0_2026-05-20.md) |
 | v0.23.0 | 2026-05-23 | 130 | [trace/v0.23.0_2026-05-23.md](trace/v0.23.0_2026-05-23.md) |
+| v0.24.0 | 2026-05-24 | 135 | [trace/v0.24.0_2026-05-24.md](trace/v0.24.0_2026-05-24.md) |
+| v0.25.0 | 2026-05-26 | 141 | [trace/v0.25.0_2026-05-26.md](trace/v0.25.0_2026-05-26.md) |
 
 ---
 
