@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.25.0（认证增强：Apple 登录 + 邮箱登录 + 登录页 Tab 切换）
+最后更新：v0.26.0（macOS 桌面端构建与 UI 适配 + verify_codes 多行存储修复）
 
 ---
 
@@ -170,6 +170,8 @@
 | P-61 | 登录页 Tab 切换 | flash_auth (login_segment_tab) | v0.25.0 | ✅ |
 | P-62 | 邮箱登录表单 | flash_auth (email_login_form) | v0.25.0 | ✅ |
 | P-63 | Apple 登录入口 | flash_auth (login_page) | v0.25.0 | ✅ |
+| P-64 | 桌面端自适应布局 | home (desktop_layout + mobile_layout) | v0.26.0 | ✅ |
+| P-65 | 桌面端会话分栏 | home (desktop_layout) + flash_im_chat | v0.26.0 | ✅ |
 
 
 ---
@@ -218,7 +220,7 @@ graph TB
         B[Social<br/>好友与群聊<br/>D-14 ~ D-30, F-09 ~ F-11, P-20 ~ P-40]
     end
     subgraph IM
-        M[IM<br/>消息 + 会话 + 连接 + 缓存<br/>I-05 ~ I-09, I-14, D-01 ~ D-13, D-39 ~ D-41<br/>F-04 ~ F-08, F-12 ~ F-17, P-01 ~ P-19, P-48 ~ P-55]
+        M[IM<br/>消息 + 会话 + 连接 + 缓存<br/>I-05 ~ I-09, I-14, D-01 ~ D-13, D-39 ~ D-41<br/>F-04 ~ F-08, F-12 ~ F-17, P-01 ~ P-19, P-48 ~ P-55, P-64 ~ P-65]
     end
 
     A -.->|JWT| M
@@ -307,6 +309,8 @@ graph TB
         P11[P-11 功能面板]
         P54[P-54 Emoji]
         P55[P-55 语音输入]
+        P64[P-64 桌面端自适应布局]
+        P65[P-65 桌面端会话分栏]
     end
     F04 -.->|WebSocket| I05
     P06 -.->|HTTP| D09
@@ -395,6 +399,7 @@ graph LR
 | v0.23.0 | 2026-05-23 | 130 | [trace/v0.23.0_2026-05-23.md](trace/v0.23.0_2026-05-23.md) |
 | v0.24.0 | 2026-05-24 | 135 | [trace/v0.24.0_2026-05-24.md](trace/v0.24.0_2026-05-24.md) |
 | v0.25.0 | 2026-05-26 | 141 | [trace/v0.25.0_2026-05-26.md](trace/v0.25.0_2026-05-26.md) |
+| v0.26.0 | 2026-05-28 | 143 | [trace/v0.26.0_2026-05-28.md](trace/v0.26.0_2026-05-28.md) |
 
 ---
 
@@ -416,3 +421,4 @@ graph LR
 | 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
 | 消息操作 | [operation/client.md](modules/operation/client.md) | D-40, F-17, P-48~P-53 |
 | 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, D-42 |
+| 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-65 |
