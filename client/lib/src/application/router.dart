@@ -32,6 +32,7 @@ GoRouter createRouter({
         builder: (_, _) => LoginPage(
           authRepository: authRepository,
           onLoginSuccess: onLoginSuccess,
+          enableSMS: AppConfig.enableSMS,
         ),
       ),
       GoRoute(

@@ -26,6 +26,7 @@ pub struct SmsResponse {
 pub enum LoginType {
     Sms,
     Password,
+    Email,
 }
 
 /// 统一登录请求，通过 type 区分登录方式
@@ -40,12 +41,34 @@ pub struct LoginRequest {
     pub device_info: DeviceInfo,
 }
 
-/// OAuth 登录请求（GitHub / Google / Apple）
+/// OAuth 登录请求（GitHub / Google）
 #[derive(Deserialize)]
 pub struct OAuthLoginRequest {
     pub code: String,
     #[serde(default)]
     pub device_info: DeviceInfo,
+}
+
+/// Apple 登录请求
+#[derive(Deserialize)]
+pub struct AppleLoginRequest {
+    pub identity_token: String,
+    #[serde(default)]
+    pub device_info: DeviceInfo,
+}
+
+/// 邮箱验证码请求
+#[derive(Deserialize)]
+pub struct EmailCodeRequest {
+    pub email: String,
+}
+
+/// 邮箱验证码响应
+#[derive(Serialize)]
+pub struct EmailCodeResponse {
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub code: Option<String>,
+    pub message: String,
 }
 
 #[derive(Serialize)]

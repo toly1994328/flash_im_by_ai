@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
 import 'package:shimmer/shimmer.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
 import 'package:flash_shared/flash_shared.dart' show MemberPickerResult;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
@@ -16,6 +17,7 @@ import 'bubble/video_bubble.dart';
 import 'bubble/file_bubble.dart';
 import 'bubble/text_bubble.dart';
 import 'chat_input.dart';
+import 'chat_input_desktop.dart';
 import 'message_action_menu.dart';
 import 'reply_preview_bar.dart';
 import 'pinned_message_bar.dart';
@@ -41,6 +43,9 @@ class ChatPage extends StatefulWidget {
   final bool isDisband;
   final String? announcement;
 
+  /// 嵌入模式（桌面端面板内使用）：紧凑标题、无返回按钮、支持拖拽
+  final bool embedded;
+
   /// 群详情获取器（群聊时由外部注入，返回 {status, announcement}）
   final Future<Map<String, dynamic>> Function()? groupDetailFetcher;
   final VoidCallback? onSearchChat;
@@ -57,6 +62,7 @@ class ChatPage extends StatefulWidget {
     this.onGroupInfo,
     this.isDisband = false,
     this.announcement,
+    this.embedded = false,
     this.groupDetailFetcher,
     this.onSearchChat,
   });
@@ -182,12 +188,23 @@ class _ChatPageState extends State<ChatPage> {
       ),
       child: Scaffold(
         appBar: AppBar(
+          flexibleSpace: widget.embedded ? const DragToMoveArea(child: SizedBox.expand()) : null,
+          backgroundColor: widget.embedded ? Colors.white : null,
+          centerTitle: !widget.embedded,
+          titleSpacing: widget.embedded ? 16 : null,
+          automaticallyImplyLeading: !widget.embedded,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          bottom: widget.embedded ? const PreferredSize(
+            preferredSize: Size.fromHeight(0.5),
+            child: Divider(height: 0.5, thickness: 0.5, color: Color(0xFFE8E8E8)),
+          ) : null,
           title: !widget.isGroup && widget.peerUserId != null
               ? Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: widget.embedded ? CrossAxisAlignment.start : CrossAxisAlignment.center,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Text(_title, style: const TextStyle(fontSize: 16)),
+                    Text(_title, style: TextStyle(fontSize: widget.embedded ? 14 : 16)),
                     Text(
                       _isPeerOnline ? '在线' : '离线',
                       style: TextStyle(
@@ -200,7 +217,7 @@ class _ChatPageState extends State<ChatPage> {
                     ),
                   ],
                 )
-              : Text(_title),
+              : Text(_title, style: TextStyle(fontSize: widget.embedded ? 14 : null)),
           actions: [
             if (!widget.isGroup)
               IconButton(
@@ -330,37 +347,58 @@ class _ChatPageState extends State<ChatPage> {
                                 : '[文件]',
                             onClose: () => cubit.clearReplyTo(),
                           ),
-                        ChatInput(
-                          controller: _inputController,
-                          isGroup: widget.isGroup,
-                          groupAvatar: widget.peerAvatar,
-                          groupMembers: _groupMembers,
-                          membersFetcher: widget.isGroup ? () async {
-                            final dio = context.read<MessageRepository>().dio;
-                            final res = await dio.get('/groups/${widget.conversationId}/detail');
-                            final data = res.data as Map<String, dynamic>;
-                            final List members = data['members'] as List? ?? [];
-                            return members.map((m) => MentionMember(
-                              userId: (m['user_id'] ?? m['id']).toString(),
-                              nickname: m['nickname'] as String? ?? '?',
-                              avatar: m['avatar'] as String?,
-                            )).toList();
-                          } : null,
-                          onSend: (content) => cubit.sendMessage(content),
-                          onSendWithMentions: (content, mentions) => cubit.sendMessage(content, mentions: mentions),
-                          onSendImage: (path) => cubit.sendImageFromFile(path),
-                          onSendVideo: (path) async {
-                            final info = await VideoThumbnailService().extractVideoInfo(path);
-                            if (context.mounted) {
-                              cubit.sendVideoFromFile(
-                                path, info.thumbnailPath, info.durationMs,
-                                width: info.width, height: info.height,
-                              );
-                            }
-                          },
-                          onSendFile: (path) => cubit.sendFileFromPicker(path),
-                          onSendAudio: (path, durationMs) => cubit.sendAudioFromFile(path, durationMs),
-                        ),
+                        widget.embedded
+                          ? ChatInputDesktop(
+                              controller: _inputController,
+                              isGroup: widget.isGroup,
+                              groupMembers: _groupMembers,
+                              membersFetcher: widget.isGroup ? () async {
+                                final dio = context.read<MessageRepository>().dio;
+                                final res = await dio.get('/groups/${widget.conversationId}/detail');
+                                final data = res.data as Map<String, dynamic>;
+                                final List members = data['members'] as List? ?? [];
+                                return members.map((m) => MentionMember(
+                                  userId: (m['user_id'] ?? m['id']).toString(),
+                                  nickname: m['nickname'] as String? ?? '?',
+                                  avatar: m['avatar'] as String?,
+                                )).toList();
+                              } : null,
+                              onSend: (content) => cubit.sendMessage(content),
+                              onSendWithMentions: (content, mentions) => cubit.sendMessage(content, mentions: mentions),
+                              onSendImage: (path) => cubit.sendImageFromFile(path),
+                              onSendFile: (path) => cubit.sendFileFromPicker(path),
+                            )
+                          : ChatInput(
+                              controller: _inputController,
+                              isGroup: widget.isGroup,
+                              groupAvatar: widget.peerAvatar,
+                              groupMembers: _groupMembers,
+                              membersFetcher: widget.isGroup ? () async {
+                                final dio = context.read<MessageRepository>().dio;
+                                final res = await dio.get('/groups/${widget.conversationId}/detail');
+                                final data = res.data as Map<String, dynamic>;
+                                final List members = data['members'] as List? ?? [];
+                                return members.map((m) => MentionMember(
+                                  userId: (m['user_id'] ?? m['id']).toString(),
+                                  nickname: m['nickname'] as String? ?? '?',
+                                  avatar: m['avatar'] as String?,
+                                )).toList();
+                              } : null,
+                              onSend: (content) => cubit.sendMessage(content),
+                              onSendWithMentions: (content, mentions) => cubit.sendMessage(content, mentions: mentions),
+                              onSendImage: (path) => cubit.sendImageFromFile(path),
+                              onSendVideo: (path) async {
+                                final info = await VideoThumbnailService().extractVideoInfo(path);
+                                if (context.mounted) {
+                                  cubit.sendVideoFromFile(
+                                    path, info.thumbnailPath, info.durationMs,
+                                    width: info.width, height: info.height,
+                                  );
+                                }
+                              },
+                              onSendFile: (path) => cubit.sendFileFromPicker(path),
+                              onSendAudio: (path, durationMs) => cubit.sendAudioFromFile(path, durationMs),
+                            ),
                       ],
                     );
                   },

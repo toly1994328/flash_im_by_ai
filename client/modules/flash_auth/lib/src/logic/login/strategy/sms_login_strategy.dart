@@ -49,6 +49,7 @@ class SmsLoginStrategy extends LoginStrategy {
     try {
       final code = await sendSmsCallback(phone);
       codeCtrl.text = code;
+      showToast('验证码已发送');
       _startCountdown();
     } catch (e) {
       showToast('发送失败: $e');

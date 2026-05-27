@@ -20,29 +20,30 @@ class AgreementRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        GestureDetector(
-          onTap: onTap,
-          child: _CheckIcon(checked: checked),
-        ),
-        const SizedBox(width: 8),
-        Expanded(
-          child: Text.rich(
-            TextSpan(
-              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-              children: [
-                const TextSpan(text: '登录即代表您同意'),
-                _linkSpan(context, '《用户协议》', '用户协议', '$baseUrl/static/agreement.html'),
-                const TextSpan(text: '和'),
-                _linkSpan(context, '《隐私政策》', '隐私政策', '$baseUrl/static/privacy.html'),
-                const TextSpan(text: '，未注册绑定的手机号验证成功后将自动注册'),
-              ],
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _CheckIcon(checked: checked),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text.rich(
+              TextSpan(
+                style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+                children: [
+                  const TextSpan(text: '登录即代表您同意'),
+                  _linkSpan(context, '《用户协议》', '用户协议', '$baseUrl/static/agreement.html'),
+                  const TextSpan(text: '和'),
+                  _linkSpan(context, '《隐私政策》', '隐私政策', '$baseUrl/static/privacy.html'),
+                  const TextSpan(text: '，未注册绑定的手机号验证成功后将自动注册'),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 

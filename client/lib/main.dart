@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
+import 'package:fx_env/fx_env.dart';
+import 'package:window_manager/window_manager.dart';
 import 'package:flash_auth/flash_auth.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
@@ -22,6 +24,22 @@ SyncEngine? globalSyncEngine;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 桌面端窗口配置
+  if (kApp.isDesktop) {
+    await windowManager.ensureInitialized();
+    const windowOptions = WindowOptions(
+      size: Size(1200, 800),
+      minimumSize: Size(400, 600),
+      center: true,
+      titleBarStyle: TitleBarStyle.hidden,
+      title: '闪讯',
+    );
+    await windowManager.waitUntilReadyToShow(windowOptions, () async {
+      await windowManager.show();
+      await windowManager.focus();
+    });
+  }
 
   late final SessionCubit sessionCubit;
   final httpClient = HttpClient(

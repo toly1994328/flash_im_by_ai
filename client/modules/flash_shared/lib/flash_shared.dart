@@ -7,3 +7,5 @@ export 'src/search_input.dart';
 export 'src/pinyin_util.dart';
 export 'src/selectable_member.dart';
 export 'src/member_picker_page.dart';
+export 'src/theme/flash_im_theme.dart';
+export 'src/drag_move_area.dart';
