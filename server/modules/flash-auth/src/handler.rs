@@ -37,8 +37,7 @@ pub async fn send_sms(
 
     sqlx::query(
         "INSERT INTO verify_codes (identifier, channel, scene, code, expires_at, created_at)
-         VALUES ($1, 'sms', 'login', $2, $3, NOW())
-         ON CONFLICT (identifier, channel, scene) DO UPDATE SET code = $2, expires_at = $3, created_at = NOW()"
+         VALUES ($1, 'sms', 'login', $2, $3, NOW())"
     )
     .bind(&req.phone)
     .bind(&code)
@@ -149,8 +148,7 @@ pub async fn send_email_code(
     // 存入数据库
     sqlx::query(
         "INSERT INTO verify_codes (identifier, channel, scene, code, expires_at, request_ip, sender, created_at)
-         VALUES ($1, 'email', 'login', $2, $3, $4, $5, NOW())
-         ON CONFLICT (identifier, channel, scene) DO UPDATE SET code = $2, expires_at = $3, request_ip = $4, sender = $5, status = 0, created_at = NOW()"
+         VALUES ($1, 'email', 'login', $2, $3, $4, $5, NOW())"
     )
     .bind(&req.email)
     .bind(&code)
@@ -225,22 +223,22 @@ async fn login_with_sms(
     state: &Arc<AppState>,
     req: &LoginRequest,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    let row: Option<(String, chrono::DateTime<Utc>,)> = sqlx::query_as(
-        "SELECT code, expires_at FROM verify_codes WHERE identifier = $1 AND channel = 'sms' AND scene = 'login' AND status = 0"
+    let row: Option<(i64, String, chrono::DateTime<Utc>,)> = sqlx::query_as(
+        "SELECT id, code, expires_at FROM verify_codes WHERE identifier = $1 AND channel = 'sms' AND scene = 'login' AND status = 0 ORDER BY created_at DESC LIMIT 1"
     )
     .bind(&req.phone)
     .fetch_optional(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let (stored_code, expires_at) = row.ok_or(StatusCode::UNAUTHORIZED)?;
+    let (code_id, stored_code, expires_at) = row.ok_or(StatusCode::UNAUTHORIZED)?;
 
     if stored_code != req.credential || Utc::now() > expires_at {
         return Err(StatusCode::UNAUTHORIZED);
     }
 
-    let _ = sqlx::query("UPDATE verify_codes SET status = 1 WHERE identifier = $1 AND channel = 'sms' AND scene = 'login'")
-        .bind(&req.phone)
+    let _ = sqlx::query("UPDATE verify_codes SET status = 1 WHERE id = $1")
+        .bind(code_id)
         .execute(&state.db)
         .await;
 
@@ -345,19 +343,19 @@ async fn login_with_email(
     let email = &req.phone; // phone 字段复用传邮箱
 
     // 先尝试验证码登录
-    let row: Option<(String, chrono::DateTime<Utc>,)> = sqlx::query_as(
-        "SELECT code, expires_at FROM verify_codes WHERE identifier = $1 AND channel = 'email' AND scene = 'login' AND status = 0"
+    let row: Option<(i64, String, chrono::DateTime<Utc>,)> = sqlx::query_as(
+        "SELECT id, code, expires_at FROM verify_codes WHERE identifier = $1 AND channel = 'email' AND scene = 'login' AND status = 0 ORDER BY created_at DESC LIMIT 1"
     )
     .bind(email)
     .fetch_optional(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    if let Some((stored_code, expires_at)) = row {
+    if let Some((code_id, stored_code, expires_at)) = row {
         if stored_code == req.credential && Utc::now() <= expires_at {
-            // 验证码匹配，删除记录
-            let _ = sqlx::query("UPDATE verify_codes SET status = 1 WHERE identifier = $1 AND channel = 'email' AND scene = 'login'")
-                .bind(email)
+            // 验证码匹配，标记已使用
+            let _ = sqlx::query("UPDATE verify_codes SET status = 1 WHERE id = $1")
+                .bind(code_id)
                 .execute(&state.db)
                 .await;
 
