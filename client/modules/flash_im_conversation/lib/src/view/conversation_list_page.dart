@@ -9,7 +9,8 @@ import 'conversation_tile.dart';
 class ConversationListPage extends StatefulWidget {
   final void Function(Conversation conversation)? onConversationTap;
   final Set<String> onlineUserIds;
-  const ConversationListPage({super.key, this.onConversationTap, this.onlineUserIds = const {}});
+  final String? activeConversationId;
+  const ConversationListPage({super.key, this.onConversationTap, this.onlineUserIds = const {}, this.activeConversationId});
 
   @override
   State<ConversationListPage> createState() => _ConversationListPageState();
@@ -108,6 +109,7 @@ class _ConversationListPageState extends State<ConversationListPage> {
                           isOnline: !conv.isGroup &&
                               conv.peerUserId != null &&
                               widget.onlineUserIds.contains(conv.peerUserId),
+                          isActive: widget.activeConversationId == conv.id,
                           onTap: () => widget.onConversationTap?.call(conv),
                         );
                       },

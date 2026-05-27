@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:fx_env/fx_env.dart';
 
 /// 弹出菜单�?
 class WxMenuItem {
@@ -62,6 +63,72 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
 
     _overlay = OverlayEntry(
       builder: (context) {
+        final screenWidth = MediaQuery.of(context).size.width;
+        final rightDistance = screenWidth - offset.dx - size.width + 4;
+
+        if (kApp.isDesktop) {
+          // 桌面端：白色卡片 + 白色尖角，居中对齐按钮
+          const arrowSize = 6.0;
+          // 按钮中心 x 坐标
+          final buttonCenterX = offset.dx + size.width / 2;
+          return Stack(
+            children: [
+              GestureDetector(
+                onTap: _hide,
+                behavior: HitTestBehavior.translucent,
+                child: const SizedBox.expand(),
+              ),
+              Positioned(
+                top: offset.dy + size.height + 4,
+                left: 0,
+                right: 0,
+                child: FadeTransition(
+                  opacity: _fadeAnim,
+                  child: UnconstrainedBox(
+                      child: Transform.translate(
+                        offset: Offset(buttonCenterX - screenWidth / 2, 0),
+                        child: Column(
+                          children: [
+                            const CustomPaint(
+                              size: Size(arrowSize * 2, arrowSize),
+                              painter: _ArrowPainter(color: Colors.white),
+                            ),
+                            Material(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(10),
+                              elevation: 12,
+                              shadowColor: Colors.black.withValues(alpha: 0.15),
+                              child: IntrinsicWidth(
+                                child: Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 4),
+                                  child: Column(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      for (var i = 0; i < widget.items.length; i++) ...[
+                                        if (i > 0)
+                                          Container(
+                                            height: 0.5,
+                                            color: const Color(0xFFF0F0F0),
+                                            margin: const EdgeInsets.symmetric(horizontal: 12),
+                                          ),
+                                        _buildItem(widget.items[i], desktop: true),
+                                      ],
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          );
+        }
+
+        // 移动端：深色气泡 + 尖角
         const arrowSize = 8.0;
         const rightEdge = 6.0;
         return Stack(
@@ -82,7 +149,6 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.end,
                     children: [
-                      // 尖角
                       const Padding(
                         padding: EdgeInsets.only(right: 16),
                         child: CustomPaint(
@@ -90,7 +156,6 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
                           painter: _ArrowPainter(),
                         ),
                       ),
-                      // 气泡
                       Material(
                         color: const Color(0xFF4C4C4C),
                         borderRadius: BorderRadius.circular(8),
@@ -105,8 +170,7 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
                                   Container(
                                     height: 0.5,
                                     color: const Color(0xFF5C5C5C),
-                                    margin: const EdgeInsets.symmetric(
-                                        horizontal: 12),
+                                    margin: const EdgeInsets.symmetric(horizontal: 12),
                                   ),
                                 _buildItem(widget.items[i]),
                               ],
@@ -133,7 +197,9 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
     _overlay = null;
   }
 
-  Widget _buildItem(WxMenuItem item) {
+  Widget _buildItem(WxMenuItem item, {bool desktop = false}) {
+    final iconColor = desktop ? const Color(0xFF333333) : Colors.white;
+    final textColor = desktop ? const Color(0xFF333333) : Colors.white;
     return GestureDetector(
       onTap: () {
         _hide();
@@ -144,11 +210,11 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
         child: Row(
           children: [
-            Icon(item.icon, size: 20, color: Colors.white),
+            Icon(item.icon, size: 20, color: iconColor),
             const SizedBox(width: 10),
             Text(
               item.text,
-              style: const TextStyle(fontSize: 14, color: Colors.white),
+              style: TextStyle(fontSize: 14, color: textColor),
             ),
           ],
         ),
@@ -174,13 +240,14 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
   }
 }
 
-/// 深色尖角画笔
+/// 尖角画笔（支持自定义颜色）
 class _ArrowPainter extends CustomPainter {
-  const _ArrowPainter();
+  final Color color;
+  const _ArrowPainter({this.color = const Color(0xFF4C4C4C)});
 
   @override
   void paint(Canvas canvas, Size size) {
-    final paint = Paint()..color = const Color(0xFF4C4C4C);
+    final paint = Paint()..color = color;
     final path = Path()
       ..moveTo(0, size.height)
       ..lineTo(size.width / 2, 0)
@@ -190,5 +257,5 @@ class _ArrowPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _ArrowPainter oldDelegate) => oldDelegate.color != color;
 }

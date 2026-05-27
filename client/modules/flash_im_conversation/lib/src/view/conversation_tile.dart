@@ -9,6 +9,7 @@ class ConversationTile extends StatelessWidget {
   final Conversation conversation;
   final VoidCallback? onTap;
   final bool isOnline;
+  final bool isActive;
   final String? currentUserId;
 
   const ConversationTile({
@@ -16,6 +17,7 @@ class ConversationTile extends StatelessWidget {
     required this.conversation,
     this.onTap,
     this.isOnline = false,
+    this.isActive = false,
     this.currentUserId,
   });
 
@@ -27,9 +29,9 @@ class ConversationTile extends StatelessWidget {
       onDoubleTap: () => _showDebugInfo(context),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFFE8F0FE) : Colors.white,
+          border: const Border(
             bottom: BorderSide(color: Color(0x11000000), width: 0.5),
           ),
         ),

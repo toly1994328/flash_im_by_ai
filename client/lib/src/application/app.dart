@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
+import 'package:flash_shared/flash_shared.dart';
 
 class FlashApp extends StatelessWidget {
   final GoRouter router;
@@ -31,6 +32,7 @@ class FlashApp extends StatelessWidget {
             ),
           ),
           scaffoldBackgroundColor: const Color(0xFFEDEDED),
+          extensions: const [FlashImTheme.light],
         ),
         routerConfig: router,
       ),
