@@ -191,7 +191,7 @@ class _ChatPageState extends State<ChatPage> {
           flexibleSpace: widget.embedded ? const DragToMoveArea(child: SizedBox.expand()) : null,
           backgroundColor: widget.embedded ? Colors.white : null,
           centerTitle: !widget.embedded,
-          titleSpacing: widget.embedded ? 16 : null,
+          titleSpacing: widget.embedded ? 24 : null,
           automaticallyImplyLeading: !widget.embedded,
           elevation: 0,
           scrolledUnderElevation: 0,
@@ -239,6 +239,7 @@ class _ChatPageState extends State<ChatPage> {
                 icon: const Icon(Icons.group),
                 onPressed: () => widget.onGroupInfo?.call(),
               ),
+            if (widget.embedded) const SizedBox(width: 12),
           ],
         ),
         body: Container(
@@ -421,7 +422,11 @@ class _ChatPageState extends State<ChatPage> {
       controller: _scrollController,
       reverse: true,
       shrinkWrap: useShrinkWrap,
-      padding: const EdgeInsets.only(top: 12, bottom: 8),
+      padding: EdgeInsets.only(
+        top: 12, bottom: 8,
+        left: widget.embedded ? 12 : 0,
+        right: widget.embedded ? 12 : 0,
+      ),
       itemCount: itemCount,
       itemBuilder: (_, index) {
         if (index >= messages.length) {

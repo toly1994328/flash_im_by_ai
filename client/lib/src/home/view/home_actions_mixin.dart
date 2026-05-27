@@ -118,6 +118,25 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
           groupDetailFetcher: conversation.isGroup
               ? () => ctx.read<GroupRepository>().getGroupDetail(conversation.id)
               : null,
+          onGroupInfo: conversation.isGroup ? () {
+            final session = ctx.read<SessionCubit>().state;
+            final user = session.user;
+            if (user == null) return;
+            Navigator.of(ctx).push(MaterialPageRoute(
+              builder: (_) => GroupChatInfoPage(
+                repository: ctx.read<GroupRepository>(),
+                conversationId: conversation.id,
+                baseUrl: AppConfig.baseUrl,
+                currentUserId: user.userId.toString(),
+                friendsFetcher: () async => friendsToMembers(),
+                onLeaveOrDisband: () {
+                  Navigator.of(ctx).popUntil((route) => route.isFirst);
+                  convCubit.loadConversations();
+                },
+                onSearchChat: () => _openConversationSearch(ctx, conversation),
+              ),
+            ));
+          } : null,
         ),
       ),
     );
