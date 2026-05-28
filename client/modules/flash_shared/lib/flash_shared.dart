@@ -9,3 +9,5 @@ export 'src/selectable_member.dart';
 export 'src/member_picker_page.dart';
 export 'src/theme/flash_im_theme.dart';
 export 'src/drag_move_area.dart';
+export 'src/scan_page.dart';
+export 'src/windows_buttons.dart';

@@ -8,6 +8,7 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
 import 'home_page.dart';
@@ -128,7 +129,23 @@ class _MobileLayoutState extends State<MobileLayout> {
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => ScanPage(
-                        repository: context.read<FriendRepository>(),
+                        onUserScanned: (userId) async {
+                          final repo = context.read<FriendRepository>();
+                          final profile = await repo.getUserProfile(userId);
+                          if (!context.mounted) return;
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => UserProfilePage(profile: profile, repository: repo),
+                          ));
+                        },
+                        onScanLogin: (scanToken) {
+                          final authRepo = context.read<AuthRepository>();
+                          Navigator.of(context).pushReplacement(MaterialPageRoute(
+                            builder: (_) => ScanConfirmPage(
+                              scanToken: scanToken,
+                              authRepository: authRepo,
+                            ),
+                          ));
+                        },
                       ),
                     ));
                   },

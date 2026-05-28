@@ -137,6 +137,7 @@ void main() async {
         RepositoryProvider.value(value: friendRepo),
         RepositoryProvider.value(value: groupRepo),
         RepositoryProvider.value(value: searchRepo),
+        RepositoryProvider.value(value: authRepository),
       ],
       child: MultiBlocProvider(
         providers: [

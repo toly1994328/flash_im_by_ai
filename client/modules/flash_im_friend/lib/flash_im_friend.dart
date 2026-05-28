@@ -12,7 +12,6 @@ export 'src/view/add_friend_page.dart';
 export 'src/view/user_search_page.dart';
 export 'src/view/user_profile_page.dart';
 export 'src/view/send_request_page.dart';
-export 'src/view/scan_page.dart';
 export 'src/view/friend_tile.dart';
 export 'src/view/indexed_contact_list.dart';
 export 'src/utils/pinyin_helper.dart';

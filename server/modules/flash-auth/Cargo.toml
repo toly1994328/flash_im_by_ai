@@ -17,3 +17,4 @@ rand.workspace = true
 reqwest = { version = "0.12", features = ["json"] }
 async-trait = "0.1"
 lettre = { version = "0.11", features = ["tokio1-native-tls", "builder"] }
+uuid = { version = "1", features = ["v4"] }

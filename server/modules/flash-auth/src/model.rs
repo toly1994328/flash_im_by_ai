@@ -77,3 +77,34 @@ pub struct LoginResponse {
     pub user_id: i64,
     pub has_password: bool,
 }
+
+/// 扫码创建响应
+#[derive(Serialize)]
+pub struct ScanCreateResponse {
+    pub token: String,
+    pub qr_content: String,
+    pub expires_at: chrono::DateTime<chrono::Utc>,
+}
+
+/// 扫码状态响应
+#[derive(Serialize)]
+pub struct ScanStatusResponse {
+    pub status: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub token: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub user_id: Option<i64>,
+}
+
+/// 扫码确认请求
+#[derive(Deserialize)]
+pub struct ScanConfirmRequest {
+    pub scan_token: String,
+    pub action: String,
+}
+
+/// 扫码取消请求
+#[derive(Deserialize)]
+pub struct ScanCancelRequest {
+    pub scan_token: String,
+}

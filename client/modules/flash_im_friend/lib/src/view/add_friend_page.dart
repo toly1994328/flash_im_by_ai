@@ -7,7 +7,7 @@ import 'package:flash_shared/flash_shared.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../data/friend_repository.dart';
 import 'user_search_page.dart';
-import 'scan_page.dart';
+import 'user_profile_page.dart';
 
 /// 加好友/群页面（微信风格）
 ///
@@ -15,12 +15,35 @@ import 'scan_page.dart';
 class AddFriendPage extends StatelessWidget {
   final FriendRepository repository;
   final VoidCallback? onSearchGroup;
+  final void Function(String scanToken)? onScanLogin;
 
-  const AddFriendPage({super.key, required this.repository, this.onSearchGroup});
+  const AddFriendPage({super.key, required this.repository, this.onSearchGroup, this.onScanLogin});
 
   /// 是否支持摄像头（Android/iOS 支持，桌面端不支持）
   bool get _supportCamera =>
       !kIsWeb && (Platform.isAndroid || Platform.isIOS);
+
+  void _fetchAndNavigateToUser(BuildContext context, String userId) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+    try {
+      final profile = await repository.getUserProfile(userId);
+      if (!context.mounted) return;
+      Navigator.pop(context); // 关闭 loading
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => UserProfilePage(profile: profile, repository: repository),
+      ));
+    } catch (e) {
+      if (!context.mounted) return;
+      Navigator.pop(context); // 关闭 loading
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('获取用户信息失败: $e'), duration: const Duration(seconds: 2)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,7 +80,10 @@ class AddFriendPage extends StatelessWidget {
                   onTap: () {
                     if (_supportCamera) {
                       Navigator.of(context).push(MaterialPageRoute(
-                        builder: (_) => ScanPage(repository: repository),
+                        builder: (_) => ScanPage(
+                          onUserScanned: (userId) => _fetchAndNavigateToUser(context, userId),
+                          onScanLogin: onScanLogin,
+                        ),
                       ));
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(

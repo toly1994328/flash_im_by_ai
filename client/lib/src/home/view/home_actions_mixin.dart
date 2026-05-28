@@ -8,6 +8,7 @@ import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
 import 'package:flash_im_search/flash_im_search.dart';
+import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
 
 /// 公共动作 mixin：移动端和桌面端共用的业务操作
@@ -225,6 +226,15 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
             builder: (_) => SearchGroupPage(
               repository: ctx.read<GroupRepository>(),
               baseUrl: AppConfig.baseUrl,
+            ),
+          ));
+        },
+        onScanLogin: (scanToken) {
+          final authRepo = ctx.read<AuthRepository>();
+          Navigator.of(ctx).pushReplacement(MaterialPageRoute(
+            builder: (_) => ScanConfirmPage(
+              scanToken: scanToken,
+              authRepository: authRepo,
             ),
           ));
         },
