@@ -10,6 +10,7 @@ class LoginSegmentTab extends StatelessWidget {
   final ValueChanged<LoginTab> onChanged;
   final bool enableSMS;
   final bool isDesktop;
+  final bool compact;
 
   const LoginSegmentTab({
     super.key,
@@ -17,6 +18,7 @@ class LoginSegmentTab extends StatelessWidget {
     required this.onChanged,
     this.enableSMS = true,
     this.isDesktop = false,
+    this.compact = false,
   });
 
   @override
@@ -29,19 +31,27 @@ class LoginSegmentTab extends StatelessWidget {
 
   Widget _buildDesktopTabs() {
     final children = <LoginTab, Widget>{
-      LoginTab.email: _buildItem(Icons.email_outlined, '邮箱登录'),
-      if (enableSMS) LoginTab.phone: _buildItem(Icons.phone_android, '手机号'),
-      LoginTab.password: _buildItem(Icons.lock_outline, '密码登录'),
-      LoginTab.scan: _buildItem(Icons.qr_code, '扫码登录'),
+      LoginTab.email: compact ? _buildIconOnly(Icons.email_outlined) : _buildItem(Icons.email_outlined, '邮箱登录'),
+      if (enableSMS) LoginTab.phone: compact ? _buildIconOnly(Icons.phone_android) : _buildItem(Icons.phone_android, '手机号'),
+      LoginTab.password: compact ? _buildIconOnly(Icons.lock_outline) : _buildItem(Icons.lock_outline, '密码登录'),
     };
 
+    final groupValue = children.keys.contains(current) ? current : children.keys.first;
+
     return CupertinoSlidingSegmentedControl<LoginTab>(
-      groupValue: current,
+      groupValue: groupValue,
       onValueChanged: (value) {
         if (value != null) onChanged(value);
       },
       padding: const EdgeInsets.all(4),
       children: children,
+    );
+  }
+
+  Widget _buildIconOnly(IconData icon) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+      child: Icon(icon, size: 16, color: const Color(0xFF555555)),
     );
   }
 

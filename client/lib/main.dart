@@ -108,6 +108,14 @@ void main() async {
       if (authenticated) {
         initCache().then((_) => wsClient.connect());
       }
+      if (kApp.isDesktop) {
+        if (authenticated) {
+          windowManager.setSize(const Size(1200, 800));
+        } else {
+          windowManager.setSize(const Size(860, 560));
+        }
+        windowManager.center();
+      }
       router.go(authenticated ? '/home' : '/login');
     },
     onLoginSuccess: (loginResult) async {
@@ -117,14 +125,22 @@ void main() async {
       );
       await initCache();
       wsClient.connect();
+      if (kApp.isDesktop) {
+        await windowManager.setSize(const Size(1200, 800));
+        await windowManager.center();
+      }
       router.go('/home');
     },
   );
 
-  // 监听登出：session 结束时销毁缓存
+  // 监听登出：session 结束时销毁缓存 + 桌面端窗口缩小
   sessionCubit.stream.listen((state) {
     if (state.status == SessionStatus.ended) {
       disposeCache();
+      if (kApp.isDesktop) {
+        windowManager.setSize(const Size(860, 560));
+        windowManager.center();
+      }
     }
   });
 

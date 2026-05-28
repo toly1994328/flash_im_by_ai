@@ -23,7 +23,7 @@ mixin LoginMixin on State<LoginPage> {
   late final PasswordLoginStrategy passwordStrategy;
   late final EmailLoginStrategy emailStrategy;
 
-  LoginTab tab = LoginTab.phone;
+  LoginTab tab = LoginTab.email;
   LoginMode mode = LoginMode.sms;
   bool agreed = false;
   bool isLoading = false;

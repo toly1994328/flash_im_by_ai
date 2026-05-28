@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
@@ -8,6 +9,11 @@ class FlashApp extends StatelessWidget {
 
   const FlashApp({super.key, required this.router});
 
+  String? get _fontFamily {
+    if (Platform.isWindows) return '宋体';
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return OKToast(
@@ -17,6 +23,7 @@ class FlashApp extends StatelessWidget {
         title: 'Flash IM',
         debugShowCheckedModeBanner: false,
         theme: ThemeData(
+          fontFamily: _fontFamily,
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3B82F6)),
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFFEDEDED),
