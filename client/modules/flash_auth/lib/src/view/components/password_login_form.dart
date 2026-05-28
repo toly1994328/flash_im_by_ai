@@ -21,7 +21,7 @@ class PasswordLoginForm extends StatelessWidget {
             controller: strategy.accountCtrl,
             style: const TextStyle(fontSize: 16),
             decoration: const InputDecoration(
-              hintText: '手机号/用户名/邮箱',
+              hintText: '闪讯ID/手机号/邮箱',
               border: InputBorder.none,
               counterText: '',
               contentPadding: EdgeInsets.symmetric(vertical: 14),

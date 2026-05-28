@@ -253,14 +253,40 @@ async fn login_with_password(
     state: &Arc<AppState>,
     req: &LoginRequest,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    let row: Option<(i64, Option<String>,)> = sqlx::query_as(
-        "SELECT account_id, credential FROM auth_credentials
-         WHERE auth_type = 'phone' AND identifier = $1"
-    )
-    .bind(&req.phone)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // 根据输入格式判断查找方式
+    let row: Option<(i64, Option<String>,)> = if req.phone.contains('@') {
+        // 邮箱
+        sqlx::query_as(
+            "SELECT account_id, credential FROM auth_credentials
+             WHERE auth_type = 'email' AND identifier = $1"
+        )
+        .bind(&req.phone)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else if req.phone.len() == 11 && req.phone.starts_with('1') {
+        // 手机号
+        sqlx::query_as(
+            "SELECT account_id, credential FROM auth_credentials
+             WHERE auth_type = 'phone' AND identifier = $1"
+        )
+        .bind(&req.phone)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        // 闪讯 ID（account_id）
+        let uid: i64 = req.phone.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
+        sqlx::query_as(
+            "SELECT account_id, credential FROM auth_credentials
+             WHERE account_id = $1 AND credential IS NOT NULL
+             LIMIT 1"
+        )
+        .bind(uid)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    };
 
     let (account_id, credential) = row.ok_or(StatusCode::UNAUTHORIZED)?;
     let password_hash = credential.ok_or(StatusCode::UNAUTHORIZED)?;
