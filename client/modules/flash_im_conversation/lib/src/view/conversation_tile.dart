@@ -1,4 +1,5 @@
 import 'package:flash_shared/flash_shared.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/conversation.dart';
 
@@ -26,7 +27,7 @@ class ConversationTile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      onDoubleTap: () => _showDebugInfo(context),
+      onDoubleTap: kDebugMode ? () => _showDebugInfo(context) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(

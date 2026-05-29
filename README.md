@@ -89,16 +89,16 @@ cd client && flutter run -d macos --dart-define-from-file=.env.dev
 
 ```bash
 # DMG 分发（构建 + 签名 + 打包 + 公证）
-python3 scripts/build_center/build_macos.py --dmg
+python3 scripts/build_center/macos/build.py --dmg
 
 # App Store 上传（构建 + archive + 上传）
-python3 scripts/build_center/build_macos.py --upload
+python3 scripts/build_center/macos/build.py --upload
 
 # 仅上传（使用已有 archive）
-python3 scripts/build_center/build_macos.py --upload-only
+python3 scripts/build_center/macos/build.py --upload-only
 
 # 指定 Flutter SDK 路径
-python3 scripts/build_center/build_macos.py --dmg --sdk ~/flutter_3.27
+python3 scripts/build_center/macos/build.py --dmg --sdk ~/flutter_3.27
 ```
 
 凭证配置在 `client/ios/.env.publish`（不纳入 git）。
