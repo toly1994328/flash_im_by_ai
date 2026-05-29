@@ -24,6 +24,7 @@ class DesktopLayout extends StatefulWidget {
 class _DesktopLayoutState extends State<DesktopLayout> {
   int _navIndex = 0;
   Conversation? _selectedConv;
+  Friend? _selectedFriend;
 
   HomePageState get _home => widget.homeState;
 
@@ -50,7 +51,16 @@ class _DesktopLayoutState extends State<DesktopLayout> {
         ],
       );
     }
-    if (_navIndex == 1) return _buildContactsPanel();
+    if (_navIndex == 1) {
+      // 通讯录 Tab：三栏（好友列表 + 好友详情）
+      return Row(
+        children: [
+          SizedBox(width: 320, child: _buildContactsPanel()),
+          const VerticalDivider(width: 0.5, thickness: 0.5),
+          Expanded(child: _buildContactDetailPanel()),
+        ],
+      );
+    }
     if (_navIndex == 2) return const ProfilePage();
     // 设置按钮：直接展示设置页
     return BlocBuilder<SessionCubit, SessionState>(
@@ -202,7 +212,7 @@ class _DesktopLayoutState extends State<DesktopLayout> {
       bloc: _home.groupNotifCubit,
       builder: (context, groupNotifState) {
         return FriendListPage(
-          onFriendTap: (friend) => _home.openFriendDetail(context, friend),
+          onFriendTap: (friend) => setState(() => _selectedFriend = friend),
           onSearchTap: () => _home.openSearch(context),
           onAddFriendTap: () => _home.openAddFriend(context),
           onRequestsTap: () {
@@ -258,6 +268,39 @@ class _DesktopLayoutState extends State<DesktopLayout> {
       );
     }
     return _home.buildChatPanel(context, _selectedConv!);
+  }
+
+  Widget _buildContactDetailPanel() {
+    if (_selectedFriend == null) {
+      return const Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.person_outline, size: 64, color: Color(0xFFDDDDDD)),
+            SizedBox(height: 16),
+            Text('选择一个好友查看详情', style: TextStyle(color: Color(0xFF999999), fontSize: 14)),
+          ],
+        ),
+      );
+    }
+    return FriendDetailPage(
+      key: ValueKey(_selectedFriend!.friendId),
+      friend: _selectedFriend!,
+      onSendMessage: () async {
+        final conv = await context.read<ConversationRepository>()
+            .createPrivate(int.parse(_selectedFriend!.friendId));
+        if (!context.mounted) return;
+        setState(() {
+          _navIndex = 0;
+          _selectedConv = conv;
+        });
+        _home.convCubit.setActiveConversation(conv.id);
+      },
+      onDeleteFriend: () {
+        context.read<FriendCubit>().deleteFriend(_selectedFriend!.friendId);
+        setState(() => _selectedFriend = null);
+      },
+    );
   }
 
   void _selectConversation(Conversation conv) {

@@ -3,7 +3,9 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:go_router/go_router.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../application/config.dart';
 import 'about_page.dart';
@@ -121,9 +123,14 @@ class SettingsPage extends StatelessWidget {
   }
 
   void _openPolicy(BuildContext context, String title, String path) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => PolicyPage(title: title, url: '${AppConfig.baseUrl}$path'),
-    ));
+    final url = '${AppConfig.baseUrl}$path';
+    if (kApp.isDesktop) {
+      launchUrl(Uri.parse(url));
+    } else {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => PolicyPage(title: title, url: url),
+      ));
+    }
   }
 
   void _confirmDeleteAccount(BuildContext context) {

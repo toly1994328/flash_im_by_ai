@@ -1,5 +1,7 @@
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:fx_env/fx_env.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../policy_page.dart';
 
@@ -53,9 +55,13 @@ class AgreementRow extends StatelessWidget {
       style: const TextStyle(color: _kPrimary),
       recognizer: TapGestureRecognizer()
         ..onTap = () {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => PolicyPage(title: title, url: url),
-          ));
+          if (kApp.isDesktop) {
+            launchUrl(Uri.parse(url));
+          } else {
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => PolicyPage(title: title, url: url),
+            ));
+          }
         },
     );
   }

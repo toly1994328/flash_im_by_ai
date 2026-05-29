@@ -47,6 +47,7 @@ flash_im_v1/
 ├── proto/                  # Protobuf 协议定义
 ├── scripts/
 │   ├── server/             # 后端脚本（启动、重置数据库）
+│   ├── build_center/       # 构建中心（iOS/macOS 打包、签名、公证）
 │   ├── deploy/             # 部署脚本
 │   │   ├── build.py        # 本地交叉编译 + 上传
 │   │   ├── flash.sh        # 服务管理（启停/日志/systemd）
@@ -79,7 +80,28 @@ python scripts/client/run.py
 
 # Windows 桌面
 python scripts/client/run.py --platform windows
+
+# macOS 桌面（调试）
+cd client && flutter run -d macos --dart-define-from-file=.env.dev
 ```
+
+### macOS 构建与分发
+
+```bash
+# DMG 分发（构建 + 签名 + 打包 + 公证）
+python3 scripts/build_center/build_macos.py --dmg
+
+# App Store 上传（构建 + archive + 上传）
+python3 scripts/build_center/build_macos.py --upload
+
+# 仅上传（使用已有 archive）
+python3 scripts/build_center/build_macos.py --upload-only
+
+# 指定 Flutter SDK 路径
+python3 scripts/build_center/build_macos.py --dmg --sdk ~/flutter_3.27
+```
+
+凭证配置在 `client/ios/.env.publish`（不纳入 git）。
 
 ### 部署
 
@@ -102,10 +124,10 @@ bash env_check.sh          # 环境检测
 | 后端框架 | Axum 0.8 |
 | 数据库 | PostgreSQL |
 | 实时通信 | WebSocket + Protobuf |
-| 前端框架 | Flutter（Android / iOS / Windows） |
+| 前端框架 | Flutter（Android / iOS / macOS / Windows） |
 | 状态管理 | flutter_bloc（Cubit） |
 | 本地存储 | Drift（SQLite） |
 
 ## 功能网络
 
-项目当前有 **130 个功能节点**，完整的功能网络图和归档记录见 [docs/features/archiver/index.md](docs/features/archiver/index.md)。
+项目当前有 **141 个功能节点**，完整的功能网络图和归档记录见 [docs/features/archiver/index.md](docs/features/archiver/index.md)。
