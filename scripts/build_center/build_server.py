@@ -5,8 +5,8 @@
 在本地编译出 Linux x86_64 的 Release 二进制，可选上传到服务器。
 
 用法：
-  python scripts/deploy/build.py                        # 只编译
-  python scripts/deploy/build.py root@82.157.176.209     # 编译并上传
+  python scripts/build_center/build_server.py                        # 只编译
+  python scripts/build_center/build_server.py root@82.157.176.209     # 编译并上传
 
 前置条件：
   - 已安装 Rust：https://rustup.rs
@@ -178,6 +178,20 @@ def main():
         remote_path = f"{remote_host}:{REMOTE_DIR}/{BINARY_NAME}"
         run(["scp", binary_path, remote_path])
 
+        # 同步 migrations 目录
+        migrations_dir = os.path.join(SERVER_DIR, "migrations")
+        if os.path.isdir(migrations_dir):
+            info("同步 migrations 到远程...")
+            run(["scp", "-r", migrations_dir, f"{remote_host}:{REMOTE_DIR}/"])
+            ok("migrations 同步完成")
+
+        # 同步 db.sh 脚本
+        db_script = os.path.join(PROJECT_ROOT, "scripts", "deploy", "db.sh")
+        if os.path.isfile(db_script):
+            info("同步 db.sh 到远程...")
+            run(["scp", db_script, f"{remote_host}:{REMOTE_DIR}/"])
+            ok("db.sh 同步完成")
+
         # 赋予可执行权限并重启服务
         run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/{BINARY_NAME}"])
         info("重启远程服务...")
@@ -186,7 +200,7 @@ def main():
         ok("部署完成！")
     else:
         info("编译完成。上传到服务器：")
-        print(f"  python scripts/deploy/build.py root@你的服务器IP")
+        print(f"  python scripts/build_center/build_server.py root@你的服务器IP")
 
     print()
 

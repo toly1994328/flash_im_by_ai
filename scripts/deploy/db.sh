@@ -170,6 +170,8 @@ do_reset() {
   info "重新创建数据库..."
   psql_cmd -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
   ok "数据库已创建"
+  # 确保 postgres 用户密码可用（应用通过密码连接）
+  psql_cmd -c "ALTER USER postgres PASSWORD 'postgres';" 2>/dev/null
   do_migrate
 }
 

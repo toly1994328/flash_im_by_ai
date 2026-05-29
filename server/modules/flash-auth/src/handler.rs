@@ -10,6 +10,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use flash_core::state::AppState;
+use flash_core::AppError;
 use super::jwt::generate_token;
 use super::login_log::{is_first_login, record_login};
 use super::model::{
@@ -54,17 +55,22 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<LoginRequest>,
-) -> Result<Json<LoginResponse>, StatusCode> {
-    // 仅 sms 和 password 类型校验手机号
-    if matches!(req.login_type, LoginType::Sms | LoginType::Password) {
-        validate_phone(&req.phone)?;
+) -> Result<Json<LoginResponse>, AppError> {
+    // 仅 sms 类型校验手机号
+    if matches!(req.login_type, LoginType::Sms) {
+        if req.phone.len() != 11 || !req.phone.starts_with('1') {
+            return Err(AppError::bad_request("手机号格式不正确"));
+        }
     }
 
     let result = match req.login_type {
-        LoginType::Sms => login_with_sms(&state, &req).await,
-        LoginType::Password => login_with_password(&state, &req).await,
-        LoginType::Email => login_with_email(&state, &req).await,
-    }?;
+        LoginType::Sms => login_with_sms(&state, &req).await
+            .map_err(|_| AppError::bad_request("验证码错误或已过期"))?,
+        LoginType::Password => login_with_password(&state, &req).await
+            .map_err(|_| AppError::bad_request("账号或密码错误"))?,
+        LoginType::Email => login_with_email(&state, &req).await
+            .map_err(|_| AppError::bad_request("验证码或密码错误"))?,
+    };
 
     // 首次登录发欢迎消息
     let first = is_first_login(&state.db, result.user_id).await.unwrap_or(false);
