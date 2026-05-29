@@ -183,6 +183,12 @@ def main():
         if os.path.isdir(migrations_dir):
             info("同步 migrations 到远程...")
             run(["scp", "-r", migrations_dir, f"{remote_host}:{REMOTE_DIR}/"])
+
+        # 同步 static 目录
+        static_dir = os.path.join(SERVER_DIR, "static")
+        if os.path.isdir(static_dir):
+            info("同步 static 到远程...")
+            run(["scp", "-r", static_dir, f"{remote_host}:{REMOTE_DIR}/"])
             ok("migrations 同步完成")
 
         # 同步 db.sh 脚本
@@ -191,6 +197,13 @@ def main():
             info("同步 db.sh 到远程...")
             run(["scp", db_script, f"{remote_host}:{REMOTE_DIR}/"])
             ok("db.sh 同步完成")
+
+        # 同步 seed 目录
+        seed_dir = os.path.join(PROJECT_ROOT, "scripts", "server", "im_seed")
+        if os.path.isdir(seed_dir):
+            info("同步 im_seed 到远程...")
+            run(["scp", "-r", seed_dir, f"{remote_host}:{REMOTE_DIR}/"])
+            ok("im_seed 同步完成")
 
         # 赋予可执行权限并重启服务
         run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/{BINARY_NAME}"])
