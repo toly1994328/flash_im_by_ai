@@ -172,6 +172,7 @@ do_reset() {
   ok "数据库已创建"
   # 确保 postgres 用户密码可用（应用通过密码连接）
   psql_cmd -c "ALTER USER postgres PASSWORD 'postgres';" 2>/dev/null
+  ok "postgres 密码已设置为: postgres"
   do_migrate
 }
 
