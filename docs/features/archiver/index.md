@@ -426,5 +426,6 @@ graph LR
 | 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |
 | 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
 | 消息操作 | [operation/client.md](modules/operation/client.md) | D-40, F-17, P-48~P-53 |
-| 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, D-42 |
+| 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, I-20, D-42 |
+| 桌面端登录 | [auth/client.md](modules/auth/client.md) | P-66~P-67 |
 | 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-65 |
