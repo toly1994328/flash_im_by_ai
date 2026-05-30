@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.26.0（macOS 桌面端构建与 UI 适配 + verify_codes 多行存储修复）
+最后更新：v0.27.0（桌面端扫码登录 + 登录页左右分栏 + 密码登录支持闪讯ID）
 
 ---
 
@@ -34,6 +34,7 @@
 | I-17 | Apple OAuth 登录 | flash-auth (oauth/apple) | 后端 | v0.25.0 | ✅ |
 | I-18 | 邮箱验证码发送 | flash-auth (email/sender) | 后端 | v0.25.0 | ✅ |
 | I-19 | 邮箱登录 | flash-auth (handler) | 后端 | v0.25.0 | ✅ |
+| I-20 | 扫码会话管理 | flash-auth (handler) | 后端 | v0.27.0 | ✅ |
 
 ### 领域层（D）
 
@@ -172,6 +173,8 @@
 | P-63 | Apple 登录入口 | flash_auth (login_page) | v0.25.0 | ✅ |
 | P-64 | 桌面端自适应布局 | home (desktop_layout + mobile_layout) | v0.26.0 | ✅ |
 | P-65 | 桌面端会话分栏 | home (desktop_layout) + flash_im_chat | v0.26.0 | ✅ |
+| P-66 | 桌面端扫码登录页 | flash_auth (qr_login_form + desktop_login_body) | v0.27.0 | ✅ |
+| P-67 | 手机端扫码确认页 | flash_auth (scan_confirm_page) | v0.27.0 | ✅ |
 
 
 ---
@@ -259,6 +262,8 @@ graph LR
     I02 --> I17[I-17 Apple OAuth]
     I02 --> I18[I-18 邮箱验证码]
     I18 --> I19[I-19 邮箱登录]
+    I01 --> I20[I-20 扫码会话]
+    I20 -.->|轮询| F01
     I01 --> I16[I-16 登录日志]
     I16 --> D42[D-42 欢迎消息]
     F01[F-01 登录注册页] -.->|HTTP| I02
@@ -400,6 +405,7 @@ graph LR
 | v0.24.0 | 2026-05-24 | 135 | [trace/v0.24.0_2026-05-24.md](trace/v0.24.0_2026-05-24.md) |
 | v0.25.0 | 2026-05-26 | 141 | [trace/v0.25.0_2026-05-26.md](trace/v0.25.0_2026-05-26.md) |
 | v0.26.0 | 2026-05-28 | 143 | [trace/v0.26.0_2026-05-28.md](trace/v0.26.0_2026-05-28.md) |
+| v0.27.0 | 2026-05-30 | 146 | [trace/v0.27.0_2026-05-30.md](trace/v0.27.0_2026-05-30.md) |
 
 ---
 
