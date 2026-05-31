@@ -65,10 +65,8 @@ dependencies:
     path: modules/flash_im_cache
   fx_logger:
     path: packages/fx_logger
-  tolyui_rx_layout:
-    path: ../docs/ref/tolyui_rx_layout-1.0.0+2
-  tolyui_navigation:
-    path: ../docs/ref/toly_fx/toly_ui/modules/navigation/tolyui_navigation
+  tolyui_rx_layout: 1.0.2
+  tolyui_navigation: 0.2.1
   window_manager: ^0.4.3
   fx_env: 0.0.1+3
   url_launcher: ^6.2.0

@@ -24,7 +24,7 @@
   APP_STORE_CONNECT_KEY_PATH
 
 产物输出：
-  scripts/build_center/macos/dest/flash_im.dmg
+  scripts/build_center/dest/macos/flash_im.dmg
 """
 
 import os
@@ -35,7 +35,7 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", ".."))
 CLIENT_DIR = os.path.join(PROJECT_ROOT, "client")
-DEST_BASE = os.path.join(SCRIPT_DIR, "dest")
+DEST_BASE = os.path.join(SCRIPT_DIR, "..", "dest", "macos")
 PUBLISH_ENV = os.path.join(CLIENT_DIR, "ios", ".env.publish")
 DMG_NAME = "flash_im.dmg"
 

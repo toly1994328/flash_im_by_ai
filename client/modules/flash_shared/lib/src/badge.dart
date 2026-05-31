@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 enum BadgeSize {
   /// 小号（侧边栏导航图标）：直径 16
   small,
+
   /// 中号（底部导航栏、会话列表）：直径 20
   medium,
+
   /// 大号（列表项强调）：直径 24
   large,
 }
@@ -22,7 +24,11 @@ class UnreadBadge extends StatelessWidget {
   final int count;
   final BadgeSize size;
 
-  const UnreadBadge({super.key, required this.count, this.size = BadgeSize.medium});
+  const UnreadBadge({
+    super.key,
+    required this.count,
+    this.size = BadgeSize.medium,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -35,7 +41,7 @@ class UnreadBadge extends StatelessWidget {
     };
     final fontSize = switch (size) {
       BadgeSize.small => 9.0,
-      BadgeSize.medium => 11.0,
+      BadgeSize.medium => 10.0,
       BadgeSize.large => 13.0,
     };
 
@@ -49,7 +55,15 @@ class UnreadBadge extends StatelessWidget {
           borderRadius: BorderRadius.circular(diameter / 2),
         ),
         alignment: Alignment.center,
-        child: Text(text, style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w600, height: 1)),
+        child: Text(
+          text,
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: fontSize,
+            height: 1,
+            leadingDistribution: TextLeadingDistribution.even,
+          ),
+        ),
       );
     }
 
@@ -57,9 +71,15 @@ class UnreadBadge extends StatelessWidget {
     return Container(
       width: diameter,
       height: diameter,
-      decoration: const BoxDecoration(color: Colors.red, shape: BoxShape.circle),
+      decoration: const BoxDecoration(
+        color: Colors.red,
+        shape: BoxShape.circle,
+      ),
       alignment: Alignment.center,
-      child: Text(text, style: TextStyle(color: Colors.white, fontSize: fontSize, fontWeight: FontWeight.w600, height: 1)),
+      child: Text(
+        text,
+        style: TextStyle(color: Colors.white, fontSize: fontSize, height: 1),
+      ),
     );
   }
 }
