@@ -20,12 +20,20 @@ class SearchPage extends StatelessWidget {
   final void Function(String conversationId)? onGroupTap;
   final void Function(String conversationId, String? messageId)? onMessageTap;
 
+  /// 桌面端嵌入模式：标题 + 关闭按钮，无"取消"文字
+  final bool embedded;
+
+  /// 桌面端关闭弹窗回调
+  final VoidCallback? onClose;
+
   const SearchPage({
     super.key,
     required this.repository,
     this.onFriendTap,
     this.onGroupTap,
     this.onMessageTap,
+    this.embedded = false,
+    this.onClose,
   });
 
   @override
@@ -37,6 +45,8 @@ class SearchPage extends StatelessWidget {
         onGroupTap: onGroupTap,
         onMessageTap: onMessageTap,
         repository: repository,
+        embedded: embedded,
+        onClose: onClose,
       ),
     );
   }
@@ -47,12 +57,16 @@ class _SearchView extends StatefulWidget {
   final void Function(String conversationId)? onGroupTap;
   final void Function(String conversationId, String? messageId)? onMessageTap;
   final SearchRepository repository;
+  final bool embedded;
+  final VoidCallback? onClose;
 
   const _SearchView({
     this.onFriendTap,
     this.onGroupTap,
     this.onMessageTap,
     required this.repository,
+    this.embedded = false,
+    this.onClose,
   });
 
   @override
@@ -149,30 +163,62 @@ class _SearchViewState extends State<_SearchView> {
         scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
         titleSpacing: 0,
-        title: Padding(
-          padding: const EdgeInsets.only(left: 16),
-          child: FlashSearchInput(
-            controller: _controller,
-            focusNode: _focusNode,
-            onChanged: _onSearch,
-            backgroundColor: const Color(0xFFF5F5F5),
-          ),
-        ),
+        toolbarHeight: widget.embedded ? 40 : kToolbarHeight,
+        title: widget.embedded
+            ? const Padding(
+                padding: EdgeInsets.only(left: 16),
+                child: Text('搜索', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+              )
+            : Padding(
+                padding: const EdgeInsets.only(left: 16),
+                child: FlashSearchInput(
+                  controller: _controller,
+                  focusNode: _focusNode,
+                  onChanged: _onSearch,
+                  backgroundColor: const Color(0xFFF5F5F5),
+                ),
+              ),
         actions: [
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                '取消',
-                style: TextStyle(fontSize: 15, color: Color(0xFF3B82F6)),
+          if (widget.embedded)
+            IconButton(
+              icon: const Icon(Icons.close, size: 20, color: Color(0xFF999999)),
+              onPressed: () => widget.onClose?.call(),
+            )
+          else
+            GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: const Padding(
+                padding: EdgeInsets.symmetric(horizontal: 16),
+                child: Text(
+                  '取消',
+                  style: TextStyle(fontSize: 15, color: Color(0xFF3B82F6)),
+                ),
               ),
             ),
-          ),
         ],
       ),
-      body: BlocBuilder<SearchCubit, SearchState>(
-        builder: (context, state) {
+      body: widget.embedded
+          ? Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  child: FlashSearchInput(
+                    controller: _controller,
+                    focusNode: _focusNode,
+                    onChanged: _onSearch,
+                    backgroundColor: const Color(0xFFF5F5F5),
+                  ),
+                ),
+                Expanded(child: _buildSearchBody()),
+              ],
+            )
+          : _buildSearchBody(),
+    );
+  }
+
+  Widget _buildSearchBody() {
+    return BlocBuilder<SearchCubit, SearchState>(
+      builder: (context, state) {
           return switch (state) {
             SearchInitial() => _buildHistoryView(),
             SearchLoading() => const Center(child: CircularProgressIndicator()),
@@ -180,7 +226,6 @@ class _SearchViewState extends State<_SearchView> {
             SearchPartialSuccess(result: final result) => _buildResultView(result),
           };
         },
-      ),
     );
   }
 

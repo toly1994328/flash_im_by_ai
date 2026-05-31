@@ -9,7 +9,7 @@ set -e
 #   bash scripts/build_center/build_linux.sh --run        # 构建后直接运行
 #
 # 产物输出：
-#   scripts/build_center/dest/linux/FlashIM-x86_64.AppImage
+#   scripts/build_center/dest/linux/flash_im.AppImage
 # ═══════════════════════════════════════════
 
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -17,7 +17,7 @@ PROJECT_ROOT="$(cd "$SCRIPT_DIR/../.." && pwd)"
 CLIENT_DIR="$PROJECT_ROOT/client"
 DEST_DIR="$SCRIPT_DIR/dest/linux"
 APPDIR="$DEST_DIR/AppDir"
-APP_NAME="FlashIM"
+APP_NAME="flash_im"
 BINARY_NAME="flash_im"
 
 info() { echo -e "\033[34m[INFO]\033[0m $1"; }
@@ -96,12 +96,12 @@ fi
 # 6. 打包 AppImage
 info "打包 AppImage..."
 mkdir -p "$DEST_DIR"
-ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$DEST_DIR/$APP_NAME-x86_64.AppImage" 2>/dev/null
+ARCH=x86_64 "$APPIMAGETOOL" "$APPDIR" "$DEST_DIR/$APP_NAME.AppImage" 2>/dev/null
 
-if [ -f "$DEST_DIR/$APP_NAME-x86_64.AppImage" ]; then
+if [ -f "$DEST_DIR/$APP_NAME.AppImage" ]; then
     ok "AppImage 构建完成"
-    info "产物：$DEST_DIR/$APP_NAME-x86_64.AppImage"
-    info "大小：$(du -h "$DEST_DIR/$APP_NAME-x86_64.AppImage" | cut -f1)"
+    info "产物：$DEST_DIR/$APP_NAME.AppImage"
+    info "大小：$(du -h "$DEST_DIR/$APP_NAME.AppImage" | cut -f1)"
 else
     fail "AppImage 打包失败"
 fi
@@ -112,7 +112,7 @@ rm -rf "$APPDIR"
 # 可选：构建后运行
 if [ "$1" = "--run" ]; then
     info "启动 AppImage..."
-    "$DEST_DIR/$APP_NAME-x86_64.AppImage"
+    "$DEST_DIR/$APP_NAME.AppImage"
 fi
 
 echo

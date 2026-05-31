@@ -8,7 +8,11 @@ import '../logic/friend_state.dart';
 /// 好友申请页（TabBar：好友申请 / 我的申请）
 class FriendRequestPage extends StatefulWidget {
   final VoidCallback? onAddFriendTap;
-  const FriendRequestPage({super.key, this.onAddFriendTap});
+
+  /// 是否显示 AppBar（桌面端嵌入时设为 false）
+  final bool showAppBar;
+
+  const FriendRequestPage({super.key, this.onAddFriendTap, this.showAppBar = true});
 
   @override
   State<FriendRequestPage> createState() => _FriendRequestPageState();
@@ -36,6 +40,35 @@ class _FriendRequestPageState extends State<FriendRequestPage>
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.showAppBar) {
+      return Scaffold(
+        backgroundColor: Colors.white,
+        body: Column(
+          children: [
+            TabBar(
+              controller: _tabController,
+              labelColor: Colors.black,
+              unselectedLabelColor: Colors.grey,
+              indicatorColor: const Color(0xFF3B82F6),
+              indicatorSize: TabBarIndicatorSize.label,
+              tabs: const [
+                Tab(text: '好友申请'),
+                Tab(text: '我的申请'),
+              ],
+            ),
+            Expanded(
+              child: TabBarView(
+                controller: _tabController,
+                children: [
+                  _ReceivedTab(),
+                  _SentTab(),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(

@@ -10,11 +10,15 @@ class GroupNotificationsPage extends StatefulWidget {
   final String? baseUrl;
   final GroupNotificationCubit? notificationCubit;
 
+  /// 是否显示 AppBar（桌面端嵌入时设为 false）
+  final bool showAppBar;
+
   const GroupNotificationsPage({
     super.key,
     required this.repository,
     this.baseUrl,
     this.notificationCubit,
+    this.showAppBar = true,
   });
 
   @override
@@ -86,12 +90,14 @@ class _GroupNotificationsPageState extends State<GroupNotificationsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('群通知'),
-        backgroundColor: const Color(0xFFEDEDED),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('群通知'),
+              backgroundColor: const Color(0xFFEDEDED),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+            )
+          : null,
       body: _buildBody(),
     );
   }

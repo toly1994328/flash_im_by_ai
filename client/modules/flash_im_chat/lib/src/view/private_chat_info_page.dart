@@ -12,6 +12,9 @@ class PrivateChatInfoPage extends StatelessWidget {
   final String? conversationId;
   final VoidCallback? onSearchChat;
 
+  /// 是否显示 AppBar（桌面端侧栏嵌入时设为 false）
+  final bool showAppBar;
+
   const PrivateChatInfoPage({
     super.key,
     required this.peerName,
@@ -20,24 +23,27 @@ class PrivateChatInfoPage extends StatelessWidget {
     this.onAddMember,
     this.conversationId,
     this.onSearchChat,
+    this.showAppBar = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('聊天详情'),
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
+      backgroundColor: showAppBar ? const Color(0xFFF5F5F5) : Colors.white,
+      appBar: showAppBar
+          ? AppBar(
+              title: const Text('聊天详情'),
+              backgroundColor: Colors.white,
+              elevation: 0,
+            )
+          : null,
       body: ListView(
         children: [
-          const SizedBox(height: 10),
+          if (showAppBar) const SizedBox(height: 10),
           _buildMemberSection(context),
           if (onSearchChat != null) ...[
             const SizedBox(height: 10),
-            Container(
+            Material(
               color: Colors.white,
               child: ListTile(
                 title: const Text('查找聊天内容', style: TextStyle(fontSize: 16, color: Color(0xFF333333))),

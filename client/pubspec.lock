@@ -1209,6 +1209,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.7.11"
+  tolyui_feedback:
+    dependency: "direct overridden"
+    description:
+      path: "../docs/ref/toly_fx/toly_ui/modules/feedback/tolyui_feedback"
+      relative: true
+    source: path
+    version: "0.3.6+9"
   tolyui_feedback_modal:
     dependency: transitive
     description:
@@ -1217,13 +1224,34 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.0.1"
+  tolyui_message:
+    dependency: transitive
+    description:
+      name: tolyui_message
+      sha256: "3811b9666d90d0088c35cacfe77ef990ed6019f801000d0e39ed8f500817b3bf"
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.2.6+1"
+  tolyui_meta:
+    dependency: "direct overridden"
+    description:
+      path: "../docs/ref/toly_fx/toly_ui/modules/core/tolyui_meta"
+      relative: true
+    source: path
+    version: "0.0.2+1"
+  tolyui_navigation:
+    dependency: "direct main"
+    description:
+      path: "../docs/ref/toly_fx/toly_ui/modules/navigation/tolyui_navigation"
+      relative: true
+    source: path
+    version: "0.2.0+5"
   tolyui_rx_layout:
     dependency: "direct main"
     description:
-      name: tolyui_rx_layout
-      sha256: e2d6882b141322d3cf872d82eb19c671319257eccee202325d53a345edf80b9f
-      url: "https://pub.dev"
-    source: hosted
+      path: "../docs/ref/tolyui_rx_layout-1.0.0+2"
+      relative: true
+    source: path
     version: "1.0.0+2"
   typed_data:
     dependency: transitive

@@ -331,13 +331,7 @@ class _MobileLayoutState extends State<MobileLayout> {
       bloc: _home.convCubit,
       builder: (context, state) {
         final total = state is ConversationListLoaded ? state.totalUnread : 0;
-        if (total <= 0) return const SizedBox.shrink();
-        final text = total > 99 ? '99+' : total.toString();
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
-        );
+        return UnreadBadge(count: total);
       },
     );
   }
@@ -349,13 +343,7 @@ class _MobileLayoutState extends State<MobileLayout> {
           bloc: _home.groupNotifCubit,
           builder: (context, groupState) {
             final total = friendState.pendingCount + groupState.pendingCount;
-            if (total <= 0) return const SizedBox.shrink();
-            final text = total > 99 ? '99+' : '$total';
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-              child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
-            );
+            return UnreadBadge(count: total);
           },
         );
       },

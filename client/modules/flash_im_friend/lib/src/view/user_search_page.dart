@@ -57,16 +57,11 @@ class _UserSearchPageState extends State<UserSearchPage> {
   }
 
   Future<void> _sendRequest(SearchUser user) async {
-    // 全屏 loading
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) => const Center(child: CircularProgressIndicator()),
-    );
+    setState(() => _isLoading = true);
     try {
       final profile = await widget.repository.getUserProfile(user.id);
       if (!mounted) return;
-      Navigator.pop(context); // 关闭 loading
+      setState(() => _isLoading = false);
       Navigator.of(context).push(MaterialPageRoute(
         builder: (_) => UserProfilePage(
           profile: profile,
@@ -75,7 +70,7 @@ class _UserSearchPageState extends State<UserSearchPage> {
       ));
     } catch (e) {
       if (!mounted) return;
-      Navigator.pop(context); // 关闭 loading
+      setState(() => _isLoading = false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('获取用户信息失败: $e'), duration: const Duration(seconds: 2)),
       );

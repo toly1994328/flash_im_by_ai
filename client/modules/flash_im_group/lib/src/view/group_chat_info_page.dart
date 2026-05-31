@@ -19,6 +19,9 @@ class GroupChatInfoPage extends StatefulWidget {
   final VoidCallback? onLeaveOrDisband;
   final VoidCallback? onSearchChat;
 
+  /// 是否显示 AppBar（桌面端侧栏嵌入时设为 false）
+  final bool showAppBar;
+
   const GroupChatInfoPage({
     super.key,
     required this.repository,
@@ -28,6 +31,7 @@ class GroupChatInfoPage extends StatefulWidget {
     this.friendsFetcher,
     this.onLeaveOrDisband,
     this.onSearchChat,
+    this.showAppBar = true,
   });
 
   @override
@@ -478,14 +482,16 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF5F5F5),
-      appBar: AppBar(
-        title: const Text('群聊信息'),
-        backgroundColor: Colors.white,
-        foregroundColor: const Color(0xFF333333),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      backgroundColor: widget.showAppBar ? const Color(0xFFF5F5F5) : Colors.white,
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('群聊信息'),
+              backgroundColor: Colors.white,
+              foregroundColor: const Color(0xFF333333),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+            )
+          : null,
       body: _buildBody(),
     );
   }
@@ -515,7 +521,7 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
 
     return ListView(
       children: [
-        const SizedBox(height: 10),
+        if (widget.showAppBar) const SizedBox(height: 10),
         // 成员网格
         _buildMemberSection(members, ownerId),
         const SizedBox(height: 10),
@@ -751,7 +757,7 @@ class _GroupChatInfoPageState extends State<GroupChatInfoPage> {
   }) {
     return GestureDetector(
       onTap: onTap,
-      child: Container(
+      child: Material(
         color: Colors.white,
         child: ListTile(
           title: Text(title, style: const TextStyle(fontSize: 16, color: Color(0xFF333333))),

@@ -191,11 +191,27 @@ def main():
             run(["scp", "-r", static_dir, f"{remote_host}:{REMOTE_DIR}/"])
             ok("migrations 同步完成")
 
-        # 同步 db.sh 脚本
-        db_script = os.path.join(PROJECT_ROOT, "scripts", "deploy", "db.sh")
+        # 同步部署脚本（.env、flash.sh、db.sh）
+        deploy_dir = os.path.join(PROJECT_ROOT, "scripts", "deploy")
+        env_file = os.path.join(SERVER_DIR, ".env")
+        flash_script = os.path.join(deploy_dir, "flash.sh")
+        db_script = os.path.join(deploy_dir, "db.sh")
+
+        if os.path.isfile(env_file):
+            info("同步 .env 到远程...")
+            run(["scp", env_file, f"{remote_host}:{REMOTE_DIR}/"])
+            ok(".env 同步完成")
+
+        if os.path.isfile(flash_script):
+            info("同步 flash.sh 到远程...")
+            run(["scp", flash_script, f"{remote_host}:{REMOTE_DIR}/"])
+            run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/flash.sh"])
+            ok("flash.sh 同步完成")
+
         if os.path.isfile(db_script):
             info("同步 db.sh 到远程...")
             run(["scp", db_script, f"{remote_host}:{REMOTE_DIR}/"])
+            run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/db.sh"])
             ok("db.sh 同步完成")
 
         # 同步 seed 目录

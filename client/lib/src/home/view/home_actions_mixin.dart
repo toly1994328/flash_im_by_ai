@@ -78,14 +78,14 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
           onGroupInfo: conversation.isGroup
               ? () => _openGroupInfo(ctx, conversation, user)
               : null,
-          onSearchChat: () => _openConversationSearch(ctx, conversation),
+          onSearchChat: () => openConversationSearch(ctx, conversation),
         ),
       ),
     );
   }
 
   /// 构建嵌入式 ChatPage（桌面端右侧面板使用，不含 Navigator.push）
-  Widget buildChatPanel(BuildContext ctx, Conversation conversation) {
+  Widget buildChatPanel(BuildContext ctx, Conversation conversation, {VoidCallback? onToggleDetail}) {
     final session = ctx.read<SessionCubit>().state;
     final user = session.user;
     if (user == null) return const SizedBox.shrink();
@@ -116,6 +116,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
           isGroup: conversation.isGroup,
           peerUserId: conversation.peerUserId,
           embedded: true,
+          onToggleDetail: onToggleDetail,
           groupDetailFetcher: conversation.isGroup
               ? () => ctx.read<GroupRepository>().getGroupDetail(conversation.id)
               : null,
@@ -134,7 +135,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
                   Navigator.of(ctx).popUntil((route) => route.isFirst);
                   convCubit.loadConversations();
                 },
-                onSearchChat: () => _openConversationSearch(ctx, conversation),
+                onSearchChat: () => openConversationSearch(ctx, conversation),
               ),
             ));
           } : null,
@@ -276,12 +277,12 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
           Navigator.of(ctx).popUntil((route) => route.isFirst);
           convCubit.loadConversations();
         },
-        onSearchChat: () => _openConversationSearch(ctx, conversation),
+        onSearchChat: () => openConversationSearch(ctx, conversation),
       ),
     ));
   }
 
-  void _openConversationSearch(BuildContext ctx, Conversation conversation) {
+  void openConversationSearch(BuildContext ctx, Conversation conversation) {
     Navigator.of(ctx).push(MaterialPageRoute(
       builder: (_) => ConversationSearchPage(
         conversationId: conversation.id,

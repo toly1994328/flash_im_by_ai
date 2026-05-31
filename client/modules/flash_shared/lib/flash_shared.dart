@@ -11,3 +11,5 @@ export 'src/theme/flash_im_theme.dart';
 export 'src/drag_move_area.dart';
 export 'src/scan_page.dart';
 export 'src/windows_buttons.dart';
+export 'src/adaptive_push.dart';
+export 'src/badge.dart';

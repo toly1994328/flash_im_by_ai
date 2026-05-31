@@ -96,8 +96,16 @@ if command -v psql &>/dev/null; then
   PG_VER=$(psql --version | head -1)
   check_pass "已安装：$PG_VER"
 else
-  check_fail "PostgreSQL 未安装"
-  echo "  安装：sudo apt install -y postgresql postgresql-contrib"
+  check_warn "PostgreSQL 未安装，尝试自动安装..."
+  sudo apt-get update -q
+  if sudo apt install -y postgresql postgresql-contrib; then
+    PG_VER=$(psql --version | head -1)
+    check_pass "PostgreSQL 安装成功：$PG_VER"
+  else
+    check_fail "PostgreSQL 自动安装失败，请手动安装："
+    echo "  sudo apt-get update"
+    echo "  sudo apt install -y postgresql postgresql-contrib"
+  fi
 fi
 
 if systemctl is-active --quiet postgresql 2>/dev/null; then
