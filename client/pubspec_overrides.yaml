@@ -6,9 +6,5 @@ dependency_overrides:
   package_info_plus: ^8.0.0
   uuid: ^4.5.0
   sign_in_with_apple: ^6.1.0
-#  tolyui_rx_layout: 1.0.2+1
-#  tolyui_feedback: 0.3.6+13
-  tolyui_feedback:
-    path: ../docs/ref/toly_fx/toly_ui/modules/feedback/tolyui_feedback
-  tolyui_meta:
-    path: ../docs/ref/toly_fx/toly_ui/modules/core/tolyui_meta
+  tolyui_rx_layout: 1.0.2+1
+  tolyui_feedback: 0.3.6+16
