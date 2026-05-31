@@ -1,5 +1,5 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flash_shared/flash_shared.dart';
@@ -10,7 +10,7 @@ class FlashApp extends StatelessWidget {
   const FlashApp({super.key, required this.router});
 
   String? get _fontFamily {
-    if (Platform.isWindows) return '宋体';
+    if (kApp.isWindows) return '宋体';
     return null;
   }
 

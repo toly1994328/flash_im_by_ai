@@ -1,9 +1,6 @@
-import 'dart:io';
-
 import 'package:drift/drift.dart';
-import 'package:drift/native.dart';
+import 'package:drift_flutter/drift_flutter.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:path/path.dart' as p;
 
 import 'tables/cached_messages_table.dart';
 import 'tables/cached_conversations_table.dart';
@@ -30,10 +27,19 @@ class AppDatabase extends _$AppDatabase {
     },
   );
 
-  /// 按 userId 打开独立数据库文件
+  /// 按 userId 打开独立数据库（自动适配原生/Web 平台）
   static Future<AppDatabase> open(int userId) async {
-    final dir = await getApplicationDocumentsDirectory();
-    final file = File(p.join(dir.path, 'im_cache_$userId.db'));
-    return AppDatabase(NativeDatabase.createInBackground(file));
+    return AppDatabase(
+      driftDatabase(
+        name: 'im_cache_$userId',
+        native: DriftNativeOptions(
+          databaseDirectory: getApplicationSupportDirectory,
+        ),
+        web: DriftWebOptions(
+          sqlite3Wasm: Uri.parse('sqlite3.wasm'),
+          driftWorker: Uri.parse('drift_worker.js'),
+        ),
+      ),
+    );
   }
 }

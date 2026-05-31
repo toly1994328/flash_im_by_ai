@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:fx_env/fx_env.dart';
 
 /// 底部"其他登录方式"区域
 class OtherLoginRow extends StatelessWidget {
@@ -37,7 +38,7 @@ class OtherLoginRow extends StatelessWidget {
 
   List<Widget> _buildItems() {
     final items = <Widget>[];
-    if (Platform.isIOS || Platform.isMacOS) {
+    if (kApp.isIos || kApp.isMacOS) {
       items.add(_buildAppleItem());
     }
     items.add(_buildGithubItem());

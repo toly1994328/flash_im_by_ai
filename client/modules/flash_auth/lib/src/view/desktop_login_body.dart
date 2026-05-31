@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:flash_shared/flash_shared.dart';
 import '../data/auth_repository.dart';
 import '../logic/login/login_mixin.dart';
@@ -187,7 +188,7 @@ class _DesktopLoginBodyState extends State<DesktopLoginBody>
     return Expanded(
       child: Column(
         children: [
-          if (Platform.isWindows) Container(
+          if (kApp.isWindows) Container(
             height: 36,
             color: const Color(0xFFF8FAFC),
             child: const Row(children: [Spacer(), WindowsButtons()]),

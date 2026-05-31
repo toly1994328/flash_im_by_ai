@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../data/auth_repository.dart';
@@ -49,7 +50,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     super.dispose();
   }
 
-  bool get _isDesktop => Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+  bool get _isDesktop => kApp.isDesktop;
 
   @override
   Widget build(BuildContext context) {
@@ -188,7 +189,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
       showToast('请先阅读并同意用户协议和隐私政策');
       return;
     }
-    if (!Platform.isIOS) {
+    if (!kApp.isIos) {
       showToast('Apple 登录仅支持 iOS 设备');
       return;
     }

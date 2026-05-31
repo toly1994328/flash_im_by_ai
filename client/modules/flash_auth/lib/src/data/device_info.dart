@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -25,29 +26,36 @@ class DeviceInfo {
   static Future<DeviceInfo> collect() async {
     final deviceInfoPlugin = DeviceInfoPlugin();
     String? deviceName;
+    String platform = 'web';
 
-    if (Platform.isAndroid) {
-      final info = await deviceInfoPlugin.androidInfo;
-      deviceName = info.model;
-    } else if (Platform.isIOS) {
-      final info = await deviceInfoPlugin.iosInfo;
-      deviceName = info.name;
-    } else if (Platform.isWindows) {
-      final info = await deviceInfoPlugin.windowsInfo;
-      deviceName = info.computerName;
-    } else if (Platform.isMacOS) {
-      final info = await deviceInfoPlugin.macOsInfo;
-      deviceName = info.computerName;
-    } else if (Platform.isLinux) {
-      final info = await deviceInfoPlugin.linuxInfo;
-      deviceName = info.prettyName;
+    if (!kIsWeb) {
+      if (Platform.isAndroid) {
+        final info = await deviceInfoPlugin.androidInfo;
+        deviceName = info.model;
+      } else if (Platform.isIOS) {
+        final info = await deviceInfoPlugin.iosInfo;
+        deviceName = info.name;
+      } else if (Platform.isWindows) {
+        final info = await deviceInfoPlugin.windowsInfo;
+        deviceName = info.computerName;
+      } else if (Platform.isMacOS) {
+        final info = await deviceInfoPlugin.macOsInfo;
+        deviceName = info.computerName;
+      } else if (Platform.isLinux) {
+        final info = await deviceInfoPlugin.linuxInfo;
+        deviceName = info.prettyName;
+      }
+      platform = Platform.operatingSystem;
+    } else {
+      final info = await deviceInfoPlugin.webBrowserInfo;
+      deviceName = info.browserName.name;
     }
 
     final packageInfo = await PackageInfo.fromPlatform();
     final deviceId = await _getOrCreateDeviceId();
 
     return DeviceInfo(
-      platform: Platform.operatingSystem,
+      platform: platform,
       deviceName: deviceName,
       deviceId: deviceId,
       appVersion: packageInfo.version,
