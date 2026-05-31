@@ -8,6 +8,7 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
 import 'home_page.dart';
@@ -128,7 +129,23 @@ class _MobileLayoutState extends State<MobileLayout> {
                   onTap: () {
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => ScanPage(
-                        repository: context.read<FriendRepository>(),
+                        onUserScanned: (userId) async {
+                          final repo = context.read<FriendRepository>();
+                          final profile = await repo.getUserProfile(userId);
+                          if (!context.mounted) return;
+                          Navigator.of(context).push(MaterialPageRoute(
+                            builder: (_) => UserProfilePage(profile: profile, repository: repo),
+                          ));
+                        },
+                        onScanLogin: (scanToken) {
+                          final authRepo = context.read<AuthRepository>();
+                          Navigator.of(context).pushReplacement(MaterialPageRoute(
+                            builder: (_) => ScanConfirmPage(
+                              scanToken: scanToken,
+                              authRepository: authRepo,
+                            ),
+                          ));
+                        },
                       ),
                     ));
                   },
@@ -314,13 +331,7 @@ class _MobileLayoutState extends State<MobileLayout> {
       bloc: _home.convCubit,
       builder: (context, state) {
         final total = state is ConversationListLoaded ? state.totalUnread : 0;
-        if (total <= 0) return const SizedBox.shrink();
-        final text = total > 99 ? '99+' : total.toString();
-        return Container(
-          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-          decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-          child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
-        );
+        return UnreadBadge(count: total);
       },
     );
   }
@@ -332,13 +343,7 @@ class _MobileLayoutState extends State<MobileLayout> {
           bloc: _home.groupNotifCubit,
           builder: (context, groupState) {
             final total = friendState.pendingCount + groupState.pendingCount;
-            if (total <= 0) return const SizedBox.shrink();
-            final text = total > 99 ? '99+' : '$total';
-            return Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
-              decoration: BoxDecoration(color: Colors.red, borderRadius: BorderRadius.circular(8)),
-              child: Text(text, style: const TextStyle(color: Colors.white, fontSize: 10)),
-            );
+            return UnreadBadge(count: total);
           },
         );
       },

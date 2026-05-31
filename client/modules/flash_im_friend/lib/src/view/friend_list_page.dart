@@ -18,6 +18,9 @@ class FriendListPage extends StatelessWidget {
   final int groupNotificationCount;
   final VoidCallback? onSearchTap;
 
+  /// 是否显示 AppBar（桌面端嵌入时设为 false）
+  final bool showAppBar;
+
   const FriendListPage({
     super.key,
     this.onFriendTap,
@@ -27,24 +30,27 @@ class FriendListPage extends StatelessWidget {
     this.onGroupNotificationsTap,
     this.groupNotificationCount = 0,
     this.onSearchTap,
+    this.showAppBar = true,
   });
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        title: const Text('通讯录'),
-        backgroundColor: const Color(0xFFEDEDED),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.person_add_outlined),
-            onPressed: onAddFriendTap,
-          ),
-        ],
-      ),
+      appBar: showAppBar
+          ? AppBar(
+              title: const Text('通讯录'),
+              backgroundColor: const Color(0xFFEDEDED),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+              actions: [
+                IconButton(
+                  icon: const Icon(Icons.person_add_outlined),
+                  onPressed: onAddFriendTap,
+                ),
+              ],
+            )
+          : null,
       body: Column(
         children: [
           FlashSearchBar(

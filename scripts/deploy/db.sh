@@ -29,6 +29,7 @@ DB_NAME="flash_im"
 DB_USER="postgres"
 
 ACTION="${1:-status}"
+FORCE="${2:-}"
 
 # ─── 工具函数 ───
 
@@ -146,12 +147,14 @@ do_clear() {
   echo ""
   warn "这将删除数据库 '$DB_NAME' 及其所有数据！"
   echo ""
-  read -p "  确认删除？输入数据库名称确认 [$DB_NAME]: " CONFIRM
-  echo ""
 
-  if [ "$CONFIRM" != "$DB_NAME" ]; then
-    info "已取消"
-    return
+  if [ "$FORCE" != "-y" ]; then
+    read -p "  确认删除？输入数据库名称确认 [$DB_NAME]: " CONFIRM
+    echo ""
+    if [ "$CONFIRM" != "$DB_NAME" ]; then
+      info "已取消"
+      return
+    fi
   fi
 
   info "断开所有连接..."
@@ -170,6 +173,9 @@ do_reset() {
   info "重新创建数据库..."
   psql_cmd -c "CREATE DATABASE $DB_NAME;" 2>/dev/null
   ok "数据库已创建"
+  # 确保 postgres 用户密码可用（应用通过密码连接）
+  psql_cmd -c "ALTER USER postgres PASSWORD 'postgres';" 2>/dev/null
+  ok "postgres 密码已设置为: postgres"
   do_migrate
 }
 

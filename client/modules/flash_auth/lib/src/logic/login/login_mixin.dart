@@ -8,7 +8,7 @@ import 'strategy/sms_login_strategy.dart';
 import 'strategy/password_login_strategy.dart';
 import 'strategy/email_login_strategy.dart';
 
-enum LoginTab { email, phone }
+enum LoginTab { email, phone, password, scan }
 
 enum LoginMode {
   sms('sms'),
@@ -23,22 +23,25 @@ mixin LoginMixin on State<LoginPage> {
   late final PasswordLoginStrategy passwordStrategy;
   late final EmailLoginStrategy emailStrategy;
 
-  LoginTab tab = LoginTab.phone;
+  LoginTab tab = LoginTab.email;
   LoginMode mode = LoginMode.sms;
   bool agreed = false;
   bool isLoading = false;
 
   bool get isEmailTab => tab == LoginTab.email;
+  bool get isScanTab => tab == LoginTab.scan;
+  bool get isPasswordTab => tab == LoginTab.password;
   bool get isSmsMode => mode == LoginMode.sms;
 
   /// 当前激活的策略
   LoginStrategy get currentStrategy {
     if (isEmailTab) return isSmsMode ? emailStrategy : passwordStrategy;
+    if (tab == LoginTab.password) return passwordStrategy;
     if (!widget.enableSMS) return passwordStrategy;
     return isSmsMode ? smsStrategy : passwordStrategy;
   }
 
-  bool get canLogin => agreed && !isLoading && currentStrategy.isValid;
+  bool get canLogin => !isScanTab && agreed && !isLoading && currentStrategy.isValid;
 
   void initMixin() {
     smsStrategy = SmsLoginStrategy(

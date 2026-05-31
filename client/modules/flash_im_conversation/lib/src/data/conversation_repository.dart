@@ -22,7 +22,11 @@ class ConversationRepository {
   Future<List<Conversation>> getList({int limit = 20, int offset = 0, int? type}) async {
     if (_store != null) {
       final cached = await _store!.getConversations(limit: limit, offset: offset);
-      if (cached.isNotEmpty) return cached.map(_fromCached).toList();
+      if (cached.isNotEmpty) {
+        final list = cached.map(_fromCached).toList();
+        if (type != null) return list.where((c) => c.type == type).toList();
+        return list;
+      }
       // 本地为空（首次登录），fallback HTTP
     }
     final res = await _dio.get('/conversations', queryParameters: {

@@ -10,6 +10,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 
 use flash_core::state::AppState;
+use flash_core::AppError;
 use super::jwt::generate_token;
 use super::login_log::{is_first_login, record_login};
 use super::model::{
@@ -54,17 +55,22 @@ pub async fn login(
     State(state): State<Arc<AppState>>,
     ConnectInfo(addr): ConnectInfo<SocketAddr>,
     Json(req): Json<LoginRequest>,
-) -> Result<Json<LoginResponse>, StatusCode> {
-    // 仅 sms 和 password 类型校验手机号
-    if matches!(req.login_type, LoginType::Sms | LoginType::Password) {
-        validate_phone(&req.phone)?;
+) -> Result<Json<LoginResponse>, AppError> {
+    // 仅 sms 类型校验手机号
+    if matches!(req.login_type, LoginType::Sms) {
+        if req.phone.len() != 11 || !req.phone.starts_with('1') {
+            return Err(AppError::bad_request("手机号格式不正确"));
+        }
     }
 
     let result = match req.login_type {
-        LoginType::Sms => login_with_sms(&state, &req).await,
-        LoginType::Password => login_with_password(&state, &req).await,
-        LoginType::Email => login_with_email(&state, &req).await,
-    }?;
+        LoginType::Sms => login_with_sms(&state, &req).await
+            .map_err(|_| AppError::bad_request("验证码错误或已过期"))?,
+        LoginType::Password => login_with_password(&state, &req).await
+            .map_err(|_| AppError::bad_request("账号或密码错误"))?,
+        LoginType::Email => login_with_email(&state, &req).await
+            .map_err(|_| AppError::bad_request("验证码或密码错误"))?,
+    };
 
     // 首次登录发欢迎消息
     let first = is_first_login(&state.db, result.user_id).await.unwrap_or(false);
@@ -253,14 +259,40 @@ async fn login_with_password(
     state: &Arc<AppState>,
     req: &LoginRequest,
 ) -> Result<Json<LoginResponse>, StatusCode> {
-    let row: Option<(i64, Option<String>,)> = sqlx::query_as(
-        "SELECT account_id, credential FROM auth_credentials
-         WHERE auth_type = 'phone' AND identifier = $1"
-    )
-    .bind(&req.phone)
-    .fetch_optional(&state.db)
-    .await
-    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+    // 根据输入格式判断查找方式
+    let row: Option<(i64, Option<String>,)> = if req.phone.contains('@') {
+        // 邮箱
+        sqlx::query_as(
+            "SELECT account_id, credential FROM auth_credentials
+             WHERE auth_type = 'email' AND identifier = $1"
+        )
+        .bind(&req.phone)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else if req.phone.len() == 11 && req.phone.starts_with('1') {
+        // 手机号
+        sqlx::query_as(
+            "SELECT account_id, credential FROM auth_credentials
+             WHERE auth_type = 'phone' AND identifier = $1"
+        )
+        .bind(&req.phone)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    } else {
+        // 闪讯 ID（account_id）
+        let uid: i64 = req.phone.parse().map_err(|_| StatusCode::BAD_REQUEST)?;
+        sqlx::query_as(
+            "SELECT account_id, credential FROM auth_credentials
+             WHERE account_id = $1 AND credential IS NOT NULL
+             LIMIT 1"
+        )
+        .bind(uid)
+        .fetch_optional(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?
+    };
 
     let (account_id, credential) = row.ok_or(StatusCode::UNAUTHORIZED)?;
     let password_hash = credential.ok_or(StatusCode::UNAUTHORIZED)?;
@@ -446,4 +478,161 @@ async fn find_or_create_user_by_email(
 
     println!("🆕 新用户注册(email): {} (ID: {})", nickname, account_id);
     Ok((account_id, false))
+}
+
+// ─── 扫码登录 ───────────────────────────────────────────────
+
+use axum::extract::Query;
+use axum::http::HeaderMap;
+use std::collections::HashMap;
+use flash_core::jwt::extract_user_id;
+use super::model::{ScanCreateResponse, ScanStatusResponse, ScanConfirmRequest, ScanCancelRequest};
+
+/// POST /auth/scan/create — 创建扫码会话
+pub async fn scan_create(
+    State(state): State<Arc<AppState>>,
+) -> Result<Json<ScanCreateResponse>, StatusCode> {
+    let token = uuid::Uuid::new_v4().to_string();
+    let expires_at = Utc::now() + chrono::Duration::minutes(5);
+
+    sqlx::query(
+        "INSERT INTO scan_sessions (token, status, expires_at) VALUES ($1, 0, $2)"
+    )
+    .bind(&token)
+    .bind(expires_at)
+    .execute(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let qr_content = format!("flashim://scan/{}", token);
+    println!("🔲 扫码会话创建: {}", token);
+
+    Ok(Json(ScanCreateResponse { token, qr_content, expires_at }))
+}
+
+/// GET /auth/scan/status?token=xxx — 查询扫码状态
+pub async fn scan_status(
+    State(state): State<Arc<AppState>>,
+    Query(params): Query<HashMap<String, String>>,
+) -> Result<Json<ScanStatusResponse>, StatusCode> {
+    let token = params.get("token").ok_or(StatusCode::BAD_REQUEST)?;
+
+    let row: Option<(i16, Option<i64>, chrono::DateTime<Utc>,)> = sqlx::query_as(
+        "SELECT status, user_id, expires_at FROM scan_sessions WHERE token = $1"
+    )
+    .bind(token)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let (status, user_id, expires_at) = row.ok_or(StatusCode::NOT_FOUND)?;
+
+    // 过期检测
+    if Utc::now() > expires_at && status < 2 {
+        return Ok(Json(ScanStatusResponse {
+            status: "expired".into(),
+            token: None,
+            user_id: None,
+        }));
+    }
+
+    match status {
+        0 => Ok(Json(ScanStatusResponse { status: "pending".into(), token: None, user_id: None })),
+        1 => Ok(Json(ScanStatusResponse { status: "scanned".into(), token: None, user_id: None })),
+        2 => {
+            // confirmed: 为桌面端签发 JWT
+            let uid = user_id.ok_or(StatusCode::INTERNAL_SERVER_ERROR)?;
+            let jwt = generate_token(uid);
+            Ok(Json(ScanStatusResponse { status: "confirmed".into(), token: Some(jwt), user_id: Some(uid) }))
+        }
+        3 => Ok(Json(ScanStatusResponse { status: "cancelled".into(), token: None, user_id: None })),
+        _ => Ok(Json(ScanStatusResponse { status: "unknown".into(), token: None, user_id: None })),
+    }
+}
+
+/// POST /auth/scan/confirm — 手机端扫码/确认
+pub async fn scan_confirm(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(req): Json<ScanConfirmRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+
+    let row: Option<(i16, Option<i64>, chrono::DateTime<Utc>,)> = sqlx::query_as(
+        "SELECT status, user_id, expires_at FROM scan_sessions WHERE token = $1"
+    )
+    .bind(&req.scan_token)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let (status, existing_user_id, expires_at) = row.ok_or(StatusCode::BAD_REQUEST)?;
+
+    if Utc::now() > expires_at {
+        return Err(StatusCode::BAD_REQUEST);
+    }
+
+    match req.action.as_str() {
+        "scan" => {
+            if status != 0 {
+                return Err(StatusCode::CONFLICT);
+            }
+            sqlx::query("UPDATE scan_sessions SET status = 1, user_id = $1 WHERE token = $2")
+                .bind(user_id)
+                .bind(&req.scan_token)
+                .execute(&state.db)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            println!("📱 扫码确认(scan): user_id={}", user_id);
+        }
+        "confirm" => {
+            if status != 1 {
+                return Err(StatusCode::CONFLICT);
+            }
+            if existing_user_id != Some(user_id) {
+                return Err(StatusCode::CONFLICT);
+            }
+            sqlx::query("UPDATE scan_sessions SET status = 2 WHERE token = $1")
+                .bind(&req.scan_token)
+                .execute(&state.db)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+            println!("✅ 扫码确认(confirm): user_id={}", user_id);
+        }
+        _ => return Err(StatusCode::BAD_REQUEST),
+    }
+
+    Ok(Json(serde_json::json!({ "message": "ok" })))
+}
+
+/// POST /auth/scan/cancel — 手机端取消
+pub async fn scan_cancel(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Json(req): Json<ScanCancelRequest>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+
+    let row: Option<(i16, Option<i64>,)> = sqlx::query_as(
+        "SELECT status, user_id FROM scan_sessions WHERE token = $1"
+    )
+    .bind(&req.scan_token)
+    .fetch_optional(&state.db)
+    .await
+    .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    let (status, existing_user_id) = row.ok_or(StatusCode::BAD_REQUEST)?;
+
+    if status != 1 || existing_user_id != Some(user_id) {
+        return Err(StatusCode::CONFLICT);
+    }
+
+    sqlx::query("UPDATE scan_sessions SET status = 3 WHERE token = $1")
+        .bind(&req.scan_token)
+        .execute(&state.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    println!("❌ 扫码取消: user_id={}", user_id);
+    Ok(Json(serde_json::json!({ "message": "ok" })))
 }

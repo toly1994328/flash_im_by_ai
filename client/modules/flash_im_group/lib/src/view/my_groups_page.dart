@@ -9,10 +9,14 @@ class MyGroupsPage extends StatefulWidget {
   final ConversationRepository repository;
   final void Function(Conversation conversation)? onGroupTap;
 
+  /// 是否显示 AppBar（桌面端嵌入时设为 false）
+  final bool showAppBar;
+
   const MyGroupsPage({
     super.key,
     required this.repository,
     this.onGroupTap,
+    this.showAppBar = true,
   });
 
   @override
@@ -67,20 +71,23 @@ class _MyGroupsPageState extends State<MyGroupsPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('群聊'),
-        backgroundColor: const Color(0xFFEDEDED),
-        elevation: 0,
-        scrolledUnderElevation: 0,
-      ),
+      appBar: widget.showAppBar
+          ? AppBar(
+              title: const Text('群聊'),
+              backgroundColor: const Color(0xFFEDEDED),
+              elevation: 0,
+              scrolledUnderElevation: 0,
+            )
+          : null,
       body: Column(
         children: [
-          FlashSearchBar(
-            editable: true,
-            controller: _searchController,
-            onChanged: _onSearchChanged,
-            hintText: '搜索',
-          ),
+          if (widget.showAppBar)
+            FlashSearchBar(
+              editable: true,
+              controller: _searchController,
+              onChanged: _onSearchChanged,
+              hintText: '搜索',
+            ),
           Expanded(child: _buildBody()),
         ],
       ),

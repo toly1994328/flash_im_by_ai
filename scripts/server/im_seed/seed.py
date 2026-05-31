@@ -11,7 +11,7 @@ import subprocess
 import sys
 import time
 
-BASE = "http://127.0.0.1:9600"
+BASE = os.environ.get("SEED_BASE_URL", "http://127.0.0.1:9600")
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 SEED_FILE = os.path.join(SCRIPT_DIR, "seed-data.json")
 
@@ -25,7 +25,7 @@ RESET = "\033[0m"
 class Curl:
     @staticmethod
     def request(method, url, json_body=None, token=None):
-        cmd = ["curl.exe", "-s", "-w", "\n%{http_code}", "-X", method, url]
+        cmd = ["curl", "-s", "-w", "\n%{http_code}", "-X", method, url]
         if token:
             cmd += ["-H", f"Authorization: Bearer {token}"]
         if json_body:

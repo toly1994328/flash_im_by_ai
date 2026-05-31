@@ -3,11 +3,13 @@
 闪讯 macOS 构建 & 分发脚本
 
 用法：
-  python3 scripts/build_center/build_macos.py                # 仅构建 .app
-  python3 scripts/build_center/build_macos.py --dmg          # 构建 + 签名 + 打包 DMG + 公证
-  python3 scripts/build_center/build_macos.py --dmg --no-sign  # 构建 + 打包 DMG（跳过签名和公证）
-  python3 scripts/build_center/build_macos.py --dmg --no-notarize  # 构建 + 签名 + 打包 DMG（跳过公证）
-  python3 scripts/build_center/build_macos.py --upload       # 构建 + 上传到 App Store Connect
+  python3 scripts/build_center/macos/build.py                # 仅构建 .app
+  python3 scripts/build_center/macos/build.py --dmg          # 构建 + 签名 + 打包 DMG + 公证
+  python3 scripts/build_center/macos/build.py --dmg --no-sign  # 构建 + 打包 DMG（跳过签名和公证）
+  python3 scripts/build_center/macos/build.py --dmg --no-notarize  # 构建 + 签名 + 打包 DMG（跳过公证）
+  python3 scripts/build_center/macos/build.py --upload       # 构建 + 上传到 App Store Connect
+  python3 scripts/build_center/macos/build.py --upload-only  # 仅上传（使用已有 Archive）
+  python3 scripts/build_center/macos/build.py --dmg --sdk ~/flutter_3.27  # 指定 Flutter SDK
 
 核心流程（基于实际成功经验）：
   构建 → 在原始目录签名 .app → 打包 DMG → 直接公证 DMG
@@ -31,11 +33,14 @@ import subprocess
 import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
+PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", "..", ".."))
 CLIENT_DIR = os.path.join(PROJECT_ROOT, "client")
-DEST_BASE = os.path.join(SCRIPT_DIR, "dest", "macos")
+DEST_BASE = os.path.join(SCRIPT_DIR, "..", "dest", "macos")
 PUBLISH_ENV = os.path.join(CLIENT_DIR, "ios", ".env.publish")
 DMG_NAME = "flash_im.dmg"
+
+# Flutter SDK 路径：通过 --sdk 参数指定，未指定则用系统默认
+FLUTTER_CMD = "flutter"
 
 
 def info(msg):
@@ -113,11 +118,11 @@ def build():
     info(f"配置：{env_name}")
 
     info("清理...")
-    run("flutter clean")
+    run(f"{FLUTTER_CMD} clean")
     info("获取依赖...")
-    run("flutter pub get")
+    run(f"{FLUTTER_CMD} pub get")
     info("构建 macOS Release...")
-    run(f"flutter build macos --release --dart-define-from-file={env_file}")
+    run(f"{FLUTTER_CMD} build macos --release --dart-define-from-file={env_file}")
 
     app_path = find_app()
     if not app_path:
@@ -355,6 +360,18 @@ def upload_to_app_store(skip_archive=False):
 
 
 def main():
+    global FLUTTER_CMD
+
+    # 解析 --sdk 参数
+    sdk_path = None
+    for i, arg in enumerate(sys.argv):
+        if arg == "--sdk" and i + 1 < len(sys.argv):
+            sdk_path = sys.argv[i + 1]
+    if sdk_path:
+        FLUTTER_CMD = os.path.join(os.path.expanduser(sdk_path), "bin", "flutter")
+        if not os.path.isfile(FLUTTER_CMD):
+            fail(f"Flutter SDK 未找到：{FLUTTER_CMD}")
+
     do_dmg = "--dmg" in sys.argv
     do_upload = "--upload" in sys.argv
     upload_only = "--upload-only" in sys.argv
@@ -380,6 +397,8 @@ def main():
         info("模式：仅上传（使用已有 Archive）")
     else:
         info("模式：仅构建")
+
+    info(f"Flutter SDK：{FLUTTER_CMD}")
     print()
 
     # 清理旧产物（upload-only 不清理）
@@ -391,14 +410,14 @@ def main():
         # App Store 模式：先 flutter build 生成必要文件，再 xcodebuild archive
         os.makedirs(DEST_BASE, exist_ok=True)
         info("清理...")
-        run("flutter clean")
+        run(f"{FLUTTER_CMD} clean")
         info("获取依赖...")
-        run("flutter pub get")
+        run(f"{FLUTTER_CMD} pub get")
         env_file = os.path.join(CLIENT_DIR, ".env.production")
         if not os.path.isfile(env_file):
             env_file = os.path.join(CLIENT_DIR, ".env.dev")
         info("预构建（生成 Xcode 所需文件）...")
-        run(f"flutter build macos --release --dart-define-from-file={env_file}")
+        run(f"{FLUTTER_CMD} build macos --release --dart-define-from-file={env_file}")
         print()
         upload_to_app_store()
     elif upload_only:

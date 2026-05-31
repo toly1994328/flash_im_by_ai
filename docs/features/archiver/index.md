@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.26.0（macOS 桌面端构建与 UI 适配 + verify_codes 多行存储修复）
+最后更新：v0.28.0（桌面端通讯录三栏 + 聊天详情侧栏 + 设置页三栏 + 弹窗化操作 + 意见反馈）
 
 ---
 
@@ -34,6 +34,7 @@
 | I-17 | Apple OAuth 登录 | flash-auth (oauth/apple) | 后端 | v0.25.0 | ✅ |
 | I-18 | 邮箱验证码发送 | flash-auth (email/sender) | 后端 | v0.25.0 | ✅ |
 | I-19 | 邮箱登录 | flash-auth (handler) | 后端 | v0.25.0 | ✅ |
+| I-20 | 扫码会话管理 | flash-auth (handler) | 后端 | v0.27.0 | ✅ |
 
 ### 领域层（D）
 
@@ -172,6 +173,13 @@
 | P-63 | Apple 登录入口 | flash_auth (login_page) | v0.25.0 | ✅ |
 | P-64 | 桌面端自适应布局 | home (desktop_layout + mobile_layout) | v0.26.0 | ✅ |
 | P-65 | 桌面端会话分栏 | home (desktop_layout) + flash_im_chat | v0.26.0 | ✅ |
+| P-66 | 桌面端扫码登录页 | flash_auth (qr_login_form + desktop_login_body) | v0.27.0 | ✅ |
+| P-67 | 手机端扫码确认页 | flash_auth (scan_confirm_page) | v0.27.0 | ✅ |
+| P-68 | 桌面端通讯录三栏 | home (desktop/contact_detail_panel) | v0.28.0 | ✅ |
+| P-69 | 聊天详情侧栏 | home (desktop/chat_detail_sidebar) + flash_im_chat | v0.28.0 | ✅ |
+| P-70 | 设置页三栏 | home (profile/desktop_settings_panel) | v0.28.0 | ✅ |
+| P-71 | 桌面端弹窗化操作 | home (desktop/actions_mixin) + flash_shared | v0.28.0 | ✅ |
+| P-72 | 意见反馈 | home (profile/feedback_page) | v0.28.0 | ✅ |
 
 
 ---
@@ -220,7 +228,7 @@ graph TB
         B[Social<br/>好友与群聊<br/>D-14 ~ D-30, F-09 ~ F-11, P-20 ~ P-40]
     end
     subgraph IM
-        M[IM<br/>消息 + 会话 + 连接 + 缓存<br/>I-05 ~ I-09, I-14, D-01 ~ D-13, D-39 ~ D-41<br/>F-04 ~ F-08, F-12 ~ F-17, P-01 ~ P-19, P-48 ~ P-55, P-64 ~ P-65]
+        M[IM<br/>消息 + 会话 + 连接 + 缓存<br/>I-05 ~ I-09, I-14, D-01 ~ D-13, D-39 ~ D-41<br/>F-04 ~ F-08, F-12 ~ F-17, P-01 ~ P-19, P-48 ~ P-55, P-64 ~ P-65, P-68 ~ P-72]
     end
 
     A -.->|JWT| M
@@ -259,6 +267,8 @@ graph LR
     I02 --> I17[I-17 Apple OAuth]
     I02 --> I18[I-18 邮箱验证码]
     I18 --> I19[I-19 邮箱登录]
+    I01 --> I20[I-20 扫码会话]
+    I20 -.->|轮询| F01
     I01 --> I16[I-16 登录日志]
     I16 --> D42[D-42 欢迎消息]
     F01[F-01 登录注册页] -.->|HTTP| I02
@@ -311,6 +321,11 @@ graph TB
         P55[P-55 语音输入]
         P64[P-64 桌面端自适应布局]
         P65[P-65 桌面端会话分栏]
+        P68[P-68 桌面端通讯录三栏]
+        P69[P-69 聊天详情侧栏]
+        P70[P-70 设置页三栏]
+        P71[P-71 桌面端弹窗化操作]
+        P72[P-72 意见反馈]
     end
     F04 -.->|WebSocket| I05
     P06 -.->|HTTP| D09
@@ -400,6 +415,8 @@ graph LR
 | v0.24.0 | 2026-05-24 | 135 | [trace/v0.24.0_2026-05-24.md](trace/v0.24.0_2026-05-24.md) |
 | v0.25.0 | 2026-05-26 | 141 | [trace/v0.25.0_2026-05-26.md](trace/v0.25.0_2026-05-26.md) |
 | v0.26.0 | 2026-05-28 | 143 | [trace/v0.26.0_2026-05-28.md](trace/v0.26.0_2026-05-28.md) |
+| v0.27.0 | 2026-05-30 | 146 | [trace/v0.27.0_2026-05-30.md](trace/v0.27.0_2026-05-30.md) |
+| v0.28.0 | 2026-05-31 | 151 | [trace/v0.28.0_2026-05-31.md](trace/v0.28.0_2026-05-31.md) |
 
 ---
 
@@ -420,5 +437,6 @@ graph LR
 | 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |
 | 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
 | 消息操作 | [operation/client.md](modules/operation/client.md) | D-40, F-17, P-48~P-53 |
-| 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, D-42 |
-| 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-65 |
+| 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, I-20, D-42 |
+| 桌面端登录 | [auth/client.md](modules/auth/client.md) | P-66~P-67 |
+| 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-72 |

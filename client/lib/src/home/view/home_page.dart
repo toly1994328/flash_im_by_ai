@@ -9,7 +9,7 @@ import 'package:flash_im_group/flash_im_group.dart';
 import '../../../main.dart' show globalSyncEngine;
 import 'home_actions_mixin.dart';
 import 'mobile_layout.dart';
-import 'desktop_layout.dart';
+import 'desktop/desktop_layout.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});

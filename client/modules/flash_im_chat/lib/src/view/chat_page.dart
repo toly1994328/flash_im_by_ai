@@ -46,6 +46,9 @@ class ChatPage extends StatefulWidget {
   /// 嵌入模式（桌面端面板内使用）：紧凑标题、无返回按钮、支持拖拽
   final bool embedded;
 
+  /// 桌面端：点击详情按钮时通知父级展开/收起详情侧栏
+  final VoidCallback? onToggleDetail;
+
   /// 群详情获取器（群聊时由外部注入，返回 {status, announcement}）
   final Future<Map<String, dynamic>> Function()? groupDetailFetcher;
   final VoidCallback? onSearchChat;
@@ -63,6 +66,7 @@ class ChatPage extends StatefulWidget {
     this.isDisband = false,
     this.announcement,
     this.embedded = false,
+    this.onToggleDetail,
     this.groupDetailFetcher,
     this.onSearchChat,
   });
@@ -222,22 +226,34 @@ class _ChatPageState extends State<ChatPage> {
             if (!widget.isGroup)
               IconButton(
                 icon: const Icon(Icons.more_horiz),
-                onPressed: () => Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => PrivateChatInfoPage(
-                      peerName: widget.peerName,
-                      peerAvatar: widget.peerAvatar,
-                      peerUserId: widget.peerUserId,
-                      onAddMember: widget.onAddMember,
-                      onSearchChat: widget.onSearchChat,
-                    ),
-                  ),
-                ),
+                onPressed: () {
+                  if (widget.embedded && widget.onToggleDetail != null) {
+                    widget.onToggleDetail!();
+                  } else {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(
+                        builder: (_) => PrivateChatInfoPage(
+                          peerName: widget.peerName,
+                          peerAvatar: widget.peerAvatar,
+                          peerUserId: widget.peerUserId,
+                          onAddMember: widget.onAddMember,
+                          onSearchChat: widget.onSearchChat,
+                        ),
+                      ),
+                    );
+                  }
+                },
               ),
             if (widget.isGroup && !_isDisband)
               IconButton(
                 icon: const Icon(Icons.group),
-                onPressed: () => widget.onGroupInfo?.call(),
+                onPressed: () {
+                  if (widget.embedded && widget.onToggleDetail != null) {
+                    widget.onToggleDetail!();
+                  } else {
+                    widget.onGroupInfo?.call();
+                  }
+                },
               ),
             if (widget.embedded) const SizedBox(width: 12),
           ],
@@ -731,6 +747,7 @@ class _ChatPageState extends State<ChatPage> {
   }
 
   Widget _buildSkeleton() {
+    if(widget.embedded) return  const SizedBox.shrink();
     return Shimmer.fromColors(
       baseColor: Colors.grey[300]!,
       highlightColor: Colors.grey[100]!,

@@ -19,6 +19,7 @@ class _PolicyPageState extends State<PolicyPage> {
   @override
   void initState() {
     super.initState();
+    debugPrint('[PolicyPage] url: ${widget.url}');
     _controller = WebViewController()
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setNavigationDelegate(NavigationDelegate(

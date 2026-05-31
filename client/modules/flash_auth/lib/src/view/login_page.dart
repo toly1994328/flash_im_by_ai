@@ -14,6 +14,8 @@ import 'components/agreement_row.dart';
 import 'components/action_button.dart';
 import 'components/login_segment_tab.dart';
 import 'components/other_login_row.dart';
+import 'components/qr_login_form.dart';
+import 'desktop_login_body.dart';
 
 /// 登录成功回调 — 由组装层注入，负责写入 session、跳转等
 typedef OnLoginSuccess = void Function(LoginResult result);
@@ -47,57 +49,104 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     super.dispose();
   }
 
+  bool get _isDesktop => Platform.isWindows || Platform.isMacOS || Platform.isLinux;
+
   @override
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
-        systemNavigationBarColor: Colors.transparent
+        systemNavigationBarColor: Colors.transparent,
       ),
       child: Scaffold(
-        backgroundColor: Colors.white,
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 46),
-          child: Column(
-            children: [
-              const SizedBox(height: 80),
-              _BrandHeader(
-                onDebugDoubleTap: () {
-                  smsStrategy.phoneCtrl.text = '13800010001';
-                },
-              ),
-              const SizedBox(height: 60),
-              LoginSegmentTab(current: tab, onChanged: switchTab, enableSMS: widget.enableSMS),
-              const SizedBox(height: 16),
-              _buildForm(),
-              const SizedBox(height: 36),
-              AgreementRow(
-                checked: agreed,
-                onTap: () => setState(() => agreed = !agreed),
-                baseUrl: widget.authRepository.baseUrl,
-              ),
-              const SizedBox(height: 32),
-              ActionButton(
-                enabled: canLogin || isLoading,
-                loading: isLoading,
-                onPressed: login,
-              ),
-              const SizedBox(height: 48),
-              OtherLoginRow(
-                isLoading: isLoading,
-                showPasswordToggle: widget.enableSMS,
-                isSmsMode: isSmsMode,
-                onGithub: () => loginWithGithub(context),
-                onApple: _handleAppleLogin,
-                onToggleMode: toggleMode,
-              ),
-            ],
+        backgroundColor: const Color(0xFFF8FAFC),
+        body: _isDesktop ? _buildDesktopBody() : _buildMobileBody(),
+      ),
+    );
+  }
+
+  Widget _buildDesktopBody() {
+    return DesktopLoginBody(
+      tab: tab,
+      onTabChanged: switchTab,
+      enableSMS: widget.enableSMS,
+      isScanTab: isScanTab,
+      agreed: agreed,
+      onToggleAgreed: () => setState(() => agreed = !agreed),
+      baseUrl: widget.authRepository.baseUrl,
+      canLogin: canLogin,
+      isLoading: isLoading,
+      onLogin: login,
+      formWidget: _buildForm(),
+      authRepository: widget.authRepository,
+      onLoginSuccess: widget.onLoginSuccess,
+    );
+  }
+
+  Widget _buildMobileBody() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.symmetric(horizontal: 46),
+      child: Column(
+        children: [
+          const SizedBox(height: 80),
+          _BrandHeader(
+            onDebugDoubleTap: () {
+              smsStrategy.phoneCtrl.text = '13800010001';
+            },
           ),
-        ),
+          const SizedBox(height: 60),
+          LoginSegmentTab(current: tab, onChanged: switchTab, enableSMS: widget.enableSMS, isDesktop: false),
+          const SizedBox(height: 16),
+          AnimatedSize(
+            duration: const Duration(milliseconds: 200),
+            curve: Curves.easeInOut,
+            alignment: Alignment.topCenter,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildForm(),
+                if (!isScanTab) ...[
+                  const SizedBox(height: 36),
+                  AgreementRow(
+                    checked: agreed,
+                    onTap: () => setState(() => agreed = !agreed),
+                    baseUrl: widget.authRepository.baseUrl,
+                  ),
+                  const SizedBox(height: 32),
+                  ActionButton(
+                    enabled: canLogin || isLoading,
+                    loading: isLoading,
+                    onPressed: login,
+                  ),
+                ],
+                if (!isScanTab) ...[
+                  const SizedBox(height: 48),
+                  OtherLoginRow(
+                    isLoading: isLoading,
+                    showPasswordToggle: widget.enableSMS,
+                    isSmsMode: isSmsMode,
+                    onGithub: () => loginWithGithub(context),
+                    onApple: _handleAppleLogin,
+                    onToggleMode: toggleMode,
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildForm() {
+    if (isScanTab) {
+      return QrLoginForm(
+        authRepository: widget.authRepository,
+        onLoginSuccess: widget.onLoginSuccess,
+      );
+    }
+    if (isPasswordTab) {
+      return PasswordLoginForm(strategy: passwordStrategy);
+    }
     if (isEmailTab) {
       if (isSmsMode) {
         return EmailLoginForm(
@@ -116,7 +165,6 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     }
     // phone tab
     if (!widget.enableSMS) {
-      // enableSMS=false 时，phone tab 就是密码登录
       return PasswordLoginForm(strategy: passwordStrategy);
     }
     if (isSmsMode) {

@@ -1,4 +1,5 @@
 import 'package:flash_shared/flash_shared.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../data/message.dart';
 import '../../logic/chat_state.dart';
@@ -149,7 +150,7 @@ class MessageBubble extends StatelessWidget {
             Flexible(child: Builder(
               builder: (bubbleCtx) => GestureDetector(
                 onLongPressStart: onLongPress != null ? (_) => onLongPress!(bubbleCtx) : null,
-                onDoubleTap: () => _showDebugInfo(bubbleCtx),
+                onDoubleTap: kDebugMode ? () => _showDebugInfo(bubbleCtx) : null,
                 child: _buildBubble(),
               ),
             )),

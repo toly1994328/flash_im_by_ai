@@ -1,4 +1,5 @@
 import 'package:flash_shared/flash_shared.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/conversation.dart';
 
@@ -26,7 +27,7 @@ class ConversationTile extends StatelessWidget {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      onDoubleTap: () => _showDebugInfo(context),
+      // onDoubleTap: kDebugMode ? () => _showDebugInfo(context) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
@@ -213,30 +214,7 @@ class ConversationTile extends StatelessWidget {
   }
 
   Widget _buildUnreadBadge() {
-    final count = conversation.unreadCount;
-    final text = count > 99 ? '99+' : count.toString();
-    final isSingleDigit = text.length < 2;
-    final width = isSingleDigit ? 20.0 : (text.length == 2 ? 26.0 : 34.0);
-
-    return Container(
-      width: width,
-      height: 20,
-      decoration: BoxDecoration(
-        color: Colors.red,
-        shape: isSingleDigit ? BoxShape.circle : BoxShape.rectangle,
-        borderRadius: isSingleDigit ? null : BorderRadius.circular(10),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        text,
-        style: const TextStyle(
-          color: Colors.white,
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          height: 1,
-        ),
-      ),
-    );
+    return UnreadBadge(count: conversation.unreadCount, size: BadgeSize.medium);
   }
 
   Widget _buildGridAvatar(String gridStr) {
