@@ -50,7 +50,9 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
     super.dispose();
   }
 
-  bool get _isDesktop => kApp.isDesktop;
+  bool _isDesktop(BuildContext context) {
+    return MediaQuery.sizeOf(context).width >= 768;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -60,7 +62,7 @@ class _LoginPageState extends State<LoginPage> with LoginMixin {
       ),
       child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
-        body: _isDesktop ? _buildDesktopBody() : _buildMobileBody(),
+        body: _isDesktop(context) ? _buildDesktopBody() : _buildMobileBody(),
       ),
     );
   }

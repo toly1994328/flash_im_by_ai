@@ -12,7 +12,7 @@ use im_ws::dispatcher::MessageDispatcher;
 use im_friend::{FriendRepository, FriendService, FriendApiState, friend_routes};
 use im_group::{GroupService, GroupApiState, group_routes};
 use sqlx::postgres::PgPoolOptions;
-use tower_http::services::ServeDir;
+use tower_http::services::{ServeDir, ServeFile};
 use app_storage::{StorageConfig, StorageService};
 use app_storage::api::storage_routes;
 
@@ -90,7 +90,8 @@ async fn main() {
         .merge(group_routes(group_api_state))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/uploads", ServeDir::new("uploads"))
-        .nest_service("/static", ServeDir::new("static"));
+        .nest_service("/static", ServeDir::new("static"))
+        .nest_service("/im", ServeDir::new("static/web").fallback(ServeFile::new("static/web/index.html")));
 
     println!("🚀 Flash IM server listening on:");
     println!("   Local:   http://127.0.0.1:{port}");

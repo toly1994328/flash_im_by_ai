@@ -100,6 +100,14 @@ void main() async {
   late final GoRouter router;
   router = createRouter(
     authRepository: authRepository,
+    restoreSession: () async {
+      final ok = await sessionCubit.restore();
+      if (ok) {
+        await initCache();
+        wsClient.connect();
+      }
+      return ok;
+    },
     startupTasks: [
       RestoreSessionTask(sessionCubit),
     ],

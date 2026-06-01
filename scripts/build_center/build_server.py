@@ -7,6 +7,7 @@
 用法：
   python scripts/build_center/build_server.py                        # 只编译
   python scripts/build_center/build_server.py root@82.157.176.209     # 编译并上传
+  python scripts/build_center/build_server.py --upload-only root@82.157.176.209  # 只上传不编译
 
 前置条件：
   - 已安装 Rust：https://rustup.rs
@@ -70,7 +71,9 @@ def file_size_human(path):
 
 
 def main():
-    remote_host = sys.argv[1] if len(sys.argv) > 1 else None
+    upload_only = "--upload-only" in sys.argv
+    args = [a for a in sys.argv[1:] if a != "--upload-only"]
+    remote_host = args[0] if args else None
 
     print()
     print("╔══════════════════════════════════════════╗")
@@ -83,78 +86,89 @@ def main():
 
     # ─── 检查工具 ───
 
-    if not check_tool("cargo"):
-        fail("cargo 未安装，请先安装 Rust：https://rustup.rs")
+    if not upload_only:
+        if not check_tool("cargo"):
+            fail("cargo 未安装，请先安装 Rust：https://rustup.rs")
 
-    if not check_tool("cross"):
-        info("cross 未安装，正在安装...")
-        run(["cargo", "install", "cross"])
+        if not check_tool("cross"):
+            info("cross 未安装，正在安装...")
+            run(["cargo", "install", "cross"])
 
-    # 检查 Docker
-    try:
-        r = subprocess.run(["docker", "info"], capture_output=True, timeout=10)
-        if r.returncode != 0:
-            raise Exception()
-    except Exception:
+    if not upload_only:
+        # 检查 Docker
+        try:
+            r = subprocess.run(["docker", "info"], capture_output=True, timeout=10)
+            if r.returncode != 0:
+                raise Exception()
+        except Exception:
+            print()
+            machine = platform.machine().lower()
+            if SYSTEM == "Darwin":
+                if "arm" in machine or "aarch64" in machine:
+                    url = "https://desktop.docker.com/mac/main/arm64/Docker.dmg"
+                    chip = "Apple Silicon (M1/M2/M3/M4)"
+                else:
+                    url = "https://desktop.docker.com/mac/main/amd64/Docker.dmg"
+                    chip = "Intel Chip"
+                hint = f"  macOS {chip}：\n    下载安装：{url}\n    安装后打开 Docker Desktop，等状态栏鲸鱼图标变绿。"
+            elif SYSTEM == "Windows":
+                if "arm" in machine or "aarch64" in machine:
+                    url = "https://desktop.docker.com/win/main/arm64/Docker%20Desktop%20Installer.exe"
+                    chip = "ARM64"
+                else:
+                    url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
+                    chip = "AMD64"
+                hint = f"  Windows {chip}：\n    下载安装：{url}\n    安装后启动 Docker Desktop，等系统托盘图标变绿。"
+            else:
+                hint = "  Linux：\n    curl -fsSL https://get.docker.com | sh\n    sudo systemctl start docker"
+
+            fail(
+                "Docker 未运行。cross 需要 Docker 来做交叉编译。\n"
+                "\n"
+                f"       请安装并启动 Docker：\n"
+                f"       {hint}\n"
+                "\n"
+                "       启动后重新运行此脚本。"
+            )
+
+        ok("工具检查通过（cargo + cross + docker）")
         print()
-        machine = platform.machine().lower()
-        if SYSTEM == "Darwin":
-            if "arm" in machine or "aarch64" in machine:
-                url = "https://desktop.docker.com/mac/main/arm64/Docker.dmg"
-                chip = "Apple Silicon (M1/M2/M3/M4)"
-            else:
-                url = "https://desktop.docker.com/mac/main/amd64/Docker.dmg"
-                chip = "Intel Chip"
-            hint = f"  macOS {chip}：\n    下载安装：{url}\n    安装后打开 Docker Desktop，等状态栏鲸鱼图标变绿。"
-        elif SYSTEM == "Windows":
-            if "arm" in machine or "aarch64" in machine:
-                url = "https://desktop.docker.com/win/main/arm64/Docker%20Desktop%20Installer.exe"
-                chip = "ARM64"
-            else:
-                url = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
-                chip = "AMD64"
-            hint = f"  Windows {chip}：\n    下载安装：{url}\n    安装后启动 Docker Desktop，等系统托盘图标变绿。"
-        else:
-            hint = "  Linux：\n    curl -fsSL https://get.docker.com | sh\n    sudo systemctl start docker"
-
-        fail(
-            "Docker 未运行。cross 需要 Docker 来做交叉编译。\n"
-            "\n"
-            f"       请安装并启动 Docker：\n"
-            f"       {hint}\n"
-            "\n"
-            "       启动后重新运行此脚本。"
-        )
-
-    ok("工具检查通过（cargo + cross + docker）")
-    print()
 
     # ─── 编译 ───
 
-    info(f"目标平台：{TARGET}")
-    info("开始编译（Release 模式），可能需要几分钟...")
-    print()
-
-    if SYSTEM == "Windows":
-        info("Windows 环境，使用 Docker 容器编译...")
-        server_dir_posix = SERVER_DIR.replace("\\", "/")
-        proto_dir_posix = os.path.join(PROJECT_ROOT, "proto").replace("\\", "/")
-        run([
-            "docker", "run", "--rm",
-            "-v", f"{server_dir_posix}:/project",
-            "-v", f"{proto_dir_posix}:/proto",
-            "-w", "/project",
-            "rust:latest",
-            "bash", "-c",
-            "apt-get update -qq && apt-get install -y -qq protobuf-compiler > /dev/null 2>&1 && cargo build --release",
-        ])
-        binary_path = os.path.join(SERVER_DIR, "target", "release", BINARY_NAME)
+    if upload_only:
+        info("跳过编译（--upload-only）")
+        if SYSTEM == "Windows":
+            binary_path = os.path.join(SERVER_DIR, "target", "release", BINARY_NAME)
+        else:
+            binary_path = BINARY_PATH
+        if not os.path.isfile(binary_path):
+            fail(f"二进制文件不存在：{binary_path}，请先编译")
     else:
-        run(["cross", "build", "--release", "--target", TARGET], cwd=SERVER_DIR)
-        binary_path = BINARY_PATH
+        info(f"目标平台：{TARGET}")
+        info("开始编译（Release 模式），可能需要几分钟...")
+        print()
 
-    if not os.path.isfile(binary_path):
-        fail("编译失败，未找到二进制文件")
+        if SYSTEM == "Windows":
+            info("Windows 环境，使用 Docker 容器编译...")
+            server_dir_posix = SERVER_DIR.replace("\\", "/")
+            proto_dir_posix = os.path.join(PROJECT_ROOT, "proto").replace("\\", "/")
+            run([
+                "docker", "run", "--rm",
+                "-v", f"{server_dir_posix}:/project",
+                "-v", f"{proto_dir_posix}:/proto",
+                "-w", "/project",
+                "rust:latest",
+                "bash", "-c",
+                "apt-get update -qq && apt-get install -y -qq protobuf-compiler > /dev/null 2>&1 && cargo build --release",
+            ])
+            binary_path = os.path.join(SERVER_DIR, "target", "release", BINARY_NAME)
+        else:
+            run(["cross", "build", "--release", "--target", TARGET], cwd=SERVER_DIR)
+            binary_path = BINARY_PATH
+
+        if not os.path.isfile(binary_path):
+            fail("编译失败，未找到二进制文件")
 
     print()
     ok("编译成功！")

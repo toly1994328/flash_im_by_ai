@@ -10,15 +10,37 @@ GoRouter createRouter({
   required OnLoginSuccess onLoginSuccess,
   required List<StartupTask> startupTasks,
   required OnStartupComplete onStartupComplete,
+  required Future<bool> Function() restoreSession,
 }) {
+  bool _startupDone = false;
+  bool _restoring = false;
+
   return GoRouter(
     initialLocation: '/',
+    redirectLimit: 5,
+    redirect: (context, state) async {
+      final location = state.uri.path;
+      if (!_startupDone && location != '/' && location != '/login') {
+        if (!_restoring) {
+          _restoring = true;
+          final authenticated = await restoreSession();
+          _startupDone = true;
+          _restoring = false;
+          if (!authenticated) return '/login';
+        }
+        return null;
+      }
+      return null;
+    },
     routes: [
       GoRoute(
         path: '/',
         builder: (_, _) => SplashPage(
           tasks: startupTasks,
-          onComplete: onStartupComplete,
+          onComplete: (results) {
+            _startupDone = true;
+            onStartupComplete(results);
+          },
           baseUrl: AppConfig.baseUrl,
           onViewPolicy: (context, title, url) {
             Navigator.of(context).push(MaterialPageRoute(
