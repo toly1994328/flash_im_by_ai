@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -55,6 +56,12 @@ class _SplashPageState extends State<SplashPage> {
   }
 
   Future<void> _checkPrivacyConsent() async {
+    // Web 端跳过隐私弹窗（浏览器环境无需 App 级隐私确认）
+    if (kIsWeb) {
+      widget.onComplete(_results!);
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
     final agreed = prefs.getBool('privacy_agreed') ?? false;
 

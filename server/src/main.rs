@@ -13,6 +13,9 @@ use im_friend::{FriendRepository, FriendService, FriendApiState, friend_routes};
 use im_group::{GroupService, GroupApiState, group_routes};
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::{ServeDir, ServeFile};
+use tower_http::compression::CompressionLayer;
+use tower_http::set_header::SetResponseHeaderLayer;
+use axum::http::{HeaderName, HeaderValue};
 use app_storage::{StorageConfig, StorageService};
 use app_storage::api::storage_routes;
 
@@ -91,7 +94,18 @@ async fn main() {
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/uploads", ServeDir::new("uploads"))
         .nest_service("/static", ServeDir::new("static"))
-        .nest_service("/im", ServeDir::new("static/web").fallback(ServeFile::new("static/web/index.html")));
+        .nest_service("/im", ServeDir::new("static/im").fallback(ServeFile::new("static/im/index.html")))
+        // Gzip/Brotli 压缩：JS/Wasm 文件压缩率 ~70%
+        .layer(CompressionLayer::new())
+        // COOP/COEP 头：启用 SharedArrayBuffer，让 skwasm 多线程渲染生效
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("cross-origin-embedder-policy"),
+            HeaderValue::from_static("credentialless"),
+        ))
+        .layer(SetResponseHeaderLayer::overriding(
+            HeaderName::from_static("cross-origin-opener-policy"),
+            HeaderValue::from_static("same-origin"),
+        ));
 
     println!("🚀 Flash IM server listening on:");
     println!("   Local:   http://127.0.0.1:{port}");

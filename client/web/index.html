@@ -1,46 +1,66 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <!--
-    If you are serving your web app in a path other than the root, change the
-    href value below to reflect the base path you are serving from.
-
-    The path provided below has to start and end with a slash "/" in order for
-    it to work correctly.
-
-    For more details:
-    * https://developer.mozilla.org/en-US/docs/Web/HTML/Element/base
-
-    This is a placeholder for base href that will be replaced by the value of
-    the `--base-href` argument provided to `flutter build`.
-  -->
   <base href="$FLUTTER_BASE_HREF">
 
   <meta charset="UTF-8">
   <meta content="IE=Edge" http-equiv="X-UA-Compatible">
-  <meta name="description" content="A new Flutter project.">
+  <meta name="description" content="闪讯 - 即时通讯">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
   <!-- iOS meta tags & icons -->
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black">
-  <meta name="apple-mobile-web-app-title" content="flash_im">
+  <meta name="apple-mobile-web-app-title" content="闪讯">
   <link rel="apple-touch-icon" href="icons/Icon-192.png">
 
   <!-- Favicon -->
   <link rel="icon" type="image/png" href="favicon.png"/>
 
-  <title>flash_im</title>
+  <title>闪讯</title>
   <link rel="manifest" href="manifest.json">
+  <link rel="stylesheet" href="loading/loading.css">
 </head>
 <body>
-  <!--
-    You can customize the "flutter_bootstrap.js" script.
-    This is useful to provide a custom configuration to the Flutter loader
-    or to give the user feedback during the initialization process.
+  <!-- 科技感加载页 -->
+  <div id="loading-screen">
+    <div class="network-bg">
+      <canvas id="network-canvas"></canvas>
+    </div>
 
-    For more details:
-    * https://docs.flutter.dev/platform-integration/web/initialization
-  -->
+    <div class="center-content">
+      <div class="logo-ring">
+        <!-- SVG 闪电 logo：闪讯 = 闪电 + 消息气泡 -->
+        <svg class="logo-svg" viewBox="0 0 64 64" width="64" height="64" xmlns="http://www.w3.org/2000/svg">
+          <!-- 消息气泡外框 -->
+          <rect x="8" y="8" width="48" height="40" rx="10" ry="10"
+                fill="none" stroke="url(#logo-grad)" stroke-width="2.5"
+                class="bubble-path" />
+          <!-- 气泡尾巴（圆润弧形） -->
+          <path d="M18 46 Q16 54 14 56 Q20 52 24 48" fill="url(#logo-grad)" class="bubble-tail" />
+          <!-- 闪电符号 -->
+          <path d="M35 20 L28 33 L33 33 L30 44 L39 31 L34 31 L37 20 Z"
+                fill="url(#logo-grad)" class="bolt" />
+          <defs>
+            <linearGradient id="logo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#00d4ff" />
+              <stop offset="100%" stop-color="#7b2fff" />
+            </linearGradient>
+          </defs>
+        </svg>
+      </div>
+      <div class="brand-text">闪 讯</div>
+      <div class="progress-bar">
+        <div class="progress-bar-inner"></div>
+      </div>
+      <div class="status-text">正在建立连接...</div>
+    </div>
+
+    <!-- 底部装饰线 -->
+    <div class="bottom-line"></div>
+  </div>
+
+  <script src="loading/loading.js"></script>
   <script src="flutter_bootstrap.js" async></script>
 </body>
 </html>
