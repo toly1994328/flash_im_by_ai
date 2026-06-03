@@ -1,5 +1,8 @@
 {
   "windows": {
     "inno_setup": "C:\\Program Files (x86)\\Inno Setup 6\\ISCC.exe"
+  },
+  "ohos": {
+    "flutter": "C:\\toly\\SDK\\Flutter\\flutter_flutter\\bin\\flutter.bat"
   }
 }

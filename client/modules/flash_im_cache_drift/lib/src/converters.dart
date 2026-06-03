@@ -1,8 +1,6 @@
 import 'package:drift/drift.dart';
 
-import '../../src/models/cached_message.dart';
-import '../../src/models/cached_conversation.dart';
-import '../../src/models/cached_friend.dart';
+import 'package:flash_im_cache/flash_im_cache.dart';
 import 'database/app_database.dart';
 
 // ─── 消息 ───

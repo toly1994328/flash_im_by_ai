@@ -12,6 +12,7 @@ import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
 import 'package:flash_im_search/flash_im_search.dart';
 import 'package:flash_im_cache/flash_im_cache.dart';
+import 'package:flash_im_cache_drift/flash_im_cache_drift.dart';
 import 'package:go_router/go_router.dart';
 import 'src/application/app.dart';
 import 'src/application/config.dart';

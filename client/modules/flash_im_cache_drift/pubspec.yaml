@@ -1,0 +1,31 @@
+name: flash_im_cache_drift
+description: Flash IM 本地缓存 drift 实现
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=1.17.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  drift: ^2.25.0
+  drift_flutter: 0.3.0
+  sqlite3: 3.3.2
+  sqlite3_flutter_libs: ^0.6.0
+  path_provider: ^2.1.5
+  flash_im_cache:
+    path: ../flash_im_cache
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  drift_dev: ^2.25.0
+  build_runner: ^2.4.14
+
+hooks:
+  user_defines:
+    sqlite3:
+      source: system

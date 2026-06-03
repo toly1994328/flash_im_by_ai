@@ -1,9 +1,6 @@
 import 'dart:async';
 
-import '../local_store.dart';
-import '../models/cached_message.dart';
-import '../models/cached_conversation.dart';
-import '../models/cached_friend.dart';
+import 'package:flash_im_cache/flash_im_cache.dart';
 import 'database/app_database.dart';
 import 'dao/message_dao.dart';
 import 'dao/conversation_dao.dart';
