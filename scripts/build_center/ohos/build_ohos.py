@@ -4,10 +4,19 @@
 构建前自动切换为鸿蒙配置（overrides + EmptyLocalStore），
 构建后无论成功失败都还原为正常配置。
 
-用法：
-  python scripts/build_center/build_ohos.py              # 构建（自动切换+还原）
-  python scripts/build_center/build_ohos.py save         # 切换到鸿蒙状态（保持，方便调试）
-  python scripts/build_center/build_ohos.py restore      # 还原为主项目状态
+用法（在项目任意目录下执行）：
+  python scripts/build_center/ohos/build_ohos.py              # 构建 HAP + APP，产物输出到 dest/ohos/
+  python scripts/build_center/ohos/build_ohos.py save         # 切换到鸿蒙状态（保持，方便本地 run 调试）
+  python scripts/build_center/ohos/build_ohos.py restore      # 还原为主项目状态
+
+产物输出：
+  scripts/build_center/dest/ohos/entry-default-signed.hap     # 调试安装用（hdc install）
+  scripts/build_center/dest/ohos/flash_im-default-signed.app  # 上架应用市场用
+
+前置条件：
+  1. build.json 中配置了 ohos.flutter 路径
+  2. DevEco Studio 已配置签名（File → Project Structure → Signing Configs）
+  3. hvigorw 在 PATH 中（或通过 ohos 项目目录下的 wrapper 调用）
 """
 
 import sys
@@ -16,10 +25,12 @@ import shutil
 import subprocess
 from pathlib import Path
 
-SCRIPT_DIR = Path(__file__).resolve().parent
-PROJECT_ROOT = SCRIPT_DIR.parent.parent
-CLIENT_DIR = PROJECT_ROOT / "client"
-BUILD_JSON = SCRIPT_DIR / "build.json"
+SCRIPT_DIR = Path(__file__).resolve().parent          # scripts/build_center/ohos/
+BUILD_CENTER = SCRIPT_DIR.parent                      # scripts/build_center/
+PROJECT_ROOT = BUILD_CENTER.parent.parent             # 项目根目录
+CLIENT_DIR = PROJECT_ROOT / "client"                  # client/
+BUILD_JSON = BUILD_CENTER / "build.json"
+DEST_DIR = BUILD_CENTER / "dest" / "ohos"             # 产物输出目录
 
 # 需要切换的文件
 OVERRIDES_FILE = CLIENT_DIR / "pubspec_overrides.yaml"
@@ -163,18 +174,37 @@ def main():
         info("构建 HAP (release)...")
         run(f'"{flutter}" build hap --release', cwd=CLIENT_DIR)
 
-        # 检查产物
+        # 4. assembleApp（生成上架用的 .app 包）
+        ohos_dir = CLIENT_DIR / "ohos"
+        info("打包 APP (release)...")
+        run('hvigorw assembleApp -p product=default -p buildMode=release --no-daemon', cwd=ohos_dir)
+
+        # 5. 复制产物到 dest
+        DEST_DIR.mkdir(parents=True, exist_ok=True)
+
+        # 复制 .hap
         hap_dir = CLIENT_DIR / "build" / "ohos" / "hap"
         hap_files = list(hap_dir.glob("*.hap")) if hap_dir.exists() else []
-        if hap_files:
-            for f in hap_files:
-                size = f.stat().st_size / (1024 * 1024)
-                ok(f"产物: {f.name} ({size:.1f} MB)")
-        else:
-            info("构建完成，但未找到 .hap 文件（可能需要先配置签名）")
+        for f in hap_files:
+            dest = DEST_DIR / f.name
+            shutil.copy2(f, dest)
+            size = f.stat().st_size / (1024 * 1024)
+            ok(f"HAP: {dest.name} ({size:.1f} MB)")
+
+        # 复制 .app（只要 signed 的）
+        app_output = ohos_dir / "build" / "outputs" / "default"
+        app_files = [f for f in app_output.glob("*-signed.app")] if app_output.exists() else []
+        for f in app_files:
+            dest = DEST_DIR / f.name
+            shutil.copy2(f, dest)
+            size = f.stat().st_size / (1024 * 1024)
+            ok(f"APP: {dest.name} ({size:.1f} MB)")
+
+        if not hap_files and not app_files:
+            info("未找到产物文件（可能需要先配置签名）")
 
         print()
-        ok("鸿蒙构建完成!")
+        ok(f"鸿蒙构建完成! 产物目录: {DEST_DIR}")
 
     except Exception as e:
         print()

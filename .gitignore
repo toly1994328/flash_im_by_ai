@@ -9,4 +9,5 @@ docs/ref
 */build/
 scripts/release/
 scripts/build_center/dest/
+scripts/build_center/ohos/materials/
 .DS_Store

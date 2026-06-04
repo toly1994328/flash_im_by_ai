@@ -14,7 +14,7 @@ dependencies:
   fx_env: 0.0.1+3
   window_manager: ^0.4.3
   mobile_scanner: ^6.0.0
-  tolyui_rx_layout: 1.0.2
+  tolyui_rx_layout: 1.0.2+1
 
 dev_dependencies:
   flutter_test:

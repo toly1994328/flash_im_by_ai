@@ -681,7 +681,7 @@ packages:
     description:
       path: "packages/package_info_plus/package_info_plus"
       ref: "br_package_info_plus-v9.0.0_ohos"
-      resolved-ref: ccabb7e3fa3ca0c9e4a7ede064a016a69fae6069
+      resolved-ref: "02aee2b435a8ec46fd435867a0b7293788f7913e"
       url: "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git"
     source: git
     version: "9.0.0"
@@ -714,7 +714,7 @@ packages:
     description:
       path: "packages/path_provider/path_provider"
       ref: HEAD
-      resolved-ref: d3f3cc01950ed800c58173dad782d0192fe37aec
+      resolved-ref: abe263023cbc77d95ee0a8a2511e8e02903b7a6c
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.1.0"
@@ -747,7 +747,7 @@ packages:
     description:
       path: "packages/path_provider/path_provider_ohos"
       ref: HEAD
-      resolved-ref: d3f3cc01950ed800c58173dad782d0192fe37aec
+      resolved-ref: abe263023cbc77d95ee0a8a2511e8e02903b7a6c
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.2.1"
@@ -996,7 +996,7 @@ packages:
     description:
       path: "packages/shared_preferences/shared_preferences"
       ref: HEAD
-      resolved-ref: d3f3cc01950ed800c58173dad782d0192fe37aec
+      resolved-ref: abe263023cbc77d95ee0a8a2511e8e02903b7a6c
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.2.0"
@@ -1029,7 +1029,7 @@ packages:
     description:
       path: "packages/shared_preferences/shared_preferences_ohos"
       ref: HEAD
-      resolved-ref: d3f3cc01950ed800c58173dad782d0192fe37aec
+      resolved-ref: abe263023cbc77d95ee0a8a2511e8e02903b7a6c
       url: "https://gitcode.com/openharmony-tpc/flutter_packages.git"
     source: git
     version: "2.2.0"

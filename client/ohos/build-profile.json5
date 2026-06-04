@@ -13,12 +13,25 @@
           "storeFile": "C:\\Users\\19814\\.ohos\\config\\default_ohos_RXIJsgx_UZiXR_AaERYsYP-pA7fDJ1V1GRcDwVG2kaA=.p12",
           "storePassword": "0000001B5AE6897EB4588AFFB9A788EC84963F1B90C5B4837C211484FEDD2500C87B0082675BEC9590B47B"
         }
+      },
+      {
+        "name": "release",
+        "type": "HarmonyOS",
+        "material": {
+          "storeFile": "C:/toly/Project/AIGC/flash_im_v1/scripts/build_center/ohos/materials/flash_im_release.p12",
+          "storePassword": "000000187AF6C36BF48F33C580CA498BA202FE55C0CC201DDEF0AB9ADF1F4E2BEC44ED192A54157B",
+          "keyAlias": "toly",
+          "keyPassword": "0000001835496C1A49F428BB0E7362597E0F248DCEC762250FA3B3C660C41533A1717E977124AA8D",
+          "signAlg": "SHA256withECDSA",
+          "profile": "C:/toly/Project/AIGC/flash_im_v1/scripts/build_center/ohos/materials/flash_im_releaseRelease.p7b",
+          "certpath": "C:/toly/Project/AIGC/flash_im_v1/scripts/build_center/ohos/materials/flash_im_release.cer"
+        }
       }
     ],
     "products": [
       {
         "name": "default",
-        "signingConfig": "default",
+        "signingConfig": "release",
         "compatibleSdkVersion": "5.1.0(18)",
         "runtimeOS": "HarmonyOS",
         "targetSdkVersion": "5.1.0(18)"
