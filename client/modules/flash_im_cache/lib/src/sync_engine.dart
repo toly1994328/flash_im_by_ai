@@ -24,6 +24,11 @@ class SyncEngine {
   bool _isSyncing = false;
   final _log = FxLog('Sync');
 
+  /// 同步状态流（true=同步中，false=同步完成/空闲）
+  final _syncingController = StreamController<bool>.broadcast();
+  Stream<bool> get syncingStream => _syncingController.stream;
+  bool get isSyncing => _isSyncing;
+
   /// 回调：会话数据变更时触发
   void Function()? onConversationChanged;
 
@@ -82,6 +87,7 @@ class SyncEngine {
       return;
     }
     _isSyncing = true;
+    _syncingController.add(true);
     try {
       final isFirst = await _store.isFirstLogin();
       _log.d('sync start (firstLogin=$isFirst)');
@@ -93,6 +99,7 @@ class SyncEngine {
       _log.w('sync failed: $e');
     } finally {
       _isSyncing = false;
+      _syncingController.add(false);
     }
   }
 
@@ -332,5 +339,6 @@ class SyncEngine {
       sub.cancel();
     }
     _subs.clear();
+    _syncingController.close();
   }
 }

@@ -10,4 +10,5 @@ docs/ref
 scripts/release/
 scripts/build_center/dest/
 scripts/build_center/ohos/materials/
+web/
 .DS_Store

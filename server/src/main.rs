@@ -91,6 +91,7 @@ async fn main() {
         .merge(storage_routes(storage))
         .merge(friend_routes(friend_state))
         .merge(group_routes(group_api_state))
+        .merge(app_center::router(db.clone()))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/uploads", ServeDir::new("uploads"))
         .nest_service("/static", ServeDir::new("static"))

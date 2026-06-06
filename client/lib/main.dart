@@ -75,6 +75,7 @@ void main() async {
 
   Future<void> initCache() async {
     final log = FxLog('Cache');
+    final sw = Stopwatch()..start();
     final user = sessionCubit.state.user;
     log.d('initCache called, user=${user?.userId}, status=${sessionCubit.state.status}');
     if (user == null) {
@@ -83,10 +84,16 @@ void main() async {
     }
     log.d('opening database for userId=${user.userId}');
     localStore = await DriftLocalStore.open(user.userId);
+    log.d('database opened in ${sw.elapsedMilliseconds}ms');
+    // 预热：仅在有缓存数据时预查询，让 SQLite 加载表结构，避免进入首页后卡顿
+    if (!await localStore!.isFirstLogin()) {
+      await localStore!.getConversations(limit: 1);
+      log.d('database warmed up in ${sw.elapsedMilliseconds}ms');
+    }
     conversationRepo.setStore(localStore!);
     messageRepo.setStore(localStore!);
     friendRepo.setStore(localStore!);
-    log.d('store injected into repositories');
+    log.d('store injected into repositories (${sw.elapsedMilliseconds}ms)');
     syncEngine = SyncEngine(
       store: localStore!,
       wsClient: wsClient,
@@ -95,7 +102,7 @@ void main() async {
     );
     syncEngine!.start();
     globalSyncEngine = syncEngine;
-    log.i('SyncEngine started');
+    log.i('SyncEngine started, total initCache: ${sw.elapsedMilliseconds}ms');
   }
 
   late final GoRouter router;

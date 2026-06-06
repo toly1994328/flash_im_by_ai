@@ -6,7 +6,9 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:flash_im_chat/flash_im_chat.dart';
 import '../../../main.dart' show globalSyncEngine;
+import '../../update/update_trigger.dart';
 import 'home_actions_mixin.dart';
 import 'mobile_layout.dart';
 import 'desktop/desktop_layout.dart';
@@ -56,7 +58,13 @@ class HomePageState extends State<HomePage> with HomeActionsMixin {
     )..loadPendingCount();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _checkPasswordGuide();
+      _checkUpdate();
     });
+  }
+
+  void _checkUpdate() {
+    UpdateTrigger(dio: context.read<MessageRepository>().dio)
+        .checkAndPrompt(context);
   }
 
   void _checkPasswordGuide() {

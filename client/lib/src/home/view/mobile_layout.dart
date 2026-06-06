@@ -8,6 +8,7 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import '../../../main.dart' show globalSyncEngine;
 import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
 import '../profile/profile_page.dart';
@@ -189,29 +190,38 @@ class _MobileLayoutState extends State<MobileLayout> {
                     StreamBuilder<WsConnectionState>(
                       stream: wsClient.stateStream,
                       initialData: wsClient.state,
-                      builder: (context, snapshot) {
-                        final wsState = snapshot.data ?? WsConnectionState.disconnected;
-                        final (text, color) = switch (wsState) {
-                          WsConnectionState.disconnected => ('连接已断开，点击重试', Colors.red),
-                          WsConnectionState.connecting => ('连接中...', Colors.orange),
-                          WsConnectionState.authenticating => ('认证中...', Colors.orange),
-                          WsConnectionState.authenticated => ('已连接', const Color(0xFF4CAF50)),
-                        };
-                        return GestureDetector(
-                          onTap: wsState == WsConnectionState.disconnected
-                              ? () => wsClient.connect()
-                              : null,
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                width: 8, height: 8,
-                                decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                      builder: (context, wsSnapshot) {
+                        final wsState = wsSnapshot.data ?? WsConnectionState.disconnected;
+                        return StreamBuilder<bool>(
+                          stream: globalSyncEngine?.syncingStream,
+                          initialData: globalSyncEngine?.isSyncing ?? false,
+                          builder: (context, syncSnapshot) {
+                            final syncing = syncSnapshot.data ?? false;
+                            final (text, color) = switch (wsState) {
+                              WsConnectionState.disconnected => ('连接已断开，点击重试', Colors.red),
+                              WsConnectionState.connecting => ('连接中...', Colors.orange),
+                              WsConnectionState.authenticating => ('认证中...', Colors.orange),
+                              WsConnectionState.authenticated => syncing
+                                  ? ('消息同步中...', Colors.orange)
+                                  : ('已连接', const Color(0xFF4CAF50)),
+                            };
+                            return GestureDetector(
+                              onTap: wsState == WsConnectionState.disconnected
+                                  ? () => wsClient.connect()
+                                  : null,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Container(
+                                    width: 8, height: 8,
+                                    decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+                                  ),
+                                  const SizedBox(width: 4),
+                                  Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.normal)),
+                                ],
                               ),
-                              const SizedBox(width: 4),
-                              Text(text, style: TextStyle(fontSize: 10, color: color, fontWeight: FontWeight.normal)),
-                            ],
-                          ),
+                            );
+                          },
                         );
                       },
                     ),

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import '../data/conversation_repository.dart';
@@ -99,13 +100,16 @@ class ConversationListCubit extends Cubit<ConversationListState> {
 
   Future<void> loadConversations() async {
     _isLoadingMore = false;
-    emit(const ConversationListLoading());
     try {
+      final sw = Stopwatch()..start();
       final conversations = await _repository.getList(limit: _pageSize, offset: 0);
+      debugPrint('[D/ConvCubit] loadConversations: ${conversations.length} items in ${sw.elapsedMilliseconds}ms');
       final hasMore = conversations.length >= _pageSize;
       emit(ConversationListLoaded(conversations, hasMore: hasMore));
     } catch (e) {
-      emit(ConversationListError(e.toString()));
+      if (state is! ConversationListLoaded) {
+        emit(ConversationListError(e.toString()));
+      }
     }
   }
 

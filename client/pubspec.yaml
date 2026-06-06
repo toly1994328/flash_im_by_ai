@@ -67,6 +67,8 @@ dependencies:
     path: modules/flash_im_cache_drift
   fx_logger:
     path: packages/fx_logger
+  fx_updater:
+    path: packages/fx_updater
   tolyui_rx_layout: 1.0.2
   tolyui_navigation: 0.2.1
   window_manager: ^0.4.3
@@ -88,11 +90,6 @@ flutter_launcher_icons:
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
-
-hooks:
-  user_defines:
-    sqlite3:
-      source: system
 
 # The following section is specific to Flutter packages.
 flutter:
