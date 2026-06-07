@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_im_core/flash_im_core.dart';
+import 'package:fx_updater/fx_updater.dart';
 
 import 'settings_page.dart';
 import 'my_qr_code_page.dart';
@@ -51,6 +52,7 @@ class ProfilePage extends StatelessWidget {
                   icon: Icons.settings_outlined,
                   iconColor: const Color(0xFF3B82F6),
                   label: '设置',
+                  trailing: const FxUpdateBadge(),
                   onTap: () => _pushPage(
                     context,
                     SettingsPage(hasPassword: hasPassword),
@@ -87,6 +89,7 @@ class ProfilePage extends StatelessWidget {
     required Color iconColor,
     required String label,
     required VoidCallback onTap,
+    Widget? trailing,
   }) {
     return InkWell(
       onTap: onTap,
@@ -97,6 +100,7 @@ class ProfilePage extends StatelessWidget {
             Icon(icon, size: 22, color: iconColor),
             const SizedBox(width: 16),
             Expanded(child: Text(label, style: const TextStyle(fontSize: 16))),
+            if (trailing != null) ...[trailing, const SizedBox(width: 8)],
             Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
           ],
         ),

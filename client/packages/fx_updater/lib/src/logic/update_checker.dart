@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 
-import 'app_version.dart';
-import 'update_info.dart';
+import '../data/app_version.dart';
+import '../data/update_info.dart';
 
 /// 获取更新信息的回调（由使用方注入）
 typedef FetchUpdateInfo = Future<UpdateInfo?> Function();

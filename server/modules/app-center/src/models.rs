@@ -81,5 +81,15 @@ pub struct AppVersionFullRow {
     pub sha256: Option<String>,
     pub release_notes: Option<String>,
     pub force_update: bool,
+    pub published: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
+}
+
+
+/// Publish/Unpublish 查询参数
+#[derive(Deserialize)]
+pub struct PublishQuery {
+    pub app_id: String,
+    pub platform: String,
+    pub version: String,
 }

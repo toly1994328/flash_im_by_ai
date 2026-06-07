@@ -3,10 +3,11 @@
 闪讯 Android 构建脚本
 
 用法：
-  python scripts/build_center/build_android.py              # 构建 APK（默认 .env.production）
-  python scripts/build_center/build_android.py --aab        # 构建 AAB（Google Play）
+  python scripts/build_center/build_android.py              # 构建 APK（standard flavor，默认 .env.production）
+  python scripts/build_center/build_android.py --aab        # 构建 AAB（google flavor，Google Play）
   python scripts/build_center/build_android.py --dev        # 使用 .env.dev 配置
   python scripts/build_center/build_android.py --env staging  # 使用自定义环境
+  python scripts/build_center/build_android.py --flavor google  # 手动指定 flavor
 
 产物输出：
   scripts/build_center/dest/android/arm64-v8a/flash_im.apk
@@ -27,7 +28,6 @@ DEST_BASE = os.path.join(SCRIPT_DIR, "dest", "android")
 # 架构映射：flutter 参数 → APK 文件关键字 → 产物文件夹名
 PLATFORMS = [
     {"flag": "android-arm64", "keyword": "arm64", "folder": "arm64-v8a"},
-    {"flag": "android-arm", "keyword": "armeabi", "folder": "armeabi-v7a"},
 ]
 
 
@@ -61,6 +61,14 @@ def main():
     args = sys.argv[1:]
     build_aab = "--aab" in args
 
+    # Flavor 决策：--aab 默认 google，否则默认 standard，可通过 --flavor 覆盖
+    if "--flavor" in args:
+        flavor = args[args.index("--flavor") + 1]
+    elif build_aab:
+        flavor = "google"
+    else:
+        flavor = "standard"
+
     # 环境配置（默认 production）
     env = "production"
     if "--dev" in args:
@@ -72,7 +80,7 @@ def main():
     if not os.path.isfile(env_file):
         fail(f"环境配置文件不存在：{env_file}")
 
-    dart_defines = f"--dart-define-from-file={env_file}"
+    dart_defines = f"--dart-define-from-file={env_file} --dart-define=CHANNEL={flavor}"
 
     print()
     print("╔══════════════════════════════════════════╗")
@@ -80,6 +88,7 @@ def main():
     print("╚══════════════════════════════════════════╝")
     print()
     info(f"环境：.env.{env}")
+    info(f"Flavor：{flavor}")
     info("清理构建缓存...")
     run("flutter clean")
     info("获取依赖...")
@@ -89,9 +98,17 @@ def main():
         dest_dir = os.path.join(DEST_BASE, "aab")
         os.makedirs(dest_dir, exist_ok=True)
 
-        info("构建 AAB（Google Play 格式）...")
-        run(f"flutter build appbundle --release --obfuscate --split-debug-info=build/debug-info {dart_defines} -v")
-        output = os.path.join(CLIENT_DIR, "build", "app", "outputs", "bundle", "release", "app-release.aab")
+        info(f"构建 AAB（flavor={flavor}，Google Play 格式）...")
+        run(
+            f"flutter build appbundle --flavor {flavor} --release"
+            f" --obfuscate --split-debug-info=build/debug-info"
+            f" {dart_defines} -v"
+        )
+        # flavor 会影响产物路径：app-{flavor}-release.aab
+        output = os.path.join(
+            CLIENT_DIR, "build", "app", "outputs", "bundle",
+            f"{flavor}Release", f"app-{flavor}-release.aab"
+        )
         if os.path.isfile(output):
             dest = os.path.join(dest_dir, "flash_im.aab")
             shutil.copy2(output, dest)
@@ -99,18 +116,18 @@ def main():
             info(f"产物：{dest}")
             info(f"大小：{file_size(dest)}")
         else:
-            fail("AAB 文件未找到")
+            fail(f"AAB 文件未找到：{output}")
     else:
         # 同时构建 arm64 和 armeabi-v7a
         target_platforms = ",".join(p["flag"] for p in PLATFORMS)
         cmd = (
-            f"flutter build apk --release"
+            f"flutter build apk --flavor {flavor} --release"
             f" --target-platform {target_platforms}"
             f" --split-per-abi"
             f" --obfuscate --split-debug-info=build/debug-info"
             f" {dart_defines} -v"
         )
-        info(f"构建 APK（{', '.join(p['folder'] for p in PLATFORMS)}）...")
+        info(f"构建 APK（flavor={flavor}，{', '.join(p['folder'] for p in PLATFORMS)}）...")
         run(cmd)
 
         output_dir = os.path.join(CLIENT_DIR, "build", "app", "outputs", "flutter-apk")
@@ -131,6 +148,14 @@ def main():
                     break
             if not found:
                 fail(f"{platform['folder']} APK 文件未找到")
+
+    # 计算所有产物的元信息
+    info("计算安装包元信息...")
+    calc_script = os.path.join(SCRIPT_DIR, "upload", "calculate.py")
+    for platform in PLATFORMS:
+        apk_path = os.path.join(DEST_BASE, platform["folder"], "flash_im.apk")
+        if os.path.isfile(apk_path):
+            subprocess.run([sys.executable, calc_script, apk_path, "android"])
 
     print()
 

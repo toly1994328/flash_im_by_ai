@@ -1,8 +1,8 @@
 ---
 module: starter
 version: v0.0.3
-date: 2026-06-05
-tags: [版本检测, 应用更新, 多应用支持]
+date: 2026-06-06
+tags: [版本检测, 应用更新, 多应用支持, published 控制]
 ---
 
 # 应用版本管理 — 后端设计报告
@@ -47,6 +47,7 @@ CREATE TABLE app_versions (
     sha256 VARCHAR(64),                  -- 文件 SHA256 哈希
     release_notes TEXT,                  -- 更新日志
     force_update BOOLEAN NOT NULL DEFAULT FALSE, -- 强制更新开关
+    published BOOLEAN NOT NULL DEFAULT FALSE,    -- 是否已发布（未发布时客户端查不到）
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(app_id, platform, version)
 );
@@ -74,6 +75,7 @@ erDiagram
         varchar sha256
         text release_notes
         boolean force_update
+        boolean published
         timestamp created_at
     }
 ```
@@ -85,6 +87,7 @@ erDiagram
 | 按 created_at DESC 取最新 | 不用额外标记"当前版本"，最新记录就是当前版本 |
 | force_update 在版本记录上 | 每个版本独立控制，不影响历史记录 |
 | sha256 可为空 | iOS/鸿蒙跳转商店无需校验文件 |
+| published 默认 false | 新增版本不立即生效，需手动确认发布。避免商店审核未通过时客户端已提示更新 |
 
 ### 接口契约
 
@@ -92,9 +95,15 @@ erDiagram
 
 | 方法 | 路径 | 说明 |
 |------|------|------|
-| GET | /api/app/version | 查询最新版本（客户端调用） |
-| POST | /api/app/version | 新增版本记录（发版时调用） |
+| GET | /api/app/list | 获取所有应用列表 |
+| POST | /api/app | 新增应用 |
+| GET | /api/app/versions | 获取某应用的全部版本记录 |
+| GET | /api/app/version | 查询最新已发布版本（客户端调用，仅返回 published=true） |
+| POST | /api/app/version | 新增版本记录 |
 | PUT | /api/app/version | 更新已有版本信息（修正时调用） |
+| DELETE | /api/app/version | 删除版本记录 |
+| POST | /api/app/version/publish | 发布版本（设 published=true） |
+| POST | /api/app/version/unpublish | 撤回发布（设 published=false） |
 
 ---
 

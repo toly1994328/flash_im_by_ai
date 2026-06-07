@@ -1,11 +1,14 @@
 import 'package:flash_auth/flash_auth.dart';
+import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_env/fx_env.dart';
+import 'package:fx_updater/fx_updater.dart';
 import 'package:go_router/go_router.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../update/update_trigger.dart';
 
 import '../../application/config.dart';
 import 'about_page.dart';
@@ -51,6 +54,7 @@ class SettingsPage extends StatelessWidget {
             _buildItem(icon: Icons.info_outline, label: '关于闪讯', onTap: () {
               Navigator.of(context).push(MaterialPageRoute(builder: (_) => const AboutPage()));
             }),
+            _buildUpdateItem(context),
             _buildItem(icon: Icons.description_outlined, label: '用户协议', onTap: () => _openPolicy(context, '用户协议', '/static/agreement.html')),
             _buildItem(icon: Icons.shield_outlined, label: '隐私政策', onTap: () => _openPolicy(context, '隐私政策', '/static/privacy.html')),
           ]),
@@ -103,7 +107,7 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  Widget _buildItem({IconData? icon, required String label, required VoidCallback onTap}) {
+  Widget _buildItem({IconData? icon, required String label, required VoidCallback onTap, Widget? trailing}) {
     return InkWell(
       onTap: onTap,
       child: Padding(
@@ -115,10 +119,70 @@ class SettingsPage extends StatelessWidget {
               const SizedBox(width: 12),
             ],
             Expanded(child: Text(label, style: const TextStyle(fontSize: 16, color: Color(0xFF333333)))),
+            if (trailing != null) ...[trailing, const SizedBox(width: 8)],
             Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
           ],
         ),
       ),
+    );
+  }
+
+  Widget _buildUpdateItem(BuildContext context) {
+    return StreamBuilder<UpdateCheckResult>(
+      stream: FxUpdater().stream,
+      builder: (BuildContext context, AsyncSnapshot<UpdateCheckResult> snapshot) {
+        final bool hasUpdate = FxUpdater().hasUpdate;
+        final UpdateInfo? info = FxUpdater().updateInfo;
+
+        if (hasUpdate && info != null) {
+          // 有更新：展示版本号 + 大小（上下排列）+ 红点
+          return InkWell(
+            onTap: () {
+              final UpdateTrigger trigger = UpdateTrigger(dio: context.read<MessageRepository>().dio);
+              UpdateDialog.show(
+                context,
+                info: info,
+                onUpdate: () => trigger.executeUpdate(info),
+                downloadHandler: trigger.shouldDownload()
+                    ? (onProgress) => trigger.downloadFile(info, onProgress)
+                    : null,
+                installHandler: (filePath) => trigger.installFile(filePath),
+              );
+            },
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              child: Row(
+                children: [
+                  const Icon(Icons.system_update_outlined, size: 20, color: Color(0xFF3B82F6)),
+                  const SizedBox(width: 12),
+                  const Expanded(child: Text('发现新版本', style: TextStyle(fontSize: 16, color: Color(0xFF333333)))),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text('v${FxUpdater().currentVersion} → v${info.version}', style: const TextStyle(fontSize: 12, color: Colors.orange, fontWeight: FontWeight.w500)),
+                      if (info.fileSizeText.isNotEmpty)
+                        Text(info.fileSizeText, style: TextStyle(fontSize: 11, color: Colors.grey[500])),
+                    ],
+                  ),
+                  const SizedBox(width: 8),
+                  const FxUpdateBadge(),
+                  const SizedBox(width: 8),
+                  Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
+                ],
+              ),
+            ),
+          );
+        }
+
+        // 无更新：展示检查更新
+        return _buildItem(
+          icon: Icons.system_update_outlined,
+          label: '检查更新',
+          onTap: () {
+            UpdateTrigger(dio: context.read<MessageRepository>().dio).checkAndPrompt(context);
+          },
+        );
+      },
     );
   }
 

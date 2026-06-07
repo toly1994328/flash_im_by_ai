@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.30.0（数据层隔离 + 鸿蒙构建支持 + HAP/APP 产物）
+最后更新：v0.31.0（版本检测与应用升级 + fx_updater + fx_install_android）
 
 ---
 
@@ -35,6 +35,7 @@
 | I-18 | 邮箱验证码发送 | flash-auth (email/sender) | 后端 | v0.25.0 | ✅ |
 | I-19 | 邮箱登录 | flash-auth (handler) | 后端 | v0.25.0 | ✅ |
 | I-20 | 扫码会话管理 | flash-auth (handler) | 后端 | v0.27.0 | ✅ |
+| I-21 | 版本信息管理 | app-center | 后端 | v0.31.0 | ✅ |
 
 ### 领域层（D）
 
@@ -180,6 +181,7 @@
 | P-70 | 设置页三栏 | home (profile/desktop_settings_panel) | v0.28.0 | ✅ |
 | P-71 | 桌面端弹窗化操作 | home (desktop/actions_mixin) + flash_shared | v0.28.0 | ✅ |
 | P-72 | 意见反馈 | home (profile/feedback_page) | v0.28.0 | ✅ |
+| P-73 | 版本检测与更新弹窗 | fx_updater + update_trigger | v0.31.0 | ✅ |
 
 
 ---
@@ -419,6 +421,7 @@ graph LR
 | v0.28.0 | 2026-05-31 | 151 | [trace/v0.28.0_2026-05-31.md](trace/v0.28.0_2026-05-31.md) |
 | v0.29.0 | 2026-06-03 | 151 | [trace/v0.29.0_2026-06-03.md](trace/v0.29.0_2026-06-03.md) |
 | v0.30.0 | 2026-06-05 | 151 | [trace/v0.30.0_2026-06-05.md](trace/v0.30.0_2026-06-05.md) |
+| v0.31.0 | 2026-06-07 | 153 | [trace/v0.31.0_2026-06-07.md](trace/v0.31.0_2026-06-07.md) |
 
 ---
 
@@ -442,3 +445,4 @@ graph LR
 | 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, I-20, D-42 |
 | 桌面端登录 | [auth/client.md](modules/auth/client.md) | P-66~P-67 |
 | 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-72 |
+| 版本更新 | [starter/server.md](modules/starter/server.md) [starter/client.md](modules/starter/client.md) | I-21, P-73 |

@@ -75,7 +75,7 @@ def resolve_env_file(env_name):
     return env_file
 
 
-def run_android(index=None, env_file=None):
+def run_android(index=None, env_file=None, flavor="standard"):
     if index is not None:
         info(f"查找第 {index} 个设备...")
         devices = list_adb_devices()
@@ -101,10 +101,10 @@ def run_android(index=None, env_file=None):
             fail("未找到 Android 设备，请确认模拟器已启动或 USB 连接真机")
 
     ok(f"设备：{device_id}")
-    cmd = f"flutter run -d {device_id}"
+    cmd = f"flutter run -d {device_id} --flavor {flavor} --dart-define=CHANNEL={flavor}"
     if env_file:
         cmd += f" --dart-define-from-file={env_file}"
-    info(f"启动 Flutter（Android）...")
+    info(f"启动 Flutter（Android，flavor={flavor}）...")
     subprocess.run(cmd, cwd=CLIENT_DIR, shell=True)
 
 
@@ -124,6 +124,8 @@ if __name__ == "__main__":
                         default="android", help="目标平台（默认 android）")
     parser.add_argument("--env", default="dev",
                         help="环境配置（默认 dev，对应 .env.dev）")
+    parser.add_argument("--flavor", choices=["standard", "google"],
+                        default="standard", help="Android flavor（默认 standard）")
     args = parser.parse_args()
 
     env_file = resolve_env_file(args.env)
@@ -132,4 +134,4 @@ if __name__ == "__main__":
     if args.platform == "windows":
         run_windows(env_file)
     else:
-        run_android(index=args.index, env_file=env_file)
+        run_android(index=args.index, env_file=env_file, flavor=args.flavor)

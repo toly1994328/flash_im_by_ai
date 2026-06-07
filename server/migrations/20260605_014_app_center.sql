@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS app_versions (
     sha256 VARCHAR(64),
     release_notes TEXT,
     force_update BOOLEAN NOT NULL DEFAULT FALSE,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(app_id, platform, version)
 );

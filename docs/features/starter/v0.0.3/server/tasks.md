@@ -7,21 +7,21 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — Cargo.toml 配置（无依赖）
-2. ⬜ 任务 2 — 数据库迁移脚本（无依赖）
-3. ⬜ 任务 3 — models.rs 数据结构（依赖任务 1）
-4. ⬜ 任务 4 — routes.rs 路由处理（依赖任务 3）
-5. ⬜ 任务 5 — lib.rs 模块入口（依赖任务 4）
-6. ⬜ 任务 6 — main.rs 注册路由（依赖任务 5）
-7. ⬜ 任务 7 — 编译验证 + 测试
+1. ✅ 任务 1 — Cargo.toml 配置
+2. ✅ 任务 2 — 数据库迁移脚本
+3. ✅ 任务 3 — models.rs 数据结构
+4. ✅ 任务 4 — routes.rs 路由处理
+5. ✅ 任务 5 — lib.rs 模块入口
+6. ✅ 任务 6 — main.rs 注册路由
+7. ✅ 任务 7 — 编译验证 + 测试
 
 ---
 
-## 任务 1：Cargo.toml 配置 `⬜ 待处理`
+## 任务 1：Cargo.toml 配置 `✅ 已完成`
 
-### 1.1 新建 app-center 模块 Cargo.toml `⬜`
+### 1.1 新建 app-center 模块 `✅`
 
-文件：`server/modules/app-center/Cargo.toml`（新建）
+文件：`server/modules/app-center/Cargo.toml`
 
 ```toml
 [package]
@@ -36,25 +36,18 @@ serde_json.workspace = true
 sqlx.workspace = true
 ```
 
-### 1.2 注册到 workspace `⬜`
+### 1.2 注册到 workspace `✅`
 
-文件：`server/Cargo.toml`（修改）
-
-在 `[workspace] members` 中添加 `"modules/app-center"`。
-
-在根 crate 的 `[dependencies]` 中添加：
-```toml
-app-center = { path = "modules/app-center" }
-```
+`server/Cargo.toml` 的 `[workspace] members` 中已添加 `"modules/app-center"`，
+根 crate 的 `[dependencies]` 中已添加 `app-center = { path = "modules/app-center" }`。
 
 ---
 
-## 任务 2：数据库迁移脚本 `⬜ 待处理`
+## 任务 2：数据库迁移脚本 `✅ 已完成`
 
-文件：`server/migrations/20260605_create_app_tables.sql`（新建）
+建表 SQL 已执行：
 
 ```sql
--- 应用注册表
 CREATE TABLE IF NOT EXISTS apps (
     id VARCHAR(64) PRIMARY KEY,
     name VARCHAR(128) NOT NULL,
@@ -62,7 +55,6 @@ CREATE TABLE IF NOT EXISTS apps (
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
--- 版本记录表
 CREATE TABLE IF NOT EXISTS app_versions (
     id SERIAL PRIMARY KEY,
     app_id VARCHAR(64) NOT NULL REFERENCES apps(id),
@@ -73,206 +65,147 @@ CREATE TABLE IF NOT EXISTS app_versions (
     sha256 VARCHAR(64),
     release_notes TEXT,
     force_update BOOLEAN NOT NULL DEFAULT FALSE,
+    published BOOLEAN NOT NULL DEFAULT FALSE,
     created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     UNIQUE(app_id, platform, version)
 );
 
 CREATE INDEX IF NOT EXISTS idx_app_versions_lookup
     ON app_versions(app_id, platform, created_at DESC);
-
--- 插入闪讯应用
-INSERT INTO apps (id, name, description) VALUES
-    ('flash_im', '闪讯', '跨平台即时通讯应用')
-ON CONFLICT (id) DO NOTHING;
 ```
 
 ---
 
-## 任务 3：models.rs 数据结构 `⬜ 待处理`
+## 任务 3：models.rs 数据结构 `✅ 已完成`
 
-文件：`server/modules/app-center/src/models.rs`（新建）
+文件：`server/modules/app-center/src/models.rs`
 
-### 3.1 数据库行结构 `⬜`
-
-```rust
-#[derive(sqlx::FromRow, Serialize)]
-pub struct AppVersionRow {
-    pub version: String,
-    pub download_url: String,
-    pub file_size: i64,
-    pub sha256: Option<String>,
-    pub release_notes: Option<String>,
-    pub force_update: bool,
-}
-```
-
-### 3.2 查询参数 `⬜`
-
-```rust
-#[derive(Deserialize)]
-pub struct VersionQuery {
-    pub app_id: String,
-    pub platform: String,
-}
-```
-
-### 3.3 新增版本请求体 `⬜`
-
-```rust
-#[derive(Deserialize)]
-pub struct CreateVersionPayload {
-    pub app_id: String,
-    pub platform: String,
-    pub version: String,
-    pub download_url: String,
-    pub file_size: Option<i64>,
-    pub sha256: Option<String>,
-    pub release_notes: Option<String>,
-    pub force_update: Option<bool>,
-}
-```
-
-### 3.4 更新版本查询参数 + 请求体 `⬜`
-
-```rust
-#[derive(Deserialize)]
-pub struct UpdateVersionQuery {
-    pub app_id: String,
-    pub platform: String,
-    pub version: String,
-}
-
-#[derive(Deserialize)]
-pub struct UpdateVersionPayload {
-    pub download_url: Option<String>,
-    pub file_size: Option<i64>,
-    pub sha256: Option<String>,
-    pub release_notes: Option<String>,
-    pub force_update: Option<bool>,
-}
-```
+| 结构体 | 用途 |
+|--------|------|
+| `AppVersionRow` | GET 查询返回给客户端 |
+| `VersionQuery` | GET 查询参数 (app_id, platform) |
+| `CreateVersionPayload` | POST 新增版本请求体 |
+| `UpdateVersionQuery` | PUT 更新查询参数 (app_id, platform, version) |
+| `UpdateVersionPayload` | PUT 更新请求体（所有字段可选） |
+| `AppRow` | 应用列表返回 |
+| `CreateAppPayload` | 新增应用请求体 |
+| `AppIdQuery` | 按 app_id 查询参数 |
+| `AppVersionFullRow` | 版本列表完整行（含 published、id、created_at） |
+| `PublishQuery` | 发布/撤回/删除查询参数 |
 
 ---
 
-## 任务 4：routes.rs 路由处理 `⬜ 待处理`
+## 任务 4：routes.rs 路由处理 `✅ 已完成`
 
-文件：`server/modules/app-center/src/routes.rs`（新建）
+文件：`server/modules/app-center/src/routes.rs`
 
-### 4.1 查询最新版本 `⬜`
+### 已实现接口
 
-```rust
-pub async fn get_version(
-    State(db): State<PgPool>,
-    Query(params): Query<VersionQuery>,
-) -> Result<Json<AppVersionRow>, AppError>
-```
+| 方法 | 路径 | Handler | 说明 |
+|------|------|---------|------|
+| GET | /api/app/version | `get_version` | 查询最新已发布版本（published=true） |
+| POST | /api/app/version | `create_version` | 新增版本记录 |
+| PUT | /api/app/version | `update_version` | 更新已有版本信息（动态 SET 构建） |
+| DELETE | /api/app/version | `delete_version` | 删除版本记录 |
+| POST | /api/app/version/publish | `publish_version` | 设 published=true |
+| POST | /api/app/version/unpublish | `unpublish_version` | 设 published=false |
+| GET | /api/app/list | `list_apps` | 获取所有应用 |
+| POST | /api/app | `create_app` | 新增应用 |
+| GET | /api/app/versions | `list_versions` | 获取某应用的全部版本记录 |
 
-逻辑：
-1. 校验 app_id 和 platform 非空
-2. 查询 `SELECT version, download_url, file_size, sha256, release_notes, force_update FROM app_versions WHERE app_id=$1 AND platform=$2 ORDER BY created_at DESC LIMIT 1`
-3. 找不到返回 404
+### 关键设计点
 
-### 4.2 新增版本 `⬜`
-
-```rust
-pub async fn create_version(
-    State(db): State<PgPool>,
-    Json(payload): Json<CreateVersionPayload>,
-) -> Result<Json<serde_json::Value>, AppError>
-```
-
-逻辑：
-1. 校验必填字段（app_id, platform, version, download_url）
-2. INSERT INTO app_versions
-3. UNIQUE 冲突返回 409
-
-### 4.3 更新版本 `⬜`
-
-```rust
-pub async fn update_version(
-    State(db): State<PgPool>,
-    Query(params): Query<UpdateVersionQuery>,
-    Json(payload): Json<UpdateVersionPayload>,
-) -> Result<Json<serde_json::Value>, AppError>
-```
-
-逻辑：
-1. 先查该版本是否存在，不存在返回 404
-2. 用 payload 中非 None 的字段更新对应列
-3. 返回成功
+1. `get_version` 只返回 `published = true` 的版本，避免商店审核未通过时客户端已提示更新
+2. `update_version` 动态构建 SET 子句，只更新非 None 字段
+3. `create_version` 的 UNIQUE 冲突返回 400（版本已存在）
+4. 所有 handler 返回 `Result<..., AppError>`，错误通过 `?` 传播
 
 ---
 
-## 任务 5：lib.rs 模块入口 `⬜ 待处理`
+## 任务 5：lib.rs 模块入口 `✅ 已完成`
 
-文件：`server/modules/app-center/src/lib.rs`（新建）
+文件：`server/modules/app-center/src/lib.rs`
 
 ```rust
-mod models;
-mod routes;
-
-use axum::Router;
-use axum::routing::{get, post, put};
-use sqlx::PgPool;
-
 pub fn router(db: PgPool) -> Router {
     Router::new()
+        .route("/api/app/list", get(routes::list_apps))
+        .route("/api/app", post(routes::create_app))
+        .route("/api/app/versions", get(routes::list_versions))
         .route("/api/app/version", get(routes::get_version))
         .route("/api/app/version", post(routes::create_version))
         .route("/api/app/version", put(routes::update_version))
+        .route("/api/app/version", delete(routes::delete_version))
+        .route("/api/app/version/publish", post(routes::publish_version))
+        .route("/api/app/version/unpublish", post(routes::unpublish_version))
         .with_state(db)
 }
 ```
 
 ---
 
-## 任务 6：main.rs 注册路由 `⬜ 待处理`
+## 任务 6：main.rs 注册路由 `✅ 已完成`
 
-文件：`server/src/main.rs`（修改）
-
-在 Router 组装处添加：
+`server/src/main.rs` 中已添加：
 
 ```rust
 .merge(app_center::router(db.clone()))
 ```
 
-添加 use：
-```rust
-use app_center;
-```
+---
+
+## 任务 7：编译验证 + 测试 `✅ 已完成`
+
+### 7.1 编译 `✅`
+
+`cargo build` 通过。
+
+### 7.2 接口验证 `✅`
+
+API 测试脚本：`docs/features/starter/v0.0.3/api/app-center/request/app_center.py`
+API 测试记录：`docs/features/starter/v0.0.3/api/app-center/doc/` 目录下 18 个测试用例文档。
+
+已验证场景：
+- 创建应用、重复创建返回错误
+- 创建版本、重复版本号返回错误
+- 查询最新版本（仅返回 published=true）
+- 查询不存在的版本返回 404
+- 更新版本字段
+- 发布/撤回版本
+- 删除版本
 
 ---
 
-## 任务 7：编译验证 + 测试 `⬜ 待处理`
+## 发布流程
 
-### 7.1 编译 `⬜`
-
-```bash
-cargo build
-```
-
-### 7.2 执行迁移 `⬜`
-
-手动在 PostgreSQL 中执行迁移 SQL。
-
-### 7.3 接口测试 `⬜`
+构建产物发布到后端的完整流程：
 
 ```bash
-# 新增版本
+# 1. 构建 APK
+python scripts/build_center/build_android.py
+
+# 2. 查看生成的 meta.json（自动计算 sha256 + file_size）
+cat scripts/build_center/dest/android/arm64-v8a/meta.json
+
+# 3. 上传 APK 到文件服务器（手动或脚本）
+
+# 4. 调接口创建版本记录
 curl -X POST http://127.0.0.1:9600/api/app/version \
   -H "Content-Type: application/json" \
-  -d '{"app_id":"flash_im","platform":"android","version":"1.0.0","download_url":"https://example.com/flash_im_1.0.0.apk","file_size":25000000,"sha256":"abc123","release_notes":"首个版本","force_update":false}'
+  -d '{
+    "app_id": "flash_im",
+    "platform": "android",
+    "version": "0.0.2",
+    "download_url": "https://your-server/releases/flash_im_0.0.2.apk",
+    "file_size": 25000000,
+    "sha256": "从 meta.json 中获取",
+    "release_notes": "修复已知问题",
+    "force_update": false
+  }'
 
-# 查询最新版本
-curl "http://127.0.0.1:9600/api/app/version?app_id=flash_im&platform=android"
-
-# 更新版本信息
-curl -X PUT "http://127.0.0.1:9600/api/app/version?app_id=flash_im&platform=android&version=1.0.0" \
-  -H "Content-Type: application/json" \
-  -d '{"release_notes":"更新说明修正","force_update":true}'
-
-# 查询不存在的版本
-curl "http://127.0.0.1:9600/api/app/version?app_id=flash_im&platform=ios"
+# 5. 发布（客户端才能查到）
+curl -X POST "http://127.0.0.1:9600/api/app/version/publish?app_id=flash_im&platform=android&version=0.0.2"
 ```
 
-预期：POST 返回 201，GET 返回 200，PUT 返回 200，不存在返回 404。
+客户端在启动时调用 `GET /api/app/version?app_id=flash_im&platform=android`，
+收到响应后比较版本号，有更新则弹窗，下载后用 `meta.json` 中的 SHA256 校验完整性。

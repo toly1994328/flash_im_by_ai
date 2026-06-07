@@ -16,7 +16,7 @@ publish_to: 'none' # Remove this line if you wish to publish to pub.dev
 # https://developer.apple.com/library/archive/documentation/General/Reference/InfoPlistKeyReference/Articles/CoreFoundationKeys.html
 # In Windows, build-name is used as the major, minor, and patch parts
 # of the product and file versions while build-number is used as the build suffix.
-version: 1.0.0+2
+version: 0.0.1+2
 
 environment:
   sdk: ^3.11.1
@@ -69,11 +69,14 @@ dependencies:
     path: packages/fx_logger
   fx_updater:
     path: packages/fx_updater
+  fx_install_android:
+    path: packages/fx_install_android
   tolyui_rx_layout: 1.0.2
   tolyui_navigation: 0.2.1
   window_manager: ^0.4.3
   fx_env: 0.0.1+3
   url_launcher: ^6.2.0
+  crypto: ^3.0.6
 
 dev_dependencies:
   flutter_test:
@@ -138,3 +141,5 @@ msix_config:
   certificate_path: ../scripts/build_center/windows/flash_im.pfx
   certificate_password: flash123
   install_certificate: false
+
+

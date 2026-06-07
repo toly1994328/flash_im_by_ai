@@ -13,7 +13,7 @@ AppVersion={#Version}
 DefaultDirName={autopf}\{#MyAppName}
 DisableProgramGroupPage=yes
 OutputDir=..\dest\windows
-OutputBaseFilename=flash_im
+OutputBaseFilename=flash-im
 SetupIconFile={#IconFile}
 Compression=lzma
 SolidCompression=yes
@@ -29,4 +29,14 @@ Name: "{autoprograms}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 Name: "{autodesktop}\{#MyAppName}"; Filename: "{app}\{#MyAppExeName}"
 
 [Run]
-Filename: "{app}\{#MyAppExeName}"; Description: "启动闪讯"; Flags: nowait postinstall skipifsilent
+Filename: "{app}\{#MyAppExeName}"; Description: "{cm:LaunchProgram,{#StringChange(MyAppName, '&', '&&')}}"; Flags: nowait postinstall skipifsilent
+
+[Code]
+function InitializeSetup(): Boolean;
+var
+  ResultCode: Integer;
+begin
+  // 安装前强制关闭正在运行的旧版本进程（忽略未找到进程的错误）
+  Exec('cmd.exe', '/c taskkill /f /im {#MyAppExeName}', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+  Result := True;
+end;

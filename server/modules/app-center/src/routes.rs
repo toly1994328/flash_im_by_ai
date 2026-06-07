@@ -18,7 +18,7 @@ pub async fn get_version(
     let row = sqlx::query_as::<_, AppVersionRow>(
         r"SELECT version, download_url, file_size, sha256, release_notes, force_update
           FROM app_versions
-          WHERE app_id = $1 AND platform = $2
+          WHERE app_id = $1 AND platform = $2 AND published = true
           ORDER BY created_at DESC
           LIMIT 1"
     )
@@ -175,7 +175,7 @@ pub async fn list_versions(
     }
 
     let rows = sqlx::query_as::<_, AppVersionFullRow>(
-        r"SELECT id, platform, version, download_url, file_size, sha256, release_notes, force_update, created_at
+        r"SELECT id, platform, version, download_url, file_size, sha256, release_notes, force_update, published, created_at
           FROM app_versions
           WHERE app_id = $1
           ORDER BY created_at DESC"
@@ -185,4 +185,66 @@ pub async fn list_versions(
     .await?;
 
     Ok(Json(rows))
+}
+
+
+/// POST /api/app/version/publish — 发布版本
+pub async fn publish_version(
+    State(db): State<PgPool>,
+    Query(params): Query<PublishQuery>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let result = sqlx::query(
+        "UPDATE app_versions SET published = true WHERE app_id = $1 AND platform = $2 AND version = $3"
+    )
+    .bind(&params.app_id)
+    .bind(&params.platform)
+    .bind(&params.version)
+    .execute(&db)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::not_found("version not found"));
+    }
+    Ok(Json(serde_json::json!({"message": "version published"})))
+}
+
+/// POST /api/app/version/unpublish — 撤回发布
+pub async fn unpublish_version(
+    State(db): State<PgPool>,
+    Query(params): Query<PublishQuery>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let result = sqlx::query(
+        "UPDATE app_versions SET published = false WHERE app_id = $1 AND platform = $2 AND version = $3"
+    )
+    .bind(&params.app_id)
+    .bind(&params.platform)
+    .bind(&params.version)
+    .execute(&db)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::not_found("version not found"));
+    }
+    Ok(Json(serde_json::json!({"message": "version unpublished"})))
+}
+
+
+/// DELETE /api/app/version — 删除版本记录
+pub async fn delete_version(
+    State(db): State<PgPool>,
+    Query(params): Query<PublishQuery>,
+) -> Result<Json<serde_json::Value>, AppError> {
+    let result = sqlx::query(
+        "DELETE FROM app_versions WHERE app_id = $1 AND platform = $2 AND version = $3"
+    )
+    .bind(&params.app_id)
+    .bind(&params.platform)
+    .bind(&params.version)
+    .execute(&db)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        return Err(AppError::not_found("version not found"));
+    }
+    Ok(Json(serde_json::json!({"message": "version deleted"})))
 }

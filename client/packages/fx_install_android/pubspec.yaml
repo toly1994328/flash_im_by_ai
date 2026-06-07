@@ -1,0 +1,20 @@
+name: fx_install_android
+description: 轻量级 Android APK 安装 Plugin，自带 FileProvider，无需额外配置
+version: 0.1.0
+publish_to: https://pub.dev
+homepage: https://github.com/toly1994328/fx_install_android
+
+environment:
+  sdk: ^3.11.1
+  flutter: ">=3.3.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+flutter:
+  plugin:
+    platforms:
+      android:
+        package: com.toly1994.fx_install_android
+        pluginClass: FxInstallPlugin

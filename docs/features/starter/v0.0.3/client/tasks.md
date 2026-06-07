@@ -1,4 +1,4 @@
-# fx_updater + 主项目集成 — 前端任务清单
+# fx_updater + fx_install_android + 主项目集成 — 前端任务清单
 
 基于 client/design.md 设计，列出需要创建/修改的具体细节。
 全局约束：fx_updater 包不依赖 dio、不依赖任何闪讯业务代码。通用能力通过回调/接口注入。
@@ -7,27 +7,32 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — fx_updater 包配置（无依赖）
-2. ⬜ 任务 2 — AppVersion 版本号模型（无依赖）
-3. ⬜ 任务 3 — UpdateInfo 更新信息模型（依赖任务 2）
-4. ⬜ 任务 4 — UpdateChecker 检查器（依赖任务 3）
-5. ⬜ 任务 5 — UpdateStrategy 策略接口（依赖任务 3）
-6. ⬜ 任务 6 — UpdateDialog 通用弹窗（依赖任务 3）
-7. ⬜ 任务 7 — barrel export（依赖任务 2-6）
-8. ⬜ 任务 8 — 主项目集成（依赖任务 7）
-9. ⬜ 任务 9 — 编译验证
+1. ✅ 任务 1 — fx_updater 包配置
+2. ✅ 任务 2 — AppVersion 版本号模型
+3. ✅ 任务 3 — UpdateInfo 更新信息模型
+4. ✅ 任务 4 — UpdateChecker 检查器
+5. ✅ 任务 5 — UpdateStrategy 策略接口
+6. ✅ 任务 6 — UpdateDialog 通用弹窗（含下载进度）
+7. ✅ 任务 7 — FxUpdater 全局状态管理
+8. ✅ 任务 8 — barrel export
+9. ✅ 任务 9 — fx_install_android 原生安装插件
+10. ✅ 任务 10 — AppChannel 渠道标识
+11. ✅ 任务 11 — 主项目集成（UpdateTrigger）
+12. ✅ 任务 12 — Android Flavor 配置
+13. ✅ 任务 13 — 构建脚本适配
+14. ✅ 任务 14 — 发布到 pub
 
 ---
 
-## 任务 1：fx_updater 包配置 `⬜ 待处理`
+## 任务 1：fx_updater 包配置 `✅ 已完成`
 
-文件：`client/packages/fx_updater/pubspec.yaml`（新建）
+文件：`client/packages/fx_updater/pubspec.yaml`
 
 ```yaml
 name: fx_updater
 description: 通用应用更新框架 - 版本检测 + 策略接口 + 弹窗 UI
 version: 0.1.0
-publish_to: none
+publish_to: https://pub.dev
 
 environment:
   sdk: ^3.11.1
@@ -37,287 +42,276 @@ dependencies:
   flutter:
     sdk: flutter
   url_launcher: ^6.2.0
-  package_info_plus: ^8.0.0
+  path_provider: ^2.1.5
+  path: ^1.9.1
 ```
 
 ---
 
-## 任务 2：AppVersion 版本号模型 `⬜ 待处理`
+## 任务 2：AppVersion 版本号模型 `✅ 已完成`
 
-文件：`client/packages/fx_updater/lib/src/app_version.dart`（新建）
+文件：`client/packages/fx_updater/lib/src/data/app_version.dart`
 
-### 2.1 版本号解析与比较 `⬜`
-
-```dart
-class AppVersion implements Comparable<AppVersion> {
-  final int major;
-  final int minor;
-  final int patch;
-
-  const AppVersion(this.major, this.minor, this.patch);
-
-  factory AppVersion.parse(String version)
-  // 解析 "x.y.z" 格式，忽略 +buildNumber 部分
-
-  @override
-  int compareTo(AppVersion other)
-  // major → minor → patch 逐级比较
-
-  bool operator >(AppVersion other);
-  bool operator <(AppVersion other);
-  bool operator >=(AppVersion other);
-  bool operator <=(AppVersion other);
-
-  @override
-  String toString() => '$major.$minor.$patch';
-}
-```
+- 解析 "x.y.z" 格式（忽略 +buildNumber）
+- 实现 Comparable，逐级比较 major → minor → patch
+- 提供 `>`, `<`, `>=`, `<=` 运算符
 
 ---
 
-## 任务 3：UpdateInfo 更新信息模型 `⬜ 待处理`
+## 任务 3：UpdateInfo 更新信息模型 `✅ 已完成`
 
-文件：`client/packages/fx_updater/lib/src/update_info.dart`（新建）
-
-### 3.1 数据模型 `⬜`
+文件：`client/packages/fx_updater/lib/src/data/update_info.dart`
 
 ```dart
 class UpdateInfo {
   final String version;
   final String downloadUrl;
   final int fileSize;
-  final String? sha256;
+  final String? sha256;         // 后端在构建时通过 calculate.py 计算
   final String releaseNotes;
   final bool forceUpdate;
 
-  const UpdateInfo({...});
-
-  factory UpdateInfo.fromJson(Map<String, dynamic> json)
-  // version = json['version']
-  // downloadUrl = json['download_url']
-  // fileSize = json['file_size'] ?? 0
-  // sha256 = json['sha256']
-  // releaseNotes = json['release_notes'] ?? ''
-  // forceUpdate = json['force_update'] ?? false
+  factory UpdateInfo.fromJson(Map<String, dynamic> json);
+  String get fileSizeText;      // "25.3 MB"
 }
-```
 
-### 3.2 检查结果 `⬜`
-
-```dart
 sealed class UpdateCheckResult {}
-
-class UpdateAvailable extends UpdateCheckResult {
-  final UpdateInfo info;
-  UpdateAvailable(this.info);
-}
-
+class UpdateAvailable extends UpdateCheckResult { ... }
 class UpdateNotNeeded extends UpdateCheckResult {}
+class UpdateCheckFailed extends UpdateCheckResult { ... }
+```
 
-class UpdateCheckFailed extends UpdateCheckResult {
-  final String error;
-  UpdateCheckFailed(this.error);
+---
+
+## 任务 4：UpdateChecker 检查器 `✅ 已完成`
+
+文件：`client/packages/fx_updater/lib/src/logic/update_checker.dart`
+
+- 接受 `currentVersion` + `fetchUpdateInfo` 回调
+- 调用回调获取 UpdateInfo → 比较版本 → 返回 UpdateCheckResult
+- 异常 catch → UpdateCheckFailed
+
+---
+
+## 任务 5：UpdateStrategy 策略接口 `✅ 已完成`
+
+文件：`client/packages/fx_updater/lib/src/logic/update_strategy.dart`
+
+| 策略类 | 用途 | 依赖 |
+|--------|------|------|
+| `AndroidUpdateStrategy` | 下载 + 安装 APK | 通过 downloadFile + installApk 回调注入 |
+| `DesktopUpdateStrategy` | 下载 + 打开文件 | 通过 downloadFile 回调注入 |
+| `MacOSUpdateStrategy` | 跳转浏览器下载 | url_launcher |
+| `UrlLaunchStrategy` | 跳转商店（iOS/鸿蒙/Google） | url_launcher |
+| `NoOpStrategy` | Web 端空操作 | — |
+
+fx_updater 不依赖 dio，下载逻辑由使用方通过回调注入。
+
+---
+
+## 任务 6：UpdateDialog 通用弹窗 `✅ 已完成`
+
+文件：`client/packages/fx_updater/lib/src/view/update_dialog.dart`
+
+功能：
+- 始终显示版本号 + 更新日志 + 文件大小
+- 支持 downloadHandler 回调（有则走下载流程，无则 onUpdate 直接跳转）
+- 支持 installHandler 回调（下载完成后点击"安装"时调用）
+- 内置状态机：info → downloading（进度条） → completed → failed
+- forceUpdate=true 时弹窗不可关闭
+- 支持恢复已有下载状态（通过 FxUpdater 单例）
+
+---
+
+## 任务 7：FxUpdater 全局状态管理 `✅ 已完成`
+
+文件：`client/packages/fx_updater/lib/src/logic/update_manager.dart`
+
+- 单例模式，持有最新检测结果
+- 通过 Stream 暴露状态变更（红点/弹窗/设置页消费）
+- 进度流：下载百分比实时推送
+- 下载状态跟踪：isDownloading / isDownloaded / downloadedFilePath
+- dismiss() 清除红点
+
+---
+
+## 任务 8：barrel export `✅ 已完成`
+
+文件：`client/packages/fx_updater/lib/fx_updater.dart`
+
+```dart
+// data
+export 'src/data/app_version.dart';
+export 'src/data/update_info.dart';
+
+// logic
+export 'src/logic/update_checker.dart';
+export 'src/logic/update_manager.dart';
+export 'src/logic/update_strategy.dart';
+
+// view
+export 'src/view/update_dialog.dart';
+export 'src/view/update_badge.dart';
+```
+
+---
+
+## 任务 9：fx_install_android 原生安装插件 `✅ 已完成`
+
+文件结构：
+```
+packages/fx_install_android/
+├── pubspec.yaml                    # Flutter plugin 声明（已发 pub）
+├── lib/fx_install_android.dart     # Dart API: FxInstall.apk(path) → InstallResult
+└── android/
+    ├── build.gradle.kts            # compileSdk 35, androidx.core
+    └── src/main/
+        ├── AndroidManifest.xml     # 自带 FxInstallFileProvider
+        ├── res/xml/fx_install_paths.xml
+        └── kotlin/.../
+            ├── FxInstallPlugin.kt        # 主逻辑（ActivityAware + 权限检测 + ActivityResult）
+            └── FxInstallFileProvider.kt  # 自定义 FileProvider
+```
+
+Kotlin 实现要点：
+- 自带 FileProvider（authority: `${applicationId}.fxInstallFileProvider`），使用方无需配置
+- 实现 ActivityAware，持有 Activity 引用用于 startActivityForResult
+- 自动检测 `canRequestPackageInstalls`，无权限时跳系统设置页
+- 用户授权后通过 ActivityResult 回调自动继续安装
+- 返回结构化结果 `{isSuccess, errorMessage}`
+- 兼容 Android 6.0+（≤ M 时复制到 Downloads 目录）
+
+---
+
+## 任务 10：AppChannel 渠道标识 `✅ 已完成`
+
+文件：`client/modules/flash_shared/lib/src/channel.dart`
+
+```dart
+class AppChannel {
+  static const String value = String.fromEnvironment('CHANNEL', defaultValue: 'standard');
+  static bool get isGoogle => value == 'google';
+  static bool get isStandard => value == 'standard';
+}
+```
+
+在 `flash_shared.dart` 中导出。
+
+---
+
+## 任务 11：主项目集成（UpdateTrigger）`✅ 已完成`
+
+文件：`client/lib/src/update/update_trigger.dart`
+
+依赖：dio, crypto, flash_shared, fx_updater, fx_install_android, url_launcher, path_provider, package_info_plus
+
+### 核心逻辑
+
+| 方法 | 职责 |
+|------|------|
+| `checkAndPrompt(context)` | 获取版本 → FxUpdater.check → 弹窗 |
+| `shouldDownload()` | 判断是否走下载流程（Google/iOS/macOS 不下载） |
+| `executeUpdate(info)` | 跳转商店（_getStoreUrl + launchUrl） |
+| `downloadFile(info, onProgress)` | dio 下载 + 流式 SHA256 校验 |
+| `installFile(filePath)` | Android: FxInstall.apk / 其他: launchUrl(file) |
+| `_fetchFromServer()` | 调 GET /api/app/version |
+| `_getStoreUrl()` | 返回对应平台的商店链接 |
+
+### 预定义商店链接
+
+```dart
+static const String _playStoreUrl =
+    'https://play.google.com/store/apps/details?id=com.toly1994.flash_im';
+static const String _appStoreUrl =
+    'https://apps.apple.com/app/id6772819751';
+```
+
+### SHA256 校验流程
+
+```dart
+// 流式计算，不一次性加载到内存
+final Digest fileDigest = await sha256.bind(file.openRead()).first;
+final String fileHash = fileDigest.toString();
+if (fileHash != info.sha256) {
+  await file.delete();
+  throw Exception('SHA256 校验失败');
 }
 ```
 
 ---
 
-## 任务 4：UpdateChecker 检查器 `⬜ 待处理`
+## 任务 12：Android Flavor 配置 `✅ 已完成`
 
-文件：`client/packages/fx_updater/lib/src/update_checker.dart`（新建）
+详见 [TODO_android_flavor.md](../TODO_android_flavor.md)
 
-### 4.1 检查逻辑 `⬜`
-
-```dart
-typedef FetchUpdateInfo = Future<UpdateInfo?> Function();
-
-class UpdateChecker {
-  final AppVersion currentVersion;
-  final FetchUpdateInfo fetchUpdateInfo;
-
-  UpdateChecker({required this.currentVersion, required this.fetchUpdateInfo});
-
-  Future<UpdateCheckResult> check() async
-  // 1. 调用 fetchUpdateInfo()
-  // 2. 返回 null → UpdateCheckFailed('无法获取更新信息')
-  // 3. 解析 latestVersion = AppVersion.parse(info.version)
-  // 4. latestVersion > currentVersion → UpdateAvailable(info)
-  // 5. 否则 → UpdateNotNeeded()
-  // 6. 异常 catch → UpdateCheckFailed(e.toString())
-}
-```
+| 项目 | 文件 | 状态 |
+|------|------|------|
+| Gradle flavorDimensions | `build.gradle.kts` | ✅ |
+| standard Manifest（安装权限） | `src/standard/AndroidManifest.xml` | ✅ |
+| google Manifest（tools:remove） | `src/google/AndroidManifest.xml` | ✅ |
+| fx_install_android 自带 FileProvider | Plugin 内部处理 | ✅ |
 
 ---
 
-## 任务 5：UpdateStrategy 策略接口 `⬜ 待处理`
+## 任务 13：构建脚本适配 `✅ 已完成`
 
-文件：`client/packages/fx_updater/lib/src/update_strategy.dart`（新建）
+### build_android.py
 
-### 5.1 策略抽象 `⬜`
+- 默认 flavor: standard，`--aab` 时自动切换 google
+- `--flavor` 参数可手动覆盖
+- 自动注入 `--dart-define=CHANNEL={flavor}`
+- 产物路径适配 flavor 命名
+- 构建后自动调用 `calculate.py` 生成 meta.json（sha256 + file_size）
 
-```dart
-abstract class UpdateStrategy {
-  Future<void> execute(UpdateInfo info);
-}
-```
+### windows/build.py
 
-### 5.2 URL 跳转策略（iOS/鸿蒙） `⬜`
+- 新增 `--port` 代理参数（解决 native assets 下载失败）
+- 新增 `--pack-only` 仅打包不重新构建
+- flutter clean + pub get + build -v
+- 构建后自动调用 `calculate.py`
+- Inno Setup 打包（输出 flash-im.exe）
 
-```dart
-class UrlLaunchStrategy implements UpdateStrategy {
-  @override
-  Future<void> execute(UpdateInfo info) async
-  // launchUrl(Uri.parse(info.downloadUrl), mode: LaunchMode.externalApplication)
-}
-```
+### build_linux.sh
 
-### 5.3 空策略（Web） `⬜`
+- 构建后自动调用 `calculate.py`
 
-```dart
-class NoOpStrategy implements UpdateStrategy {
-  @override
-  Future<void> execute(UpdateInfo info) async {}
-}
-```
+### upload/update.py
 
-注意：`DownloadStrategy`（Android/桌面端下载 APK/安装包）由主项目自己实现（因为依赖 dio），fx_updater 不提供。
+- 读 meta.json → scp 上传产物 → POST 创建版本记录
+- 自动校验版本号递增
 
 ---
 
-## 任务 6：UpdateDialog 通用弹窗 `⬜ 待处理`
+## 任务 14：发布到 pub `✅ 已完成`
 
-文件：`client/packages/fx_updater/lib/src/update_dialog.dart`（新建）
+| 包 | pub 地址 | 版本 | 许可证 |
+|---|---|---|---|
+| fx_updater | https://pub.dev/packages/fx_updater | 0.1.0 | Apache 2.0 |
+| fx_install_android | https://pub.dev/packages/fx_install_android | 0.1.0 | Apache 2.0 |
 
-### 6.1 弹窗组件 `⬜`
-
-```dart
-class UpdateDialog extends StatelessWidget {
-  final UpdateInfo info;
-  final VoidCallback onUpdate;
-  final VoidCallback? onDismiss;
-
-  // 构建内容：
-  // - 标题："发现新版本 v{info.version}"
-  // - 更新日志：info.releaseNotes
-  // - 文件大小：info.fileSize > 0 时显示 "{xx} MB"
-  // - 底部按钮：
-  //   - forceUpdate=false → "稍后" + "立即更新"
-  //   - forceUpdate=true  → 只有 "立即更新"
-
-  static Future<void> show(BuildContext context, {
-    required UpdateInfo info,
-    required VoidCallback onUpdate,
-    VoidCallback? onDismiss,
-  })
-  // showDialog(barrierDismissible: !info.forceUpdate, ...)
-}
-```
+发布前完成：
+- ✅ LICENSE（Apache 2.0）
+- ✅ README.md（中文）
+- ✅ CHANGELOG.md（中文）
+- ✅ homepage 字段
 
 ---
 
-## 任务 7：barrel export `⬜ 待处理`
+## 验证清单 `✅`
 
-文件：`client/packages/fx_updater/lib/fx_updater.dart`（新建）
-
-```dart
-library;
-
-export 'src/app_version.dart';
-export 'src/update_info.dart';
-export 'src/update_checker.dart';
-export 'src/update_strategy.dart';
-export 'src/update_dialog.dart';
-```
-
----
-
-## 任务 8：主项目集成 `⬜ 待处理`
-
-### 8.1 添加依赖 `⬜`
-
-文件：`client/pubspec.yaml`（修改）
-
-```yaml
-  fx_updater:
-    path: packages/fx_updater
-```
-
-### 8.2 集成逻辑 `⬜`
-
-文件：`client/lib/src/update/update_trigger.dart`（新建）
-
-```dart
-import 'package:fx_updater/fx_updater.dart';
-
-class UpdateTrigger {
-  final Dio _dio;
-  final String appId;
-  final String baseUrl;
-
-  Future<void> checkAndPrompt(BuildContext context) async
-  // 1. 获取本地版本：PackageInfo.fromPlatform()
-  // 2. 构建 UpdateChecker，注入 fetch 回调：
-  //    fetch = () => _dio.get('/api/app/version?app_id=$appId&platform=$platform')
-  //                     .then((r) => UpdateInfo.fromJson(r.data))
-  // 3. checker.check()
-  // 4. 如果 UpdateAvailable → UpdateDialog.show(...)
-  // 5. onUpdate 回调中调用 _getStrategy().execute(info)
-
-  UpdateStrategy _getStrategy()
-  // Web → NoOpStrategy
-  // iOS → UrlLaunchStrategy()
-  // 鸿蒙 → UrlLaunchStrategy()
-  // Android/桌面 → DownloadInstallStrategy（本文件内实现，用 dio 下载）
-}
-```
-
-### 8.3 Android/桌面下载策略 `⬜`
-
-在 `update_trigger.dart` 中实现（因为依赖 dio）：
-
-```dart
-class DownloadInstallStrategy implements UpdateStrategy {
-  final Dio dio;
-
-  @override
-  Future<void> execute(UpdateInfo info) async
-  // 1. 确定保存路径（getTemporaryDirectory + fileName）
-  // 2. dio.download(info.downloadUrl, savePath)
-  // 3. Android: 调起安装器（OpenFile 或 install_plugin）
-  // 4. 桌面: launchUrl(Uri.file(savePath)) 打开文件
-}
-```
-
-### 8.4 HomePage 触发 `⬜`
-
-文件：`client/lib/src/home/view/home_page.dart`（修改）
-
-在 `initState` 中添加：
-
-```dart
-WidgetsBinding.instance.addPostFrameCallback((_) {
-  if (!kIsWeb) _checkUpdate();
-});
-
-void _checkUpdate() {
-  UpdateTrigger(dio: context.read<Dio>(), appId: '1', baseUrl: AppConfig.baseUrl)
-      .checkAndPrompt(context);
-}
-```
-
----
-
-## 任务 9：编译验证 `⬜ 待处理`
-
-### 9.1 flutter analyze `⬜`
-
-```bash
-flutter analyze
-```
-
-### 9.2 手动验证 `⬜`
-
-- 本地版本设为 "0.0.1"，后端有 "1.0.0" → 弹窗出现
-- 本地版本 = 后端版本 → 无弹窗
-- force_update=true → 弹窗无"稍后"按钮
-- 断网 → 静默失败，无弹窗
+| 验证项 | 状态 |
+|--------|------|
+| flutter pub get 无错误 | ✅ |
+| flutter analyze 无诊断错误 | ✅ |
+| fx_install_android 注册正确 | ✅ |
+| Android standard：检测 → 下载 → 校验 → 安装 | ✅ 真机验证通过 |
+| Android google：检测 → 跳转 Play Store | ✅ |
+| iOS：检测 → 跳转 App Store | ✅ |
+| macOS：检测 → 跳转 App Store | ✅ |
+| Windows：检测 → 下载 → 打开文件 | ✅ 真机验证通过 |
+| 强制更新弹窗无"稍后"按钮 | ✅ |
+| SHA256 校验失败时弹窗显示错误 | ✅ |
+| 设置页红点 + 手动触发更新 | ✅ |
+| Web 端不触发检测 | ✅ |
+| dart pub publish fx_updater | ✅ |
+| dart pub publish fx_install_android | ✅ |

@@ -109,6 +109,13 @@ fi
 # 清理 AppDir
 rm -rf "$APPDIR"
 
+# 计算安装包元信息
+info "计算安装包元信息..."
+CALC_SCRIPT="$SCRIPT_DIR/upload/calculate.py"
+if [ -f "$CALC_SCRIPT" ] && [ -f "$DEST_DIR/$APP_NAME.AppImage" ]; then
+    python3 "$CALC_SCRIPT" "$DEST_DIR/$APP_NAME.AppImage" "linux"
+fi
+
 # 可选：构建后运行
 if [ "$1" = "--run" ]; then
     info "启动 AppImage..."

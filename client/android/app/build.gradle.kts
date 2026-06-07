@@ -63,6 +63,16 @@ android {
         }
     }
 
+    flavorDimensions += "channel"
+    productFlavors {
+        create("standard") {
+            dimension = "channel"
+        }
+        create("google") {
+            dimension = "channel"
+        }
+    }
+
     packaging {
         dex {
             useLegacyPackaging = true

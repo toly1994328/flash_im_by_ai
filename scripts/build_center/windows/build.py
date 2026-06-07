@@ -7,6 +7,8 @@
   python scripts/build_center/windows/build.py --pack       # 构建 + Inno Setup 安装包
   python scripts/build_center/windows/build.py --msix       # 构建 + MSIX 打包
   python scripts/build_center/windows/build.py --pack --msix  # 全部
+  python scripts/build_center/windows/build.py --port 7890  # 设置代理端口（解决 native assets 下载失败）
+  python scripts/build_center/windows/build.py --pack-only  # 仅打包，跳过构建（使用已有产物）
 """
 
 import json
@@ -112,7 +114,8 @@ msix_config:
 
 
 def main():
-    pack = "--pack" in sys.argv
+    pack_only = "--pack-only" in sys.argv
+    pack = "--pack" in sys.argv or pack_only
     msix = "--msix" in sys.argv
 
     # 读取配置
@@ -128,9 +131,25 @@ def main():
 
     print()
     info(f"版本: {version}")
-    info("Flutter build windows --release ...")
-    run("flutter build windows --release --dart-define-from-file=.env.production", cwd=CLIENT_DIR)
-    ok("构建完成")
+
+    # 设置代理（解决 native assets 从 GitHub 下载 sqlite3 dll 失败的问题）
+    if "--port" in sys.argv:
+        port = sys.argv[sys.argv.index("--port") + 1]
+        proxy = f"http://127.0.0.1:{port}"
+        os.environ["HTTP_PROXY"] = proxy
+        os.environ["HTTPS_PROXY"] = proxy
+        info(f"已设置代理: {proxy}")
+
+    if not pack_only:
+        info("清理构建缓存...")
+        run("flutter clean", cwd=CLIENT_DIR)
+        info("获取依赖...")
+        run("flutter pub get", cwd=CLIENT_DIR)
+        info("Flutter build windows --release ...")
+        run("flutter build windows --release --dart-define-from-file=.env.production -v", cwd=CLIENT_DIR)
+        ok("构建完成")
+    else:
+        info("跳过构建，使用已有产物")
 
     release_dir = os.path.join(CLIENT_DIR, "build", "windows", "x64", "runner", "Release")
     if not os.path.isfile(os.path.join(release_dir, "flash_im.exe")):
@@ -146,7 +165,7 @@ def main():
         os.makedirs(DEST_DIR, exist_ok=True)
         info("Inno Setup 打包...")
         run(f'"{inno_path}" /DVersion={version} "{ISS_FILE}"')
-        ok(f"安装程序: {DEST_DIR}/flash_im.exe")
+        ok(f"安装程序: {DEST_DIR}/flash-im.exe")
 
     # MSIX 打包
     if msix:
@@ -172,6 +191,22 @@ def main():
                 break
         else:
             ok("MSIX 打包完成（产物在 build 目录）")
+
+    # 计算安装包元信息
+    calc_script = os.path.join(BUILD_CENTER, "upload", "calculate.py")
+    if pack:
+        exe_path = os.path.join(DEST_DIR, "flash-im.exe")
+        if os.path.isfile(exe_path):
+            info("计算安装包元信息...")
+            subprocess.run([sys.executable, calc_script, exe_path, "windows"])
+
+    if msix:
+        for f in os.listdir(DEST_DIR) if os.path.isdir(DEST_DIR) else []:
+            if f.endswith(".msix"):
+                msix_path = os.path.join(DEST_DIR, f)
+                info("计算 MSIX 元信息...")
+                subprocess.run([sys.executable, calc_script, msix_path, "windows"])
+                break
 
     if not pack and not msix:
         info("跳过打包。加 --pack 或 --msix 参数。")

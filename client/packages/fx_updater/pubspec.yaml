@@ -1,7 +1,6 @@
 name: fx_updater
 description: 通用应用更新框架 - 版本检测 + 策略接口 + 弹窗 UI
 version: 0.1.0
-publish_to: none
 
 environment:
   sdk: ^3.11.1
@@ -11,3 +10,5 @@ dependencies:
   flutter:
     sdk: flutter
   url_launcher: ^6.2.0
+  path_provider: ^2.1.5
+  path: ^1.9.1

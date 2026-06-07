@@ -1,0 +1,14 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <application>
+        <provider
+            android:name="com.toly1994.fx_install_android.FxInstallFileProvider"
+            android:authorities="${applicationId}.fxInstallFileProvider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/fx_install_paths"/>
+        </provider>
+    </application>
+</manifest>

@@ -7,6 +7,15 @@ fileMatchPattern: "**/*.dart"
 
 ## 代码质量
 
+- 变量声明必须显式标注类型，禁止使用 `var` 或 `final` 省略类型。如：`final String name = 'hello'`，不允许 `final name = 'hello'`。
+- 单例使用 factory 构造风格：
+  ```dart
+  class Foo {
+    static final Foo _instance = Foo._();
+    factory Foo() => _instance;
+    Foo._();
+  }
+  ```
 - 单个文件超过 500 行考虑拆分，可以基于 mixin 合理拆分职能。
 - 3 个以上参数总是成组传递时，提取为值对象（如 ChatContext）。
 - 重复出现的转换逻辑用 extension 封装（如 `Message.toCached()`）。

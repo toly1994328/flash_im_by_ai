@@ -8,6 +8,7 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:fx_updater/fx_updater.dart';
 import '../../../main.dart' show globalSyncEngine;
 import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
@@ -90,6 +91,7 @@ class _MobileLayoutState extends State<MobileLayout> {
                     icon: Icons.person_outline,
                     activeIcon: Icons.person,
                     label: '我',
+                    badge: const FxUpdateBadge(),
                   ),
                 ],
               ),

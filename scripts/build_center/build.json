@@ -4,5 +4,10 @@
   },
   "ohos": {
     "flutter": "C:\\toly\\SDK\\Flutter\\flutter_flutter\\bin\\flutter.bat"
+  },
+  "server":{
+    "runner" : "http://127.0.0.1:9600",
+    "uploadTo": "root@182.61.150.114",
+    "filePrefix": "http://182.61.150.114:9600"
   }
 }
