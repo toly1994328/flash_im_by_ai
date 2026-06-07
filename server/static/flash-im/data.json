@@ -1,0 +1,151 @@
+{
+  "site": {
+    "title": "闪讯 - 全平台即时通讯",
+    "description": "闪讯是一款全平台即时通讯应用，支持 Android、iOS、Windows、macOS、Linux，消息实时同步，安全可靠。",
+    "keywords": "闪讯, IM, 即时通讯, Flutter, 跨平台, 聊天, 消息",
+    "baiduAnalyticsId": ""
+  },
+  "brand": {
+    "name": "闪讯",
+    "subtitle": "Flash IM",
+    "tagline": "全平台即时通讯应用",
+    "domain": "toly1994.com",
+    "copyright": "© 2026 toly1994.com · 闪讯 Flash IM",
+    "icp": {
+      "number": "皖ICP备18001618号-2",
+      "url": "https://beian.miit.gov.cn"
+    },
+    "publicSecurity": {
+      "number": "皖公网安备 34010202600392号",
+      "url": "http://www.beian.gov.cn/portal/registerSystemInfo?recordcode=34010202600392"
+    }
+  },
+  "nav": {
+    "links": [
+      { "label": "功能", "href": "#features" },
+      { "label": "平台", "href": "#platforms" },
+      { "label": "下载", "href": "#download" },
+      { "label": "联系", "href": "#contact" }
+    ],
+    "cta": { "label": "立即下载", "href": "#download" }
+  },
+  "hero": {
+    "badge": "v1.0 正式发布",
+    "title": "全平台即时通讯<br>随时随地，畅快沟通",
+    "description": "闪讯是一款基于 Flutter + Rust 打造的全平台 IM 应用。<br>支持文字、语音、图片、视频、文件消息。<br>覆盖 Android、iOS、Windows、macOS、Linux 五大平台。<br>端到端加密，消息实时同步，隐私有保障。",
+    "primaryBtn": { "label": "免费下载", "href": "#download" },
+    "secondaryBtn": { "label": "了解更多", "href": "#features" },
+    "desktopBarTitle": "闪讯 — Flash IM",
+    "images": {
+      "desktop": { "src": "desktop.webp", "alt": "闪讯桌面端" },
+      "tablet": { "src": "pad.webp", "alt": "闪讯平板端" },
+      "phone": { "src": "phone.webp", "alt": "闪讯手机端" }
+    }
+  },
+  "features": {
+    "title": "核心功能",
+    "description": "从消息收发到多端同步，闪讯提供即时通讯所需的一切",
+    "items": [
+      { "icon": "svg/call.svg", "title": "实时消息", "description": "基于 WebSocket 的实时通信，消息毫秒级送达，支持已读回执、在线状态。" },
+      { "icon": "svg/puzzle.svg", "title": "富媒体消息", "description": "支持文字、图片、语音、视频、文件多种消息类型，Emoji 表情面板，引用回复。" },
+      { "icon": "svg/globe.svg", "title": "群聊与好友", "description": "完整的社交体系：好友申请、群聊创建、群管理、入群审批、群公告。" },
+      { "icon": "svg/lock.svg", "title": "安全可靠", "description": "JWT 身份验证，SHA256 文件校验，消息存储加密，隐私优先。" },
+      { "icon": "svg/link.svg", "title": "离线缓存", "description": "本地 SQLite 缓存，断网可查历史消息，联网自动增量同步。" },
+      { "icon": "svg/earth.svg", "title": "全平台覆盖", "description": "基于 Flutter + Rust 构建，一套代码运行在 Android、iOS、Windows、macOS、Linux。" }
+    ]
+  },
+  "platforms": {
+    "title": "全平台支持",
+    "description": "无论你使用什么设备，闪讯都能完美运行",
+    "items": [
+      {
+        "name": "Android",
+        "requirement": "Android 8.0+",
+        "status": "ready",
+        "statusLabel": "可下载",
+        "icon": "svg/android.svg"
+      },
+      {
+        "name": "iOS",
+        "requirement": "iOS 15+",
+        "status": "ready",
+        "statusLabel": "App Store",
+        "icon": "svg/apple.svg"
+      },
+      {
+        "name": "Windows",
+        "requirement": "Windows 10 及以上",
+        "status": "ready",
+        "statusLabel": "可下载",
+        "icon": "svg/windows.svg"
+      },
+      {
+        "name": "macOS",
+        "requirement": "macOS 12 及以上",
+        "status": "ready",
+        "statusLabel": "App Store",
+        "icon": "svg/macbook.svg"
+      },
+      {
+        "name": "Linux",
+        "requirement": "Ubuntu / Fedora / Arch",
+        "status": "ready",
+        "statusLabel": "可下载",
+        "icon": "svg/linux.svg"
+      },
+      {
+        "name": "Google Play",
+        "requirement": "Android 8.0+",
+        "status": "ready",
+        "statusLabel": "Play Store",
+        "icon": "svg/globe.svg"
+      }
+    ]
+  },
+  "downloads": {
+    "title": "立即下载",
+    "description": "选择你的平台，开始使用闪讯",
+    "items": [
+      { "icon": "svg/android.svg", "name": "Android", "description": "Android 8.0+", "format": ".apk 安装包", "url": "https://github.com/toly1994328/flash_im_by_ai/releases", "disabled": false, "btnLabel": "下载" },
+      { "icon": "svg/apple.svg", "name": "iOS", "description": "iOS 15+", "format": "App Store", "url": "https://apps.apple.com/app/id6772819751", "disabled": false, "btnLabel": "前往" },
+      { "icon": "svg/windows.svg", "name": "Windows", "description": "Windows 10+", "format": ".exe 安装包", "url": "https://github.com/toly1994328/flash_im_by_ai/releases", "disabled": false, "btnLabel": "下载" },
+      { "icon": "svg/macbook.svg", "name": "macOS", "description": "macOS 12+", "format": "App Store", "url": "https://apps.apple.com/app/id6772819751", "disabled": false, "btnLabel": "前往" },
+      { "icon": "svg/linux.svg", "name": "Linux", "description": "主流发行版", "format": ".AppImage", "url": "https://github.com/toly1994328/flash_im_by_ai/releases", "disabled": false, "btnLabel": "下载" },
+      { "icon": "svg/globe.svg", "name": "Google Play", "description": "Android 8.0+", "format": "Play Store", "url": "https://play.google.com/store/apps/details?id=com.toly1994.flash_im", "disabled": false, "btnLabel": "前往" }
+    ]
+  },
+  "contact": {
+    "title": "联系与反馈",
+    "description": "欢迎提交 Bug 反馈、功能建议或技术交流",
+    "items": [
+      { "icon": "svg/mail.svg", "title": "邮件联系", "detail": "1981462002@qq.com", "url": "mailto:1981462002@qq.com" },
+      { "icon": "svg/github.svg", "title": "GitHub", "detail": "源码与 Issue", "url": "https://github.com/toly1994328/flash_im_by_ai" }
+    ]
+  },
+  "footer": {
+    "columns": [
+      {
+        "title": "产品",
+        "links": [
+          { "label": "功能介绍", "href": "#features" },
+          { "label": "下载", "href": "#download" },
+          { "label": "平台支持", "href": "#platforms" }
+        ]
+      },
+      {
+        "title": "资源",
+        "links": [
+          { "label": "GitHub 源码", "href": "https://github.com/toly1994328/flash_im_by_ai", "target": "_blank" },
+          { "label": "掘金专栏", "href": "https://juejin.cn/user/2519034537697998", "target": "_blank" }
+        ]
+      },
+      {
+        "title": "联系",
+        "links": [
+          { "label": "1981462002@qq.com", "href": "mailto:1981462002@qq.com" },
+          { "label": "GitHub Issues", "href": "https://github.com/toly1994328/flash_im_by_ai/issues", "target": "_blank" }
+        ]
+      }
+    ]
+  }
+}
