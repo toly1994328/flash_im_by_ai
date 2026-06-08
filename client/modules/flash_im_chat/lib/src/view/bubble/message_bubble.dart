@@ -1,8 +1,12 @@
 import 'package:flash_shared/flash_shared.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:fx_env/fx_env.dart';
+import 'package:tolyui_feedback/tolyui_feedback.dart';
 import '../../data/message.dart';
 import '../../logic/chat_state.dart';
+import '../desktop_context_menu.dart';
+import '../message_action_menu.dart';
 import 'text_bubble.dart';
 import 'image_bubble.dart';
 import 'video_bubble.dart';
@@ -25,6 +29,7 @@ class MessageBubble extends StatelessWidget {
   final bool isGroup;
   final VoidCallback? onReadCountTap;
   final void Function(BuildContext bubbleContext)? onLongPress;
+  final void Function(MenuAction action)? onAction;
   final bool isMultiSelect;
   final bool isSelected;
   final VoidCallback? onToggleSelect;
@@ -46,6 +51,7 @@ class MessageBubble extends StatelessWidget {
     this.isGroup = false,
     this.onReadCountTap,
     this.onLongPress,
+    this.onAction,
     this.isMultiSelect = false,
     this.isSelected = false,
     this.onToggleSelect,
@@ -148,11 +154,40 @@ class MessageBubble extends StatelessWidget {
             ],
             if (isMe) const SizedBox(width: 4),
             Flexible(child: Builder(
-              builder: (bubbleCtx) => GestureDetector(
-                onLongPressStart: onLongPress != null ? (_) => onLongPress!(bubbleCtx) : null,
-                onDoubleTap: kDebugMode ? () => _showDebugInfo(bubbleCtx) : null,
-                child: _buildBubble(),
-              ),
+              builder: (bubbleCtx) {
+                if (kApp.isDesktop) {
+                  return TolyPopover(
+                    placement: isMe ? Placement.bottomEnd : Placement.bottomStart,
+                    maxWidth: 180,
+                    decorationConfig: DecorationConfig(
+                      backgroundColor: Colors.white,
+                      radius: const Radius.circular(8),
+                      isBubble: false,
+                    ),
+                    gap: 4,
+                    overlayBuilder: (context, ctrl) => DesktopContextMenu(
+                      message: message,
+                      isMe: isMe,
+                      isGroup: isGroup,
+                      onAction: (MenuAction action) {
+                        ctrl.close();
+                        onAction?.call(action);
+                      },
+                    ),
+                    builder: (context, ctrl, child) => GestureDetector(
+                      onSecondaryTapUp: (TapUpDetails details) => ctrl.open(position: details.localPosition),
+                      onDoubleTap: kDebugMode ? () => _showDebugInfo(bubbleCtx) : null,
+                      child: child,
+                    ),
+                    child: _buildBubble(),
+                  );
+                }
+                return GestureDetector(
+                  onLongPressStart: onLongPress != null ? (_) => onLongPress!(bubbleCtx) : null,
+                  onDoubleTap: kDebugMode ? () => _showDebugInfo(bubbleCtx) : null,
+                  child: _buildBubble(),
+                );
+              },
             )),
           ],
         ),

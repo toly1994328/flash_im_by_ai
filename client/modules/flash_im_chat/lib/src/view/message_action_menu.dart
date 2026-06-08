@@ -18,7 +18,7 @@ class MessageActionMenu {
     late OverlayEntry entry;
     bool removed = false;
 
-    final actions = _getActions(message, isMe, isGroup: isGroup, isPinned: isPinned);
+    final actions = getActions(message, isMe, isGroup: isGroup, isPinned: isPinned);
     if (actions.isEmpty) return null;
 
     void dismiss() {
@@ -46,7 +46,7 @@ class MessageActionMenu {
     return dismiss;
   }
 
-  static List<MenuAction> _getActions(Message message, bool isMe, {bool isGroup = false, bool isPinned = false}) {
+  static List<MenuAction> getActions(Message message, bool isMe, {bool isGroup = false, bool isPinned = false}) {
     if (message.isSystem || message.isRecalled) return [];
     return [
       if (message.isText) MenuAction.copy,

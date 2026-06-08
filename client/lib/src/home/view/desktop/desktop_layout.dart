@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_shared/flash_shared.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
@@ -168,17 +169,27 @@ class _DesktopLayoutState extends State<DesktopLayout>
 
   Widget _buildChatPanel() {
     if (_selectedConv == null) {
-      return DragMoveArea(
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.chat_bubble_outline, size: 64, color: Color(0xFFDDDDDD)),
-              SizedBox(height: 16),
-              Text('选择一个会话开始聊天', style: TextStyle(color: Color(0xFF999999), fontSize: 14)),
-            ],
+      return Stack(
+        children: [
+          DragMoveArea(
+            child: const Center(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.chat_bubble_outline, size: 64, color: Color(0xFFDDDDDD)),
+                  SizedBox(height: 16),
+                  Text('选择一个会话开始聊天', style: TextStyle(color: Color(0xFF999999), fontSize: 14)),
+                ],
+              ),
+            ),
           ),
-        ),
+          if (kApp.isWindows)
+            const Positioned(
+              top: 0,
+              right: 0,
+              child: WindowsButtons(),
+            ),
+        ],
       );
     }
     return Stack(
@@ -188,6 +199,18 @@ class _DesktopLayoutState extends State<DesktopLayout>
           _selectedConv!,
           onToggleDetail: _toggleChatDetail,
         ),
+        if (kApp.isWindows)
+          Positioned(
+            top: 0,
+            right: 0,
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                _buildChatDetailButton(),
+                const WindowsButtons(),
+              ],
+            ),
+          ),
         Positioned(
           top: kToolbarHeight + 0.5,
           bottom: 0,
@@ -293,6 +316,23 @@ class _DesktopLayoutState extends State<DesktopLayout>
   }
 
   // ─── 事件处理 ───
+
+  Widget _buildChatDetailButton() {
+    final bool isGroup = _selectedConv?.isGroup ?? false;
+    return GestureDetector(
+      onTap: _toggleChatDetail,
+      child: Container(
+        width: 36,
+        height: 36,
+        alignment: Alignment.center,
+        child: Icon(
+          isGroup ? Icons.group : Icons.more_horiz,
+          size: 20,
+          color: const Color(0xFF555555),
+        ),
+      ),
+    );
+  }
 
   void _toggleChatDetail() {
     setState(() => _showChatDetail = !_showChatDetail);

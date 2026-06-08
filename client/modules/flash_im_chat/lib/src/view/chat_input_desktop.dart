@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flash_shared/flash_shared.dart';
+import 'package:tolyui_feedback/tolyui_feedback.dart';
 
 import 'emoji_panel.dart';
 import 'mention_picker.dart';
@@ -41,7 +42,6 @@ class _ChatInputDesktopState extends State<ChatInputDesktop> {
   late final TextEditingController _controller;
   bool _ownController = false;
   bool _hasText = false;
-  bool _showEmoji = false;
   final FocusNode _focusNode = FocusNode();
   final List<_MentionRecord> _mentions = [];
 
@@ -132,15 +132,16 @@ class _ChatInputDesktopState extends State<ChatInputDesktop> {
   }
 
   Future<void> _openMentionPicker() async {
+    if (!widget.isGroup) return;
     List<MentionMember> members = widget.groupMembers ?? [];
     if (members.isEmpty && widget.membersFetcher != null) {
       members = await widget.membersFetcher!();
     }
     if (!mounted || members.isEmpty) return;
 
-    final selectableMembers = <SelectableMember>[
+    final List<SelectableMember> selectableMembers = <SelectableMember>[
       const SelectableMember(id: 'all', nickname: '所有人', avatar: null, letter: '!'),
-      ...members.map((m) => SelectableMember(
+      ...members.map((MentionMember m) => SelectableMember(
         id: m.userId,
         nickname: m.nickname,
         avatar: m.avatar,
@@ -148,25 +149,24 @@ class _ChatInputDesktopState extends State<ChatInputDesktop> {
       )),
     ];
 
-    final result = await Navigator.of(context).push<MemberPickerResult>(
-      MaterialPageRoute(
-        builder: (_) => MemberPickerPage(
-          members: selectableMembers,
-          title: '选择提醒的人',
-          confirmLabel: '确定',
-          quickSelectIds: const {'all'},
-          onConfirm: (r) => Navigator.of(context).pop(r),
-        ),
+    final MemberPickerResult? result = await adaptivePush<MemberPickerResult>(
+      context,
+      builder: (_) => MemberPickerPage(
+        members: selectableMembers,
+        title: '选择提醒的人',
+        confirmLabel: '确定',
+        quickSelectIds: const {'all'},
+        onConfirm: (MemberPickerResult r) => Navigator.of(context).pop(r),
       ),
     );
 
     if (result != null && mounted) {
-      for (final id in result.allIds) {
+      for (final String id in result.allIds) {
         if (id == 'all') {
           _onMentionSelected('all', '所有人');
         } else {
-          final member = members.firstWhere(
-            (m) => m.userId == id,
+          final MentionMember member = members.firstWhere(
+            (MentionMember m) => m.userId == id,
             orElse: () => MentionMember(userId: id, nickname: '?'),
           );
           _onMentionSelected(member.userId, member.nickname);
@@ -226,22 +226,38 @@ class _ChatInputDesktopState extends State<ChatInputDesktop> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
             child: Row(
               children: [
-                _buildToolIcon(Icons.emoji_emotions_outlined, () {
-                  setState(() => _showEmoji = !_showEmoji);
-                }),
+                TolyPopover(
+                  placement: Placement.topStart,
+                  maxWidth: 400,
+                  maxHeight: 520,
+                  decorationConfig: DecorationConfig(
+                    backgroundColor: Colors.white,
+                    radius: const Radius.circular(12),
+                  ),
+                  overlay: EmojiPanel(onEmojiSelected: _onEmojiSelected, height: 360),
+                  builder: (context, ctrl, child) => GestureDetector(
+                    onTap: () => ctrl.isOpen ? ctrl.close() : ctrl.open(),
+                    child: child,
+                  ),
+                  child: const Icon(Icons.emoji_emotions_outlined, size: 22, color: Color(0xFF666666)),
+                ),
                 const SizedBox(width: 20),
                 _buildToolIcon(Icons.image_outlined, _selectImage),
                 const SizedBox(width: 20),
                 _buildToolIcon(Icons.folder_outlined, _selectFile),
+                if (widget.isGroup) ...[
+                  const SizedBox(width: 20),
+                  _buildToolIcon(Icons.alternate_email, () {
+                    final String text = _controller.text;
+                    final int offset = _controller.selection.baseOffset.clamp(0, text.length);
+                    final String newText = '${text.substring(0, offset)}@${text.substring(offset)}';
+                    _controller.text = newText;
+                    _controller.selection = TextSelection.collapsed(offset: offset + 1);
+                  }),
+                ],
               ],
             ),
           ),
-          // Emoji 面板
-          if (_showEmoji)
-            SizedBox(
-              height: 200,
-              child: EmojiPanel(onEmojiSelected: _onEmojiSelected),
-            ),
         ],
       ),
     );

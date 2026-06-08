@@ -2,11 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:fx_logger/fx_logger.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
-import 'package:flash_shared/flash_shared.dart' show MemberPickerResult;
+import 'package:flash_shared/flash_shared.dart' show MemberPickerResult, WindowsButtons, adaptivePush;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
@@ -223,13 +224,14 @@ class _ChatPageState extends State<ChatPage> {
                 )
               : Text(_title, style: TextStyle(fontSize: widget.embedded ? 14 : null)),
           actions: [
-            if (!widget.isGroup)
-              IconButton(
-                icon: const Icon(Icons.more_horiz),
-                onPressed: () {
-                  if (widget.embedded && widget.onToggleDetail != null) {
-                    widget.onToggleDetail!();
-                  } else {
+            if (widget.embedded) ...[
+              if (kApp.isWindows)
+                const SizedBox(width: 174), // 为顶部窗口按钮+详情按钮预留空间
+            ] else ...[
+              if (!widget.isGroup)
+                IconButton(
+                  icon: const Icon(Icons.more_horiz),
+                  onPressed: () {
                     Navigator.of(context).push(
                       MaterialPageRoute(
                         builder: (_) => PrivateChatInfoPage(
@@ -241,21 +243,14 @@ class _ChatPageState extends State<ChatPage> {
                         ),
                       ),
                     );
-                  }
-                },
-              ),
-            if (widget.isGroup && !_isDisband)
-              IconButton(
-                icon: const Icon(Icons.group),
-                onPressed: () {
-                  if (widget.embedded && widget.onToggleDetail != null) {
-                    widget.onToggleDetail!();
-                  } else {
-                    widget.onGroupInfo?.call();
-                  }
-                },
-              ),
-            if (widget.embedded) const SizedBox(width: 12),
+                  },
+                ),
+              if (widget.isGroup && !_isDisband)
+                IconButton(
+                  icon: const Icon(Icons.group),
+                  onPressed: () => widget.onGroupInfo?.call(),
+                ),
+            ],
           ],
         ),
         body: Container(
@@ -480,6 +475,7 @@ class _ChatPageState extends State<ChatPage> {
           isSelected: isSelected,
           onToggleSelect: () => chatCubit.toggleSelect(msg.id),
           onLongPress: (bubbleCtx) => _showMessageMenu(context, bubbleCtx, msg, isMe),
+          onAction: (action) => _handleMenuAction(context, msg, isMe, action),
           onReEdit: (content) {
             _inputController.text = content;
             _inputController.selection = TextSelection.collapsed(offset: content.length);
@@ -595,6 +591,32 @@ class _ChatPageState extends State<ChatPage> {
     return pin?.pinId;
   }
 
+  void _handleMenuAction(BuildContext context, Message msg, bool isMe, MenuAction action) {
+    final ChatCubit chatCubit = context.read<ChatCubit>();
+    switch (action) {
+      case MenuAction.copy:
+        chatCubit.copyMessage(msg.content);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已复制'), duration: Duration(seconds: 1)),
+        );
+      case MenuAction.reply:
+        chatCubit.setReplyTo(msg);
+      case MenuAction.recall:
+        chatCubit.recallMessage(msg.id);
+      case MenuAction.delete:
+        _confirmDeleteMessage(context, chatCubit, msg.id);
+      case MenuAction.forward:
+        _forwardMessage(context, chatCubit, msg);
+      case MenuAction.pin:
+        chatCubit.pinMessage(msg.id);
+      case MenuAction.unpin:
+        final String? pinId = _getPinId(msg.id);
+        if (pinId != null) chatCubit.unpinMessage(pinId);
+      case MenuAction.multiSelect:
+        chatCubit.enterMultiSelect(msg.id);
+    }
+  }
+
   void _showMessageMenu(BuildContext context, BuildContext bubbleContext, Message msg, bool isMe) {
     final chatCubit = context.read<ChatCubit>();
     final chatState = chatCubit.state;
@@ -631,33 +653,7 @@ class _ChatPageState extends State<ChatPage> {
             _confirmDeleteMessage(context, chatCubit, msg.id);
           case MenuAction.forward:
             FxLog('ChatPage').d('opening forward picker...');
-            Navigator.of(context).push<MemberPickerResult>(
-              MaterialPageRoute(
-                builder: (_) => ConversationPickerPage(
-                  excludeConvId: widget.conversationId,
-                  dio: context.read<MessageRepository>().dio,
-                  previewBuilder: (_) => _buildForwardPreview(msg),
-                ),
-              ),
-            ).then((result) {
-              FxLog('ChatPage').d('picker returned: ${result?.allIds}, mounted=${context.mounted}');
-              if (result != null && result.allIds.isNotEmpty && context.mounted) {
-                for (final targetConvId in result.allIds) {
-                  chatCubit.forwardMessages(
-                    messageIds: [msg.id],
-                    targetConvId: targetConvId,
-                    forwardType: 'single',
-                  );
-                  // 如果转发到当前会话，刷新消息列表
-                  if (targetConvId == widget.conversationId) {
-                    chatCubit.loadMessages();
-                  }
-                }
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
-                );
-              }
-            });
+            _forwardMessage(context, chatCubit, msg);
           case MenuAction.pin:
             chatCubit.pinMessage(msg.id);
           case MenuAction.unpin:
@@ -676,6 +672,59 @@ class _ChatPageState extends State<ChatPage> {
         _scrollController.removeListener(onScroll);
       }
       _scrollController.addListener(onScroll);
+    }
+  }
+
+  Future<void> _forwardMessage(BuildContext context, ChatCubit chatCubit, Message msg) async {
+    MemberPickerResult? result;
+    if (kApp.isDesktop) {
+      final double screenHeight = MediaQuery.of(context).size.height;
+      final double dialogHeight = (screenHeight * 0.8).clamp(0.0, 800.0);
+      result = await showDialog<MemberPickerResult>(
+        context: context,
+        builder: (dialogContext) => Dialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: SizedBox(
+              width: 420,
+              height: dialogHeight,
+              child: ConversationPickerPage(
+                excludeConvId: widget.conversationId,
+                dio: context.read<MessageRepository>().dio,
+                previewBuilder: (_) => _buildForwardPreview(msg),
+              ),
+            ),
+          ),
+        ),
+      );
+    } else {
+      result = await Navigator.of(context).push<MemberPickerResult>(
+        MaterialPageRoute(
+          builder: (_) => ConversationPickerPage(
+            excludeConvId: widget.conversationId,
+            dio: context.read<MessageRepository>().dio,
+            previewBuilder: (_) => _buildForwardPreview(msg),
+          ),
+        ),
+      );
+    }
+    if (result != null && result.allIds.isNotEmpty && context.mounted) {
+      for (final String targetConvId in result.allIds) {
+        chatCubit.forwardMessages(
+          messageIds: [msg.id],
+          targetConvId: targetConvId,
+          forwardType: 'single',
+        );
+        if (targetConvId == widget.conversationId) {
+          chatCubit.loadMessages();
+        }
+      }
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('已转发'), duration: Duration(seconds: 1)),
+        );
+      }
     }
   }
 
