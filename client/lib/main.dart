@@ -1,7 +1,11 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
 import 'package:fx_env/fx_env.dart';
+import 'package:path/path.dart' as p;
+import 'package:path_provider/path_provider.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flash_auth/flash_auth.dart';
 import 'package:flash_session/flash_session.dart';
@@ -22,6 +26,9 @@ import 'src/application/tasks/restore_session_task.dart';
 
 /// 全局 SyncEngine 引用，供页面级 Cubit 注册回调
 SyncEngine? globalSyncEngine;
+
+/// 全局 FileCacheManager 引用，供 ChatCubit 注入
+FileCacheManager? globalFileCacheManager;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -68,8 +75,10 @@ void main() async {
 
   void disposeCache() {
     syncEngine?.dispose();
+    globalFileCacheManager?.dispose();
     localStore?.dispose();
     syncEngine = null;
+    globalFileCacheManager = null;
     localStore = null;
   }
 
@@ -102,6 +111,20 @@ void main() async {
     );
     syncEngine!.start();
     globalSyncEngine = syncEngine;
+
+    // 初始化文件缓存管理器
+    final Directory appSupportDir = await getApplicationSupportDirectory();
+    final String baseDir = p.join(appSupportDir.path, 'UserData', user.userId.toString());
+    globalFileCacheManager = FileCacheManagerImpl(
+      store: localStore!,
+      download: (String url, String savePath, {void Function(double progress)? onProgress}) async {
+        await httpClient.dio.download(url, savePath, onReceiveProgress: (int count, int total) {
+          if (total > 0) onProgress?.call(count / total);
+        });
+      },
+      baseDir: baseDir,
+    );
+
     log.i('SyncEngine started, total initCache: ${sw.elapsedMilliseconds}ms');
   }
 

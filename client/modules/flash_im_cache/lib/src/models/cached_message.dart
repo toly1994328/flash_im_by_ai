@@ -11,6 +11,7 @@ class CachedMessage {
   final String? extra;
   final int status;
   final int createdAt; // 毫秒时间戳
+  final String? localData; // JSON: {"path": "...", "cached_at": 1718000000000}
 
   const CachedMessage({
     required this.id,
@@ -24,5 +25,6 @@ class CachedMessage {
     this.extra,
     this.status = 0,
     required this.createdAt,
+    this.localData,
   });
 }

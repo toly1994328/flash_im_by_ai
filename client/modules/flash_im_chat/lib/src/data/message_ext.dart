@@ -17,5 +17,6 @@ extension MessageCacheExt on Message {
         content: content,
         extra: extra != null ? jsonEncode(extra) : null,
         createdAt: createdAt.millisecondsSinceEpoch,
+        localData: localData,
       );
 }

@@ -6,10 +6,35 @@ import 'package:fx_logger/fx_logger.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
+import 'package:flash_im_cache/flash_im_cache.dart';
 
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import 'chat_state.dart';
+
+/// 文件发送限制配置
+class FileSendLimits {
+  /// 图片大小上限（字节），默认 50MB
+  final int maxImageSize;
+
+  /// 视频大小上限（字节），默认 50MB
+  final int maxVideoSize;
+
+  /// 文件大小上限（字节），默认 50MB
+  final int maxFileSize;
+
+  /// 音频时长上限（毫秒），默认 2 分钟
+  final int maxAudioDurationMs;
+
+  const FileSendLimits({
+    this.maxImageSize = 50 * 1024 * 1024,
+    this.maxVideoSize = 50 * 1024 * 1024,
+    this.maxFileSize = 50 * 1024 * 1024,
+    this.maxAudioDurationMs = 2 * 60 * 1000,
+  });
+
+  static const FileSendLimits defaultLimits = FileSendLimits();
+}
 
 /// 文件类消息发送与下载的 Mixin。
 ///
@@ -26,9 +51,14 @@ mixin ChatFileMixin on Cubit<ChatState> {
   String get currentUserName;
   String? get currentUserAvatar;
   Map<String, String> get pendingMessages;
+  FileCacheManager? get fileCacheManager;
+  FileSendLimits get fileSendLimits;
   int nextLocalId();
   void setupTimeout(String clientId, String localId, Duration timeout);
   void markFailed(String localId);
+
+  /// 暂存发送中的本地文件路径：localId → localPath
+  final Map<String, String> pendingLocalPaths = {};
 
   // ─── 图片发送 ───
 
@@ -38,7 +68,15 @@ mixin ChatFileMixin on Cubit<ChatState> {
     if (current is! ChatLoaded) return;
 
     final localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
     final localFileSize = await File(filePath).length();
+
+    // 大小限制校验
+    if (localFileSize > fileSendLimits.maxImageSize) {
+      _log.w('image too large: $localFileSize > ${fileSendLimits.maxImageSize}');
+      throw FileSizeExceedException('图片大小超过限制（${_formatSize(fileSendLimits.maxImageSize)}）');
+    }
+
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
@@ -105,7 +143,15 @@ mixin ChatFileMixin on Cubit<ChatState> {
     final current = state;
     if (current is! ChatLoaded) return;
 
+    // 大小限制校验
+    final int videoFileSize = await File(filePath).length();
+    if (videoFileSize > fileSendLimits.maxVideoSize) {
+      _log.w('video too large: $videoFileSize > ${fileSendLimits.maxVideoSize}');
+      throw FileSizeExceedException('视频大小超过限制（${_formatSize(fileSendLimits.maxVideoSize)}）');
+    }
+
     final localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = thumbnailPath;
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
@@ -177,8 +223,15 @@ mixin ChatFileMixin on Cubit<ChatState> {
     if (current is! ChatLoaded) return;
 
     final localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
     final fileName = filePath.split('/').last.split('\\').last;
     final fileSize = await File(filePath).length();
+
+    // 大小限制校验
+    if (fileSize > fileSendLimits.maxFileSize) {
+      _log.w('file too large: $fileSize > ${fileSendLimits.maxFileSize}');
+      throw FileSizeExceedException('文件大小超过限制（${_formatSize(fileSendLimits.maxFileSize)}）');
+    }
 
     final localMessage = Message.sending(
       localId: localId,
@@ -245,7 +298,14 @@ mixin ChatFileMixin on Cubit<ChatState> {
     final current = state;
     if (current is! ChatLoaded) return;
 
+    // 时长限制校验
+    if (durationMs > fileSendLimits.maxAudioDurationMs) {
+      _log.w('audio too long: ${durationMs}ms > ${fileSendLimits.maxAudioDurationMs}ms');
+      throw FileSizeExceedException('语音时长超过限制（${fileSendLimits.maxAudioDurationMs ~/ 60000}分钟）');
+    }
+
     final localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
     final fileSize = await File(filePath).length();
     final audioExtra = {'duration_ms': durationMs, 'file_size': fileSize};
 
@@ -311,6 +371,34 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
     _emitDownloadUpdate(messageId, const FileDownloadInfo(status: FileDownloadStatus.downloading));
 
+    // 优先使用 FileCacheManager
+    if (fileCacheManager != null) {
+      try {
+        final String localPath = await fileCacheManager!.getFile(
+          url: fullUrl,
+          messageId: messageId,
+          category: FileCategory.file,
+          fileName: fileName,
+          onProgress: (double p) {
+            _emitDownloadUpdate(messageId, FileDownloadInfo(
+              status: FileDownloadStatus.downloading, progress: p,
+            ));
+          },
+        );
+        _emitDownloadUpdate(messageId, FileDownloadInfo(
+          status: FileDownloadStatus.done, progress: 1.0, localPath: localPath,
+        ));
+        // 同步更新内存中 Message 的 localData
+        _updateLocalDataInState(messageId, localPath);
+      } catch (e) {
+        _emitDownloadUpdate(messageId, FileDownloadInfo(
+          status: FileDownloadStatus.error, error: e.toString(),
+        ));
+      }
+      return;
+    }
+
+    // fallback：旧逻辑
     try {
       final dir = await _getDownloadDir();
       final savePath = '$dir/$fileName';
@@ -340,7 +428,36 @@ mixin ChatFileMixin on Cubit<ChatState> {
   }
 
   Future<String> _getDownloadDir() async {
-    final dir = await getTemporaryDirectory();
+    final dir = await getApplicationSupportDirectory();
     return dir.path;
   }
+
+  /// 下载完成后同步更新内存中 Message 的 localData
+  void _updateLocalDataInState(String messageId, String localPath) {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final String localDataJson = jsonEncode({
+      'path': localPath,
+      'cached_at': DateTime.now().millisecondsSinceEpoch,
+    });
+    final List<Message> updated = s.messages.map((Message m) {
+      if (m.id == messageId) return m.copyWith(localData: localDataJson);
+      return m;
+    }).toList();
+    emit(s.copyWith(messages: updated));
+  }
+
+  static String _formatSize(int bytes) {
+    if (bytes < 1024) return '$bytes B';
+    if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
+    return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+  }
+}
+
+/// 文件/音频超限异常
+class FileSizeExceedException implements Exception {
+  final String message;
+  const FileSizeExceedException(this.message);
+  @override
+  String toString() => message;
 }

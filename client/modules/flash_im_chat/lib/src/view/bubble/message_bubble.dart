@@ -1,3 +1,6 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:flash_shared/flash_shared.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -134,6 +137,16 @@ class MessageBubble extends StatelessWidget {
   }
 
   Widget _buildContent() {
+    // 解析本地缓存路径（供右键菜单和气泡渲染共用）
+    String? cachedPath;
+    if (message.localData != null) {
+      try {
+        final Map<String, dynamic> parsed =
+            jsonDecode(message.localData!) as Map<String, dynamic>;
+        cachedPath = parsed['path'] as String?;
+      } catch (_) {}
+    }
+
     return Column(
       crossAxisAlignment: isMe ? CrossAxisAlignment.end : CrossAxisAlignment.start,
       children: [
@@ -169,6 +182,7 @@ class MessageBubble extends StatelessWidget {
                       message: message,
                       isMe: isMe,
                       isGroup: isGroup,
+                      localPath: cachedPath,
                       onAction: (MenuAction action) {
                         ctrl.close();
                         onAction?.call(action);
@@ -244,30 +258,47 @@ class MessageBubble extends StatelessWidget {
       );
     }
 
+    // 解析本地缓存路径
+    String? cachedPath;
+    String? cachedThumbnailPath;
+    if (message.localData != null) {
+      try {
+        final Map<String, dynamic> parsed =
+            jsonDecode(message.localData!) as Map<String, dynamic>;
+        cachedPath = parsed['path'] as String?;
+        cachedThumbnailPath = parsed['thumbnail_path'] as String?;
+      } catch (_) {}
+    }
+
     final bubble = switch (message.type) {
       MessageType.image => ImageBubble(
         message: message,
         baseUrl: baseUrl,
         uploadProgress: uploadProgress,
         onTap: onImageTap,
+        localPath: cachedPath,
       ),
       MessageType.video => VideoBubble(
         message: message,
         baseUrl: baseUrl,
         uploadProgress: uploadProgress,
         onTap: onVideoTap,
+        localThumbnailPath: cachedThumbnailPath,
       ),
       MessageType.file => FileBubble(
         message: message,
         isMe: isMe,
         uploadProgress: uploadProgress,
-        downloadInfo: fileDownloadInfo,
+        downloadInfo: cachedPath != null && File(cachedPath).existsSync()
+            ? FileDownloadInfo(status: FileDownloadStatus.done, progress: 1.0, localPath: cachedPath)
+            : fileDownloadInfo,
         onTap: onFileTap,
       ),
       MessageType.audio => AudioBubble(
         message: message,
         isMe: isMe,
         baseUrl: baseUrl,
+        localPath: cachedPath,
       ),
       _ => TextBubble(message: message, isMe: isMe),
     };
@@ -294,6 +325,20 @@ class MessageBubble extends StatelessWidget {
     info.writeln('createdAt: ${message.createdAt}');
     info.writeln('content: ${message.content}');
     info.writeln('extra: ${message.extra}');
+    info.writeln('--- localData ---');
+    info.writeln('raw: ${message.localData ?? "null"}');
+    if (message.localData != null) {
+      try {
+        final Map<String, dynamic> parsed =
+            jsonDecode(message.localData!) as Map<String, dynamic>;
+        info.writeln('path: ${parsed['path']}');
+        info.writeln('cached_at: ${DateTime.fromMillisecondsSinceEpoch(parsed['cached_at'] as int)}');
+        final bool exists = File(parsed['path'] as String).existsSync();
+        info.writeln('file_exists: ${exists ? "✅" : "❌"}');
+      } catch (e) {
+        info.writeln('parse error: $e');
+      }
+    }
 
     showDialog(
       context: context,

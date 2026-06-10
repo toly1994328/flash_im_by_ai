@@ -10,6 +10,7 @@ import 'package:flash_im_group/flash_im_group.dart';
 import 'package:flash_im_search/flash_im_search.dart';
 import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
+import '../../../main.dart' show globalFileCacheManager;
 
 /// 公共动作 mixin：移动端和桌面端共用的业务操作
 mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
@@ -59,6 +60,8 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
             isGroup: conversation.isGroup,
           ),
           onConversationChanged: () => convCubit.loadConversations(),
+          fileCacheManager: globalFileCacheManager,
+          baseUrl: AppConfig.baseUrl,
         )..loadMessages(),
         child: ChatPage(
           conversationId: conversation.id,
@@ -107,6 +110,8 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
             isGroup: conversation.isGroup,
           ),
           onConversationChanged: () => convCubit.loadConversations(),
+          fileCacheManager: globalFileCacheManager,
+          baseUrl: AppConfig.baseUrl,
         )..loadMessages(),
         child: ChatPage(
           conversationId: conversation.id,

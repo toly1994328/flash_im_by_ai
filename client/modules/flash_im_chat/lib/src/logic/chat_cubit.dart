@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_cache/flash_im_cache.dart';
+import 'package:fx_logger/fx_logger.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import '../data/message_ext.dart';
@@ -33,6 +34,8 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
   final LocalStore? _store;
+  final FileCacheManager? _fileCacheManager;
+  final String? _baseUrl;
 
   int _peerReadSeq = 0;
   Map<String, int> _membersReadSeq = {};
@@ -55,6 +58,12 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
 
   @override
   LocalStore? get localStore => _store ?? _repository.store;
+
+  @override
+  FileCacheManager? get fileCacheManager => _fileCacheManager;
+
+  @override
+  FileSendLimits get fileSendLimits => const FileSendLimits();
 
   @override
   int nextLocalId() => ++_localIdCounter;
@@ -129,10 +138,14 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     required ChatContext context,
     this.onConversationChanged,
     LocalStore? store,
+    FileCacheManager? fileCacheManager,
+    String? baseUrl,
   })  : _repository = repository,
         _wsClient = wsClient,
         chatCtx = context,
         _store = store,
+        _fileCacheManager = fileCacheManager,
+        _baseUrl = baseUrl,
         super(const ChatInitial()) {
     initWsListeners();
   }
@@ -147,6 +160,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       loadPinnedMessages();
       final maxSeq = messages.isNotEmpty ? messages.last.seq : 0;
       _reportReadSeq(maxSeq);
+      _autoCacheImages(messages);
     } catch (e) {
       emit(ChatError(e.toString()));
     }
@@ -292,6 +306,11 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       updated.sort((a, b) => a.seq.compareTo(b.seq));
       emit(current.copyWith(messages: updated));
       _reportReadSeq(message.seq);
+
+      // 收到新图片/视频/音频消息时自动缓存
+      if (message.isImage || message.isVideo || message.isAudio) {
+        _autoCacheImages([message]);
+      }
     } catch (_) {}
   }
 
@@ -323,6 +342,13 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       if (confirmedMessage != null && store != null) {
         final msg = confirmedMessage!;
         store.cacheMessages([msg.toCached()], conversationId: msg.conversationId);
+      }
+
+      // 发送的文件类消息：写 localData 标记 + 更新内存状态
+      final String? localPath = pendingLocalPaths.remove(localId);
+      if (localPath != null && _fileCacheManager != null) {
+        _fileCacheManager.markLocal(messageId: ack.messageId, localPath: localPath);
+        updateMessageLocalData(ack.messageId, localPath);
       }
     } catch (_) {}
   }
@@ -375,6 +401,113 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     disposeWsListeners();
     _readReceiptTimer?.cancel();
     return super.close();
+  }
+
+  // ─── 图片自动缓存 ───
+
+  static final _cacheLog = FxLog('ImgCache');
+
+  void _autoCacheImages(List<Message> messages) {
+    if (_fileCacheManager == null) return;
+
+    // 图片消息自动缓存
+    final List<Message> needCacheImages = messages
+        .where((Message m) => m.isImage && m.localData == null && m.status == MessageStatus.sent)
+        .toList();
+    for (final Message msg in needCacheImages) {
+      final String url = (_baseUrl != null && msg.content.startsWith('/'))
+          ? '$_baseUrl${msg.content}'
+          : msg.content;
+      _fileCacheManager.getFile(
+        url: url,
+        messageId: msg.id,
+        category: FileCategory.image,
+      ).then((String path) {
+        updateMessageLocalData(msg.id, path);
+      }).catchError((Object e) {
+        _cacheLog.w('auto cache image failed: ${msg.id}, $e');
+      });
+    }
+
+    // 视频封面自动缓存
+    final List<Message> needCacheThumbs = messages
+        .where((Message m) => m.isVideo && m.localData == null && m.status == MessageStatus.sent)
+        .toList();
+    for (final Message msg in needCacheThumbs) {
+      final String? thumbUrl = msg.videoExtra?.thumbnailUrl;
+      if (thumbUrl == null || thumbUrl.isEmpty) continue;
+      final String fullThumbUrl = (_baseUrl != null && thumbUrl.startsWith('/'))
+          ? '$_baseUrl$thumbUrl'
+          : thumbUrl;
+      // 用 messageId + _thumb 后缀区分视频封面
+      _fileCacheManager.getFile(
+        url: fullThumbUrl,
+        messageId: '${msg.id}_thumb',
+        category: FileCategory.image,
+      ).then((String path) {
+        _updateVideoThumbnailPath(msg.id, path);
+      }).catchError((Object e) {
+        _cacheLog.w('auto cache thumb failed: ${msg.id}, $e');
+      });
+    }
+
+    // 音频消息自动缓存（文件小，直接后台下载）
+    final List<Message> needCacheAudios = messages
+        .where((Message m) => m.isAudio && m.localData == null && m.status == MessageStatus.sent)
+        .toList();
+    for (final Message msg in needCacheAudios) {
+      final String url = (_baseUrl != null && msg.content.startsWith('/'))
+          ? '$_baseUrl${msg.content}'
+          : msg.content;
+      _fileCacheManager.getFile(
+        url: url,
+        messageId: msg.id,
+        category: FileCategory.audio,
+      ).then((String path) {
+        updateMessageLocalData(msg.id, path);
+      }).catchError((Object e) {
+        _cacheLog.w('auto cache audio failed: ${msg.id}, $e');
+      });
+    }
+
+    final int total = needCacheImages.length + needCacheThumbs.length + needCacheAudios.length;
+    if (total > 0) _cacheLog.d('auto cache: $total tasks');
+  }
+
+  void updateMessageLocalData(String messageId, String localPath) {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final String localDataJson = jsonEncode({
+      'path': localPath,
+      'cached_at': DateTime.now().millisecondsSinceEpoch,
+    });
+    final List<Message> updated = s.messages.map((Message m) {
+      if (m.id == messageId) return m.copyWith(localData: localDataJson);
+      return m;
+    }).toList();
+    emit(s.copyWith(messages: updated));
+  }
+
+  /// 更新视频消息的封面缩略图本地路径
+  void _updateVideoThumbnailPath(String messageId, String thumbnailPath) {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final List<Message> updated = s.messages.map((Message m) {
+      if (m.id == messageId) {
+        // 在 localData 中追加 thumbnail_path
+        Map<String, dynamic> data = {};
+        if (m.localData != null) {
+          try { data = jsonDecode(m.localData!) as Map<String, dynamic>; } catch (_) {}
+        }
+        data['thumbnail_path'] = thumbnailPath;
+        if (!data.containsKey('cached_at')) {
+          data['cached_at'] = DateTime.now().millisecondsSinceEpoch;
+        }
+        return m.copyWith(localData: jsonEncode(data));
+      }
+      return m;
+    }).toList();
+    emit(s.copyWith(messages: updated));
   }
 
   Future<void> _loadReadSeq() async {

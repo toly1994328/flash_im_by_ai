@@ -12,12 +12,14 @@ class AudioBubble extends StatefulWidget {
   final Message message;
   final bool isMe;
   final String? baseUrl;
+  final String? localPath;
 
   const AudioBubble({
     super.key,
     required this.message,
     required this.isMe,
     this.baseUrl,
+    this.localPath,
   });
 
   @override
@@ -40,10 +42,18 @@ class _AudioBubbleState extends State<AudioBubble> {
   }
 
   String get _audioUrl {
+    // 优先本地缓存路径
+    if (widget.localPath != null) return widget.localPath!;
     final content = widget.message.content;
     if (content.startsWith('http')) return content;
     if (widget.baseUrl != null) return '${widget.baseUrl}$content';
     return content;
+  }
+
+  bool get _isLocalFile {
+    if (widget.localPath != null) return true;
+    final content = widget.message.content;
+    return !content.startsWith('http') && !content.startsWith('/uploads');
   }
 
   @override
@@ -75,7 +85,11 @@ class _AudioBubbleState extends State<AudioBubble> {
         final url = _audioUrl;
         if (_player.processingState == ProcessingState.completed ||
             _player.processingState == ProcessingState.idle) {
-          await _player.setUrl(url);
+          if (_isLocalFile) {
+            await _player.setFilePath(url);
+          } else {
+            await _player.setUrl(url);
+          }
         }
         await _player.play();
       }

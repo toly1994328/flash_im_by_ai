@@ -12,6 +12,7 @@ class CachedMessagesTable extends Table {
   TextColumn get extra => text().nullable()();
   IntColumn get status => integer().withDefault(const Constant(0))();
   IntColumn get createdAt => integer()();
+  TextColumn get localData => text().nullable()();
 
   @override
   Set<Column> get primaryKey => {id};

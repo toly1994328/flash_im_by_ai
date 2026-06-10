@@ -123,6 +123,17 @@ class $CachedMessagesTableTable extends CachedMessagesTable
     type: DriftSqlType.int,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _localDataMeta = const VerificationMeta(
+    'localData',
+  );
+  @override
+  late final GeneratedColumn<String> localData = GeneratedColumn<String>(
+    'local_data',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   @override
   List<GeneratedColumn> get $columns => [
     id,
@@ -136,6 +147,7 @@ class $CachedMessagesTableTable extends CachedMessagesTable
     extra,
     status,
     createdAt,
+    localData,
   ];
   @override
   String get aliasedName => _alias ?? actualTableName;
@@ -234,6 +246,12 @@ class $CachedMessagesTableTable extends CachedMessagesTable
     } else if (isInserting) {
       context.missing(_createdAtMeta);
     }
+    if (data.containsKey('local_data')) {
+      context.handle(
+        _localDataMeta,
+        localData.isAcceptableOrUnknown(data['local_data']!, _localDataMeta),
+      );
+    }
     return context;
   }
 
@@ -294,6 +312,10 @@ class $CachedMessagesTableTable extends CachedMessagesTable
         DriftSqlType.int,
         data['${effectivePrefix}created_at'],
       )!,
+      localData: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}local_data'],
+      ),
     );
   }
 
@@ -316,6 +338,7 @@ class CachedMessagesTableData extends DataClass
   final String? extra;
   final int status;
   final int createdAt;
+  final String? localData;
   const CachedMessagesTableData({
     required this.id,
     required this.conversationId,
@@ -328,6 +351,7 @@ class CachedMessagesTableData extends DataClass
     this.extra,
     required this.status,
     required this.createdAt,
+    this.localData,
   });
   @override
   Map<String, Expression> toColumns(bool nullToAbsent) {
@@ -347,6 +371,9 @@ class CachedMessagesTableData extends DataClass
     }
     map['status'] = Variable<int>(status);
     map['created_at'] = Variable<int>(createdAt);
+    if (!nullToAbsent || localData != null) {
+      map['local_data'] = Variable<String>(localData);
+    }
     return map;
   }
 
@@ -367,6 +394,9 @@ class CachedMessagesTableData extends DataClass
           : Value(extra),
       status: Value(status),
       createdAt: Value(createdAt),
+      localData: localData == null && nullToAbsent
+          ? const Value.absent()
+          : Value(localData),
     );
   }
 
@@ -387,6 +417,7 @@ class CachedMessagesTableData extends DataClass
       extra: serializer.fromJson<String?>(json['extra']),
       status: serializer.fromJson<int>(json['status']),
       createdAt: serializer.fromJson<int>(json['createdAt']),
+      localData: serializer.fromJson<String?>(json['localData']),
     );
   }
   @override
@@ -404,6 +435,7 @@ class CachedMessagesTableData extends DataClass
       'extra': serializer.toJson<String?>(extra),
       'status': serializer.toJson<int>(status),
       'createdAt': serializer.toJson<int>(createdAt),
+      'localData': serializer.toJson<String?>(localData),
     };
   }
 
@@ -419,6 +451,7 @@ class CachedMessagesTableData extends DataClass
     Value<String?> extra = const Value.absent(),
     int? status,
     int? createdAt,
+    Value<String?> localData = const Value.absent(),
   }) => CachedMessagesTableData(
     id: id ?? this.id,
     conversationId: conversationId ?? this.conversationId,
@@ -431,6 +464,7 @@ class CachedMessagesTableData extends DataClass
     extra: extra.present ? extra.value : this.extra,
     status: status ?? this.status,
     createdAt: createdAt ?? this.createdAt,
+    localData: localData.present ? localData.value : this.localData,
   );
   CachedMessagesTableData copyWithCompanion(CachedMessagesTableCompanion data) {
     return CachedMessagesTableData(
@@ -451,6 +485,7 @@ class CachedMessagesTableData extends DataClass
       extra: data.extra.present ? data.extra.value : this.extra,
       status: data.status.present ? data.status.value : this.status,
       createdAt: data.createdAt.present ? data.createdAt.value : this.createdAt,
+      localData: data.localData.present ? data.localData.value : this.localData,
     );
   }
 
@@ -467,7 +502,8 @@ class CachedMessagesTableData extends DataClass
           ..write('content: $content, ')
           ..write('extra: $extra, ')
           ..write('status: $status, ')
-          ..write('createdAt: $createdAt')
+          ..write('createdAt: $createdAt, ')
+          ..write('localData: $localData')
           ..write(')'))
         .toString();
   }
@@ -485,6 +521,7 @@ class CachedMessagesTableData extends DataClass
     extra,
     status,
     createdAt,
+    localData,
   );
   @override
   bool operator ==(Object other) =>
@@ -500,7 +537,8 @@ class CachedMessagesTableData extends DataClass
           other.content == this.content &&
           other.extra == this.extra &&
           other.status == this.status &&
-          other.createdAt == this.createdAt);
+          other.createdAt == this.createdAt &&
+          other.localData == this.localData);
 }
 
 class CachedMessagesTableCompanion
@@ -516,6 +554,7 @@ class CachedMessagesTableCompanion
   final Value<String?> extra;
   final Value<int> status;
   final Value<int> createdAt;
+  final Value<String?> localData;
   final Value<int> rowid;
   const CachedMessagesTableCompanion({
     this.id = const Value.absent(),
@@ -529,6 +568,7 @@ class CachedMessagesTableCompanion
     this.extra = const Value.absent(),
     this.status = const Value.absent(),
     this.createdAt = const Value.absent(),
+    this.localData = const Value.absent(),
     this.rowid = const Value.absent(),
   });
   CachedMessagesTableCompanion.insert({
@@ -543,6 +583,7 @@ class CachedMessagesTableCompanion
     this.extra = const Value.absent(),
     this.status = const Value.absent(),
     required int createdAt,
+    this.localData = const Value.absent(),
     this.rowid = const Value.absent(),
   }) : id = Value(id),
        conversationId = Value(conversationId),
@@ -564,6 +605,7 @@ class CachedMessagesTableCompanion
     Expression<String>? extra,
     Expression<int>? status,
     Expression<int>? createdAt,
+    Expression<String>? localData,
     Expression<int>? rowid,
   }) {
     return RawValuesInsertable({
@@ -578,6 +620,7 @@ class CachedMessagesTableCompanion
       if (extra != null) 'extra': extra,
       if (status != null) 'status': status,
       if (createdAt != null) 'created_at': createdAt,
+      if (localData != null) 'local_data': localData,
       if (rowid != null) 'rowid': rowid,
     });
   }
@@ -594,6 +637,7 @@ class CachedMessagesTableCompanion
     Value<String?>? extra,
     Value<int>? status,
     Value<int>? createdAt,
+    Value<String?>? localData,
     Value<int>? rowid,
   }) {
     return CachedMessagesTableCompanion(
@@ -608,6 +652,7 @@ class CachedMessagesTableCompanion
       extra: extra ?? this.extra,
       status: status ?? this.status,
       createdAt: createdAt ?? this.createdAt,
+      localData: localData ?? this.localData,
       rowid: rowid ?? this.rowid,
     );
   }
@@ -648,6 +693,9 @@ class CachedMessagesTableCompanion
     if (createdAt.present) {
       map['created_at'] = Variable<int>(createdAt.value);
     }
+    if (localData.present) {
+      map['local_data'] = Variable<String>(localData.value);
+    }
     if (rowid.present) {
       map['rowid'] = Variable<int>(rowid.value);
     }
@@ -668,6 +716,7 @@ class CachedMessagesTableCompanion
           ..write('extra: $extra, ')
           ..write('status: $status, ')
           ..write('createdAt: $createdAt, ')
+          ..write('localData: $localData, ')
           ..write('rowid: $rowid')
           ..write(')'))
         .toString();
@@ -2194,6 +2243,7 @@ typedef $$CachedMessagesTableTableCreateCompanionBuilder =
       Value<String?> extra,
       Value<int> status,
       required int createdAt,
+      Value<String?> localData,
       Value<int> rowid,
     });
 typedef $$CachedMessagesTableTableUpdateCompanionBuilder =
@@ -2209,6 +2259,7 @@ typedef $$CachedMessagesTableTableUpdateCompanionBuilder =
       Value<String?> extra,
       Value<int> status,
       Value<int> createdAt,
+      Value<String?> localData,
       Value<int> rowid,
     });
 
@@ -2273,6 +2324,11 @@ class $$CachedMessagesTableTableFilterComposer
 
   ColumnFilters<int> get createdAt => $composableBuilder(
     column: $table.createdAt,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get localData => $composableBuilder(
+    column: $table.localData,
     builder: (column) => ColumnFilters(column),
   );
 }
@@ -2340,6 +2396,11 @@ class $$CachedMessagesTableTableOrderingComposer
     column: $table.createdAt,
     builder: (column) => ColumnOrderings(column),
   );
+
+  ColumnOrderings<String> get localData => $composableBuilder(
+    column: $table.localData,
+    builder: (column) => ColumnOrderings(column),
+  );
 }
 
 class $$CachedMessagesTableTableAnnotationComposer
@@ -2389,6 +2450,9 @@ class $$CachedMessagesTableTableAnnotationComposer
 
   GeneratedColumn<int> get createdAt =>
       $composableBuilder(column: $table.createdAt, builder: (column) => column);
+
+  GeneratedColumn<String> get localData =>
+      $composableBuilder(column: $table.localData, builder: (column) => column);
 }
 
 class $$CachedMessagesTableTableTableManager
@@ -2445,6 +2509,7 @@ class $$CachedMessagesTableTableTableManager
                 Value<String?> extra = const Value.absent(),
                 Value<int> status = const Value.absent(),
                 Value<int> createdAt = const Value.absent(),
+                Value<String?> localData = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedMessagesTableCompanion(
                 id: id,
@@ -2458,6 +2523,7 @@ class $$CachedMessagesTableTableTableManager
                 extra: extra,
                 status: status,
                 createdAt: createdAt,
+                localData: localData,
                 rowid: rowid,
               ),
           createCompanionCallback:
@@ -2473,6 +2539,7 @@ class $$CachedMessagesTableTableTableManager
                 Value<String?> extra = const Value.absent(),
                 Value<int> status = const Value.absent(),
                 required int createdAt,
+                Value<String?> localData = const Value.absent(),
                 Value<int> rowid = const Value.absent(),
               }) => CachedMessagesTableCompanion.insert(
                 id: id,
@@ -2486,6 +2553,7 @@ class $$CachedMessagesTableTableTableManager
                 extra: extra,
                 status: status,
                 createdAt: createdAt,
+                localData: localData,
                 rowid: rowid,
               ),
           withReferenceMapper: (p0) => p0

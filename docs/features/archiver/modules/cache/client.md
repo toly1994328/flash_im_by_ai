@@ -1,6 +1,6 @@
 # 本地缓存 — 客户端局域网络
 
-涉及节点：I-14, D-39, F-15~F-16
+涉及节点：I-14, D-39, F-15~F-16, F-18, P-74~P-75
 
 ---
 
@@ -10,7 +10,9 @@
 
 | 模块 | 位置 | 职责 |
 |------|------|------|
-| flash_im_cache | client/modules/flash_im_cache | 本地数据库 + 抽象接口 + drift 实现 + 同步引擎 |
+| flash_im_cache | client/modules/flash_im_cache | 本地数据库 + 抽象接口 + drift 实现 + 同步引擎 + 文件缓存管理器 |
+| flash_im_cache_drift | client/modules/flash_im_cache_drift | drift 具体实现（DAO、表定义、迁移） |
+| flash_im_chat | client/modules/flash_im_chat | 聊天逻辑层消费 FileCacheManager，气泡优先本地渲染 |
 | im-message | server/modules/im-message | 新增 after_seq 参数（后端唯一改动） |
 
 ### 依赖关系
@@ -20,20 +22,26 @@ graph TD
     CACHE[flash_im_cache] --> CORE[flash_im_core]
     CACHE --> DRIFT[drift + sqlite3_flutter_libs]
     CACHE --> DIO[dio]
+    CACHE --> PATH[path]
     CONV[flash_im_conversation] --> CACHE
     CHAT[flash_im_chat] --> CACHE
     FRIEND[flash_im_friend] --> CACHE
     CACHE -.->|after_seq 增量同步| MSG[im-message]
+    CHAT -->|FileCacheManager| CACHE
+    MAIN[main.dart] -->|globalFileCacheManager| CACHE
 ```
 
 ### 节点详情
 
 | 编号 | 功能节点 | 模块 | 职责 |
 |------|---------|------|------|
-| I-14 | 本地数据库 | flash_im_cache/drift | drift + SQLite，per-user 数据库，3 张缓存表 |
-| F-15 | LocalStore | flash_im_cache/local_store | 本地存储抽象接口，定义读写契约 |
+| I-14 | 本地数据库 | flash_im_cache_drift | drift + SQLite，per-user 数据库，3 张缓存表 + localData 列 |
+| F-15 | LocalStore | flash_im_cache/local_store | 本地存储抽象接口，定义读写契约 + updateLocalData/getLocalData |
 | F-16 | SyncEngine | flash_im_cache/sync_engine | WS 事件写入本地 + 重连增量同步 + 回调通知 |
+| F-18 | 文件缓存管理器 | flash_im_cache/file_cache_manager | 下载队列(max=3) + URL 去重 + 本地路径持久化 + markLocal |
 | D-39 | 增量消息查询 | im-message/routes | GET /messages 新增 after_seq 参数 |
+| P-74 | 桌面端文件操作菜单 | flash_im_chat/desktop_context_menu | 右键「另存为」「打开文件夹」 |
+| P-75 | 发送大小限制 | flash_im_chat/chat_file_mixin | 图片/视频/文件 ≤ 50MB，音频 ≤ 2min |
 
 ---
 
@@ -48,6 +56,9 @@ graph TD
 | SyncEngine → 服务端 | HTTP | 客户端主动 | 增量同步用 after_seq，全量同步用 limit |
 | SyncEngine → Cubit | 回调 | 客户端内部 | 同步完成后通知 UI 刷新 |
 | WsClient → SyncEngine | Stream | 客户端内部 | 5 个事件流（state/chat/conv/friend+/friend-） |
+| FileCacheManager → LocalStore | 内存 | 客户端内部 | 下载完成写 localData，读取时检查缓存 |
+| FileCacheManager → Dio | HTTP | 客户端主动 | 注入的 DownloadFunction，实际下载文件 |
+| ChatCubit → FileCacheManager | 内存 | 客户端内部 | loadMessages 后触发自动缓存，下载完更新 state |
 
 ### 关键事件流：冷启动
 
@@ -123,6 +134,7 @@ sequenceDiagram
 |------|---------|---------|---------|
 | DriftLocalStore | initCache（登录后） | 退出登录 | 应用级 |
 | SyncEngine | initCache（登录后） | 退出登录 | 应用级 |
+| FileCacheManagerImpl | initCache（登录后） | 退出登录 | 应用级 |
 | AppDatabase | DriftLocalStore.open | DriftLocalStore.dispose | 应用级 |
 
 ### 订阅关系
@@ -142,3 +154,4 @@ sequenceDiagram
 | 版本 | 变更 |
 |------|------|
 | v0.0.1_cache | 初始版本：drift 建表 + LocalStore 接口 + DriftLocalStore + SyncEngine + Repository 改造 |
+| v0.33.0 | 文件缓存机制：FileCacheManager（下载队列+并发+URL去重）+ localData 持久化 + 图片/音频/视频封面自动缓存 + 桌面端右键操作 + 发送大小限制 |

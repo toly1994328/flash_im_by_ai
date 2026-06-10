@@ -7,6 +7,7 @@ class VideoBubble extends StatelessWidget {
   final String? baseUrl;
   final double? uploadProgress;
   final VoidCallback? onTap;
+  final String? localThumbnailPath;
 
   const VideoBubble({
     super.key,
@@ -14,6 +15,7 @@ class VideoBubble extends StatelessWidget {
     this.baseUrl,
     this.uploadProgress,
     this.onTap,
+    this.localThumbnailPath,
   });
 
   String _fullUrl(String url) =>
@@ -46,7 +48,11 @@ class VideoBubble extends StatelessWidget {
         && !message.content.startsWith('/uploads');
 
     Widget thumbWidget;
-    if (isLocalThumb) {
+    if (localThumbnailPath != null && File(localThumbnailPath!).existsSync()) {
+      thumbWidget = Image.file(File(localThumbnailPath!),
+        width: placeholderW, height: placeholderH, fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => videoPlaceholder());
+    } else if (isLocalThumb) {
       thumbWidget = Image.file(File(message.content),
         width: placeholderW, height: placeholderH, fit: BoxFit.cover,
         errorBuilder: (_, _, _) => videoPlaceholder());

@@ -92,6 +92,17 @@ abstract class LocalStore {
   /// 清空所有缓存
   Future<void> clearAll();
 
+  // ─── 文件缓存 ───
+
+  /// 更新消息的本地文件缓存路径
+  Future<void> updateLocalData(String messageId, String? localDataJson);
+
+  /// 读取消息的本地文件缓存路径
+  Future<String?> getLocalData(String messageId);
+
+  /// 批量读取消息的 localData（用于列表预检）
+  Future<Map<String, String?>> batchGetLocalData(List<String> messageIds);
+
   /// 释放资源
   void dispose();
 }

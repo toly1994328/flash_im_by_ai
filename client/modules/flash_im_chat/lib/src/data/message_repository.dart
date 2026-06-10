@@ -274,6 +274,7 @@ class MessageRepository implements IMessageRepository {
       createdAt: DateTime.fromMillisecondsSinceEpoch(c.createdAt),
       type: parsedType,
       extra: extra,
+      localData: c.localData,
     );
   }
 

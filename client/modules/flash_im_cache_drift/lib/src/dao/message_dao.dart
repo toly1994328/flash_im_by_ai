@@ -48,4 +48,34 @@ class MessageDao {
     final rows = await query.get();
     return rows.map((r) => r.read(col)!).toList();
   }
+
+  /// 更新单条消息的 localData 字段
+  Future<void> updateLocalData(String messageId, String? localDataJson) async {
+    final query = _db.update(_db.cachedMessagesTable)
+      ..where((t) => t.id.equals(messageId));
+    await query.write(CachedMessagesTableCompanion(
+      localData: Value(localDataJson),
+    ));
+  }
+
+  /// 读取单条消息的 localData
+  Future<String?> getLocalData(String messageId) async {
+    final query = _db.select(_db.cachedMessagesTable)
+      ..where((t) => t.id.equals(messageId));
+    final row = await query.getSingleOrNull();
+    return row?.localData;
+  }
+
+  /// 批量读取 localData
+  Future<Map<String, String?>> batchGetLocalData(List<String> messageIds) async {
+    if (messageIds.isEmpty) return {};
+    final query = _db.select(_db.cachedMessagesTable)
+      ..where((t) => t.id.isIn(messageIds));
+    final rows = await query.get();
+    final Map<String, String?> result = {};
+    for (final row in rows) {
+      result[row.id] = row.localData;
+    }
+    return result;
+  }
 }

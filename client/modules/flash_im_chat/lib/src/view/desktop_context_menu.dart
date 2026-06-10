@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 
 import '../data/message.dart';
@@ -9,6 +11,7 @@ class DesktopContextMenu extends StatelessWidget {
   final bool isMe;
   final bool isGroup;
   final bool isPinned;
+  final String? localPath;
   final void Function(MenuAction action) onAction;
 
   const DesktopContextMenu({
@@ -17,6 +20,7 @@ class DesktopContextMenu extends StatelessWidget {
     required this.isMe,
     this.isGroup = false,
     this.isPinned = false,
+    this.localPath,
     required this.onAction,
   });
 
@@ -28,6 +32,13 @@ class DesktopContextMenu extends StatelessWidget {
       isGroup: isGroup,
       isPinned: isPinned,
     );
+
+    // 文件存在时追加"打开文件夹"和"另存为"
+    if (localPath != null && File(localPath!).existsSync()) {
+      actions.add(MenuAction.saveAs);
+      actions.add(MenuAction.openFolder);
+    }
+
     if (actions.isEmpty) return const SizedBox.shrink();
 
     return IntrinsicWidth(
@@ -79,6 +90,8 @@ class DesktopContextMenu extends StatelessWidget {
       MenuAction.multiSelect => (Icons.checklist, '多选'),
       MenuAction.pin => (Icons.push_pin, '置顶'),
       MenuAction.unpin => (Icons.push_pin_outlined, '取消置顶'),
+      MenuAction.openFolder => (Icons.folder_open, '打开文件夹'),
+      MenuAction.saveAs => (Icons.save_alt, '另存为'),
     };
   }
 }

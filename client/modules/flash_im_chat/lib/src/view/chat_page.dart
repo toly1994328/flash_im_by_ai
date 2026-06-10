@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -9,9 +11,12 @@ import 'package:window_manager/window_manager.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
 import 'package:flash_shared/flash_shared.dart' show MemberPickerResult, WindowsButtons, adaptivePush;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
+import 'package:file_picker/file_picker.dart';
 import '../data/message.dart';
 import '../logic/chat_cubit.dart';
+import '../logic/chat_file_mixin.dart' show FileSizeExceedException;
 import '../logic/chat_state.dart';
+import 'package:flash_im_cache/flash_im_cache.dart' show FileCacheManager, FileCategory;
 import 'bubble/message_bubble.dart';
 import 'bubble/image_bubble.dart';
 import 'bubble/video_bubble.dart';
@@ -377,8 +382,8 @@ class _ChatPageState extends State<ChatPage> {
                               } : null,
                               onSend: (content) => cubit.sendMessage(content),
                               onSendWithMentions: (content, mentions) => cubit.sendMessage(content, mentions: mentions),
-                              onSendImage: (path) => cubit.sendImageFromFile(path),
-                              onSendFile: (path) => cubit.sendFileFromPicker(path),
+                              onSendImage: (path) => _safeSend(context, () => cubit.sendImageFromFile(path)),
+                              onSendFile: (path) => _safeSend(context, () => cubit.sendFileFromPicker(path)),
                             )
                           : ChatInput(
                               controller: _inputController,
@@ -398,18 +403,18 @@ class _ChatPageState extends State<ChatPage> {
                               } : null,
                               onSend: (content) => cubit.sendMessage(content),
                               onSendWithMentions: (content, mentions) => cubit.sendMessage(content, mentions: mentions),
-                              onSendImage: (path) => cubit.sendImageFromFile(path),
+                              onSendImage: (path) => _safeSend(context, () => cubit.sendImageFromFile(path)),
                               onSendVideo: (path) async {
                                 final info = await VideoThumbnailService().extractVideoInfo(path);
                                 if (context.mounted) {
-                                  cubit.sendVideoFromFile(
+                                  _safeSend(context, () => cubit.sendVideoFromFile(
                                     path, info.thumbnailPath, info.durationMs,
                                     width: info.width, height: info.height,
-                                  );
+                                  ));
                                 }
                               },
-                              onSendFile: (path) => cubit.sendFileFromPicker(path),
-                              onSendAudio: (path, durationMs) => cubit.sendAudioFromFile(path, durationMs),
+                              onSendFile: (path) => _safeSend(context, () => cubit.sendFileFromPicker(path)),
+                              onSendAudio: (path, durationMs) => _safeSend(context, () => cubit.sendAudioFromFile(path, durationMs)),
                             ),
                       ],
                     );
@@ -486,26 +491,80 @@ class _ChatPageState extends State<ChatPage> {
           onImageTap: () => Navigator.of(context).push(MaterialPageRoute(
             builder: (_) => ImagePreviewPage(imageUrl: fullUrl(msg.content)),
           )),
-          onVideoTap: () {
-            final videoUrl = fullUrl(msg.content);
-            Navigator.of(context).push(MaterialPageRoute(
-              builder: (_) => VideoPlayerPage(videoUrl: videoUrl),
-            ));
+          onVideoTap: () async {
+            final String videoUrl = fullUrl(msg.content);
+            final String? cachedPath = _extractLocalPath(msg);
+            final ChatCubit chatCubit = context.read<ChatCubit>();
+            if (kApp.isDesktop) {
+              if (cachedPath != null && File(cachedPath).existsSync()) {
+                Process.start('cmd', ['/c', 'start', '', cachedPath]);
+              } else {
+                final FileCacheManager? fcm = chatCubit.fileCacheManager;
+                if (fcm != null) {
+                  final String path = await fcm.getFile(
+                    url: videoUrl,
+                    messageId: msg.id,
+                    category: FileCategory.video,
+                  );
+                  chatCubit.updateMessageLocalData(msg.id, path);
+                  Process.start('cmd', ['/c', 'start', '', path]);
+                }
+              }
+            } else {
+              if (cachedPath != null && File(cachedPath).existsSync()) {
+                Navigator.of(context).push(MaterialPageRoute(
+                  builder: (_) => VideoPlayerPage(videoUrl: cachedPath),
+                ));
+              } else {
+                final FileCacheManager? fcm = chatCubit.fileCacheManager;
+                if (fcm != null) {
+                  final String path = await fcm.getFile(
+                    url: videoUrl,
+                    messageId: msg.id,
+                    category: FileCategory.video,
+                  );
+                  chatCubit.updateMessageLocalData(msg.id, path);
+                  if (!context.mounted) return;
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => VideoPlayerPage(videoUrl: path),
+                  ));
+                } else {
+                  Navigator.of(context).push(MaterialPageRoute(
+                    builder: (_) => VideoPlayerPage(videoUrl: videoUrl),
+                  ));
+                }
+              }
+            }
           },
           onFileTap: () {
             final fileExtra = msg.fileExtra;
-            if (fileExtra != null) {
-              Navigator.of(context).push(MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: context.read<ChatCubit>(),
-                  child: FilePreviewPage(
-                    messageId: msg.id,
-                    fileExtra: fileExtra,
-                    baseUrl: widget.baseUrl ?? '',
-                  ),
-                ),
-              ));
+            if (fileExtra == null) return;
+            // 桌面端：已缓存直接打开文件，未缓存立即下载
+            if (kApp.isDesktop) {
+              final String? cachedPath = _extractLocalPath(msg);
+              if (cachedPath != null && File(cachedPath).existsSync()) {
+                // 已缓存：用系统默认程序打开文件
+                Process.start('cmd', ['/c', 'start', '', cachedPath]);
+              } else {
+                // 未缓存：触发下载
+                final String fileUrl = fileExtra.fileUrl;
+                final String fullUrl = (widget.baseUrl != null && fileUrl.startsWith('/'))
+                    ? '${widget.baseUrl}$fileUrl'
+                    : fileUrl;
+                context.read<ChatCubit>().downloadFile(msg.id, fullUrl, fileExtra.fileName);
+              }
+              return;
             }
+            Navigator.of(context).push(MaterialPageRoute(
+              builder: (_) => BlocProvider.value(
+                value: context.read<ChatCubit>(),
+                child: FilePreviewPage(
+                  messageId: msg.id,
+                  fileExtra: fileExtra,
+                  baseUrl: widget.baseUrl ?? '',
+                ),
+              ),
+            ));
           },
         );
 
@@ -614,6 +673,68 @@ class _ChatPageState extends State<ChatPage> {
         if (pinId != null) chatCubit.unpinMessage(pinId);
       case MenuAction.multiSelect:
         chatCubit.enterMultiSelect(msg.id);
+      case MenuAction.openFolder:
+        _openFileFolder(msg);
+      case MenuAction.saveAs:
+        _saveFileAs(msg);
+    }
+  }
+
+  /// 打开文件所在文件夹（选中文件）
+  void _openFileFolder(Message msg) {
+    final String? localPath = _extractLocalPath(msg);
+    if (localPath == null) return;
+    final File file = File(localPath);
+    if (!file.existsSync()) return;
+    final String normalized = file.absolute.path.replaceAll('/', Platform.pathSeparator);
+    FxLog('ChatPage').d('openFolder: $normalized');
+    if (Platform.isWindows) {
+      Process.start('explorer.exe', ['/select,$normalized']);
+    } else if (Platform.isMacOS) {
+      Process.run('open', ['-R', normalized]);
+    } else {
+      Process.run('xdg-open', [file.parent.path]);
+    }
+  }
+
+  /// 另存为：让用户选择保存路径，复制文件
+  Future<void> _saveFileAs(Message msg) async {
+    final String? localPath = _extractLocalPath(msg);
+    if (localPath == null) return;
+    final File sourceFile = File(localPath);
+    if (!sourceFile.existsSync()) return;
+
+    final String fileName = localPath.split('/').last.split('\\').last;
+    final String? outputPath = await FilePicker.platform.saveFile(
+      dialogTitle: '另存为',
+      fileName: fileName,
+    );
+    if (outputPath == null) return;
+    await sourceFile.copy(outputPath);
+  }
+
+  /// 从 Message.localData 中提取本地文件路径
+  String? _extractLocalPath(Message msg) {
+    if (msg.localData == null) return null;
+    try {
+      final Map<String, dynamic> parsed =
+          jsonDecode(msg.localData!) as Map<String, dynamic>;
+      return parsed['path'] as String?;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 安全发送：捕获 FileSizeExceedException 并 toast 提示
+  Future<void> _safeSend(BuildContext context, Future<void> Function() action) async {
+    try {
+      await action();
+    } on FileSizeExceedException catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.message), duration: const Duration(seconds: 3)),
+        );
+      }
     }
   }
 
@@ -661,6 +782,10 @@ class _ChatPageState extends State<ChatPage> {
             if (pinId != null) chatCubit.unpinMessage(pinId);
           case MenuAction.multiSelect:
             chatCubit.enterMultiSelect(msg.id);
+          case MenuAction.openFolder:
+            _openFileFolder(msg);
+          case MenuAction.saveAs:
+            _saveFileAs(msg);
         }
       },
     );

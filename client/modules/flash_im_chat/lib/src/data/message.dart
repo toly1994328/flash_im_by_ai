@@ -109,6 +109,7 @@ class Message {
   final DateTime createdAt;
   final MessageType type;
   final Map<String, dynamic>? extra;
+  final String? localData; // 本地文件缓存信息 JSON
 
   const Message({
     required this.id,
@@ -122,6 +123,7 @@ class Message {
     required this.createdAt,
     this.type = MessageType.text,
     this.extra,
+    this.localData,
   });
 
   factory Message.fromJson(Map<String, dynamic> json) {
@@ -182,6 +184,8 @@ class Message {
     String? content,
     MessageType? type,
     Map<String, dynamic>? extra,
+    String? localData,
+    bool clearLocalData = false,
   }) {
     return Message(
       id: id ?? this.id,
@@ -195,6 +199,7 @@ class Message {
       createdAt: createdAt,
       type: type ?? this.type,
       extra: extra ?? this.extra,
+      localData: clearLocalData ? null : (localData ?? this.localData),
     );
   }
 

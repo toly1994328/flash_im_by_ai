@@ -173,6 +173,23 @@ class DriftLocalStore implements LocalStore {
     await _db.delete(_db.cachedFriendsTable).go();
   }
 
+  // ─── 文件缓存 ───
+
+  @override
+  Future<void> updateLocalData(String messageId, String? localDataJson) async {
+    await _messageDao.updateLocalData(messageId, localDataJson);
+  }
+
+  @override
+  Future<String?> getLocalData(String messageId) {
+    return _messageDao.getLocalData(messageId);
+  }
+
+  @override
+  Future<Map<String, String?>> batchGetLocalData(List<String> messageIds) {
+    return _messageDao.batchGetLocalData(messageIds);
+  }
+
   @override
   void dispose() {
     _isClosed = true;

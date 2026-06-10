@@ -18,6 +18,7 @@ CachedMessage fromMessageRow(CachedMessagesTableData row) {
     extra: row.extra,
     status: row.status,
     createdAt: row.createdAt,
+    localData: row.localData,
   );
 }
 
@@ -34,6 +35,7 @@ CachedMessagesTableCompanion toMessageCompanion(CachedMessage m) {
     extra: Value(m.extra),
     status: Value(m.status),
     createdAt: Value(m.createdAt),
+    localData: Value(m.localData),
   );
 }
 

@@ -80,6 +80,17 @@ class EmptyLocalStore implements LocalStore {
   @override
   Future<void> clearAll() async {}
 
+  // ─── 文件缓存 ───
+
+  @override
+  Future<void> updateLocalData(String messageId, String? localDataJson) async {}
+
+  @override
+  Future<String?> getLocalData(String messageId) async => null;
+
+  @override
+  Future<Map<String, String?>> batchGetLocalData(List<String> messageIds) async => {};
+
   @override
   void dispose() {
     _changeController.close();

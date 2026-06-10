@@ -7,6 +7,7 @@ class ImageBubble extends StatelessWidget {
   final String? baseUrl;
   final double? uploadProgress;
   final VoidCallback? onTap;
+  final String? localPath;
 
   const ImageBubble({
     super.key,
@@ -14,6 +15,7 @@ class ImageBubble extends StatelessWidget {
     this.baseUrl,
     this.uploadProgress,
     this.onTap,
+    this.localPath,
   });
 
   String _fullUrl(String url) =>
@@ -49,7 +51,10 @@ class ImageBubble extends StatelessWidget {
     }
 
     Widget imageWidget;
-    if (isLocal) {
+    if (localPath != null && File(localPath!).existsSync()) {
+      imageWidget = Image.file(File(localPath!), fit: BoxFit.cover,
+        errorBuilder: (_, _, _) => placeholder());
+    } else if (isLocal) {
       imageWidget = Image.file(File(url), fit: BoxFit.cover,
         errorBuilder: (_, _, _) => placeholder());
     } else {

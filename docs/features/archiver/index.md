@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.32.0（桌面端交互优化：表情浮层 + 右键菜单 + @ 弹窗 + 转发弹窗 + 窗口按钮贴顶）
+最后更新：v0.33.0（文件缓存机制：下载队列 + 本地路径持久化 + 桌面端文件操作 + 发送大小限制）
 
 ---
 
@@ -105,6 +105,7 @@
 | F-15 | LocalStore | flash_im_cache (local_store) | v0.0.1_cache | ✅ |
 | F-16 | SyncEngine | flash_im_cache (sync_engine) | v0.0.1_cache | ✅ |
 | F-17 | MESSAGE_RECALLED WS 帧分发 | flash_im_core | v0.0.1_operation | ✅ |
+| F-18 | 文件缓存管理器 | flash_im_cache (file_cache_manager) | v0.33.0 | ✅ |
 
 ### 前端业务层（P）
 
@@ -182,6 +183,8 @@
 | P-71 | 桌面端弹窗化操作 | home (desktop/actions_mixin) + flash_shared | v0.28.0 | ✅ |
 | P-72 | 意见反馈 | home (profile/feedback_page) | v0.28.0 | ✅ |
 | P-73 | 版本检测与更新弹窗 | fx_updater + update_trigger | v0.31.0 | ✅ |
+| P-74 | 桌面端文件操作菜单 | flash_im_chat (desktop_context_menu) | v0.33.0 | ✅ |
+| P-75 | 发送大小限制 | flash_im_chat (chat_file_mixin / FileSendLimits) | v0.33.0 | ✅ |
 
 
 ---
@@ -314,6 +317,7 @@ graph TB
         F06 --> F17[F-17 撤回帧]
         I14[I-14 本地DB] --> F15[F-15 LocalStore]
         F15 --> F16[F-16 SyncEngine]
+        F15 --> F18[F-18 文件缓存管理器]
         P01[P-01 会话列表]
         P06[P-06 历史消息]
         P07[P-07 消息发送]
@@ -423,6 +427,7 @@ graph LR
 | v0.30.0 | 2026-06-05 | 151 | [trace/v0.30.0_2026-06-05.md](trace/v0.30.0_2026-06-05.md) |
 | v0.31.0 | 2026-06-07 | 153 | [trace/v0.31.0_2026-06-07.md](trace/v0.31.0_2026-06-07.md) |
 | v0.32.0 | 2026-06-09 | 153 | [trace/v0.32.0_2026-06-09.md](trace/v0.32.0_2026-06-09.md) |
+| v0.33.0 | 2026-06-11 | 156 | [trace/v0.33.0_2026-06-11.md](trace/v0.33.0_2026-06-11.md) |
 
 ---
 
@@ -441,7 +446,7 @@ graph LR
 | 群聊 | [group/server.md](modules/group/server.md) [group/client.md](modules/group/client.md) | D-18~D-30, I-13, F-10~F-11, P-28~P-29, P-31~P-40 |
 | 在线状态与已读回执 | [presence/server.md](modules/presence/server.md) [presence/client.md](modules/presence/client.md) | D-31~D-34, F-12~F-13, P-41~P-43 |
 | 综合搜索 | [search/server.md](modules/search/server.md) [search/client.md](modules/search/client.md) | D-35~D-38, F-14, P-44~P-47 |
-| 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16 |
+| 本地缓存 | [cache/client.md](modules/cache/client.md) | I-14, D-39, F-15~F-16, F-18, P-74~P-75 |
 | 消息操作 | [operation/client.md](modules/operation/client.md) | D-40, F-17, P-48~P-53 |
 | 认证增强 | [auth/server.md](modules/auth/server.md) | I-15~I-16, I-20, D-42 |
 | 桌面端登录 | [auth/client.md](modules/auth/client.md) | P-66~P-67 |
