@@ -211,6 +211,12 @@ class _DesktopLayoutState extends State<DesktopLayout>
               ],
             ),
           ),
+        if (kApp.isMacOS)
+          Positioned(
+            top: 6,
+            right: 8,
+            child: _buildChatDetailButton(),
+          ),
         Positioned(
           top: kToolbarHeight + 0.5,
           bottom: 0,
