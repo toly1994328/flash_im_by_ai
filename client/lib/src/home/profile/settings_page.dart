@@ -12,6 +12,8 @@ import '../../update/update_trigger.dart';
 
 import '../../application/config.dart';
 import 'about_page.dart';
+import 'block_list_page.dart';
+import 'delete_account_page.dart';
 
 /// 设置页面（微信风格分组列表）
 class SettingsPage extends StatelessWidget {
@@ -45,7 +47,16 @@ class SettingsPage extends StatelessWidget {
                 builder: (_) => hasPassword ? const ChangePasswordPage() : const SetPasswordPage(),
               ));
             }),
-            _buildItem(icon: Icons.delete_outline, label: '注销账号', onTap: () => _confirmDeleteAccount(context)),
+            _buildItem(icon: Icons.block, label: '黑名单', onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => BlockListPage(dio: context.read<MessageRepository>().dio),
+              ));
+            }),
+            _buildItem(icon: Icons.delete_outline, label: '注销账号', onTap: () {
+              Navigator.of(context).push(MaterialPageRoute(
+                builder: (_) => DeleteAccountPage(dio: context.read<MessageRepository>().dio),
+              ));
+            }),
           ]),
 
           // ─── 关于 ───
@@ -195,42 +206,6 @@ class SettingsPage extends StatelessWidget {
         builder: (_) => PolicyPage(title: title, url: url),
       ));
     }
-  }
-
-  void _confirmDeleteAccount(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: Colors.white,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        title: const Text('注销账号', style: TextStyle(fontSize: 17)),
-        content: const Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              '⚠️ 注销后以下数据将被永久删除：',
-              style: TextStyle(fontSize: 14, color: Color(0xFF333333), fontWeight: FontWeight.w500),
-            ),
-            SizedBox(height: 8),
-            Text('• 账号信息和个人资料', style: TextStyle(fontSize: 14, color: Color(0xFF666666))),
-            Text('• 所有聊天记录', style: TextStyle(fontSize: 14, color: Color(0xFF666666))),
-            Text('• 好友关系和群聊', style: TextStyle(fontSize: 14, color: Color(0xFF666666))),
-            SizedBox(height: 12),
-            Text(
-              '如需注销，请发送邮件至 1981462002@qq.com，我们将在 7 个工作日内审核处理。',
-              style: TextStyle(fontSize: 14, color: Color(0xFF999999)),
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('我知道了', style: TextStyle(color: Color(0xFF3B82F6))),
-          ),
-        ],
-      ),
-    );
   }
 
 }

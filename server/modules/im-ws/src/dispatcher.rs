@@ -39,6 +39,43 @@ impl MessageDispatcher {
             Err(_) => return,
         };
 
+        // 私聊消息 block 检查：如果接收方拉黑了发送方，静默丢弃
+        let conv_type: Option<(i16,)> = sqlx::query_as(
+            "SELECT type FROM conversations WHERE id = $1"
+        )
+        .bind(conversation_id)
+        .fetch_optional(&self.db)
+        .await
+        .unwrap_or(None);
+
+        if let Some((0i16,)) = conv_type {
+            // 私聊：查对方 user_id
+            let peer: Option<(i64,)> = sqlx::query_as(
+                "SELECT user_id FROM conversation_members WHERE conversation_id = $1 AND user_id != $2 LIMIT 1"
+            )
+            .bind(conversation_id)
+            .bind(sender_id)
+            .fetch_optional(&self.db)
+            .await
+            .unwrap_or(None);
+
+            if let Some((peer_id,)) = peer {
+                let blocked: Option<(i32,)> = sqlx::query_as(
+                    "SELECT 1 FROM user_blocks WHERE blocker_id = $1 AND blocked_id = $2"
+                )
+                .bind(peer_id)
+                .bind(sender_id)
+                .fetch_optional(&self.db)
+                .await
+                .unwrap_or(None);
+
+                if blocked.is_some() {
+                    println!("🚫 [dispatcher] blocked: {} → {} (conv={})", sender_id, peer_id, conversation_id);
+                    return; // 静默丢弃
+                }
+            }
+        }
+
         let new_msg = NewMessage {
             conversation_id,
             sender_id,

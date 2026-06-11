@@ -17,6 +17,31 @@ class UserProfilePage extends StatelessWidget {
     required this.repository,
   });
 
+  void _reportUser(BuildContext context) {
+    ReportUserEvent(userId: profile.id, nickname: profile.nickname).emit();
+  }
+
+  void _blockUser(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('确认拉黑'),
+        content: Text('拉黑后将解除好友关系，${profile.nickname}将无法给你发消息。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              BlockUserEvent(userId: profile.id, nickname: profile.nickname).emit();
+              Navigator.of(context).pop();
+            },
+            child: const Text('确定', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -103,7 +128,54 @@ class UserProfilePage extends StatelessWidget {
               ),
             ),
           ),
+          const SizedBox(height: 10),
+          // 举报 + 拉黑
+          Container(
+            color: Colors.white,
+            child: Column(
+              children: [
+                _buildActionItem(
+                  icon: Icons.flag_outlined,
+                  label: '举报该用户',
+                  color: const Color(0xFF666666),
+                  onTap: () => _reportUser(context),
+                ),
+                Padding(
+                  padding: const EdgeInsets.only(left: 52),
+                  child: Divider(height: 0.5, thickness: 0.5, color: Colors.grey[200]),
+                ),
+                _buildActionItem(
+                  icon: Icons.block,
+                  label: '加入黑名单',
+                  color: const Color(0xFFF44336),
+                  onTap: () => _blockUser(context),
+                ),
+              ],
+            ),
+          ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildActionItem({
+    required IconData icon,
+    required String label,
+    required Color color,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, size: 20, color: color),
+            const SizedBox(width: 12),
+            Expanded(child: Text(label, style: TextStyle(fontSize: 16, color: color))),
+            Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
+          ],
+        ),
       ),
     );
   }

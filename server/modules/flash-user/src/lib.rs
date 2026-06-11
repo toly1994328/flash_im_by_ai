@@ -1,5 +1,7 @@
 mod handler;
 mod model;
+mod report_handler;
+mod block_handler;
 mod routes;
 
 use axum::Router;

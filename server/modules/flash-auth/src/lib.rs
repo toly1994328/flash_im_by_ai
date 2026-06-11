@@ -4,6 +4,7 @@ mod login_log;
 mod model;
 mod oauth;
 mod email;
+mod account_handler;
 mod routes;
 mod welcome;
 

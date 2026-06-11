@@ -1,7 +1,11 @@
+import 'dart:async';
+
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tolyui_rx_layout/tolyui_rx_layout.dart';
 import 'package:flash_session/flash_session.dart';
+import 'package:flash_shared/flash_shared.dart' show FxEmitter, ReportUserEvent, BlockUserEvent;
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
@@ -24,6 +28,7 @@ class HomePageState extends State<HomePage> with HomeActionsMixin {
   bool _hasShownPasswordGuide = false;
   late final ConversationListCubit _convCubit;
   late final GroupNotificationCubit _groupNotifCubit;
+  final List<StreamSubscription<dynamic>> _eventSubs = [];
 
   @override
   ConversationListCubit get convCubit => _convCubit;
@@ -60,6 +65,48 @@ class HomePageState extends State<HomePage> with HomeActionsMixin {
       _checkPasswordGuide();
       _checkUpdate();
     });
+    _setupEventListeners();
+  }
+
+  void _setupEventListeners() {
+    final Dio dio = context.read<MessageRepository>().dio;
+    _eventSubs.add(FxEmitter().on<ReportUserEvent>((ReportUserEvent e) {
+      if (!mounted) return;
+      ReportSheet.show(
+        context: context,
+        targetId: e.userId,
+        targetType: 1,
+        onSubmit: (int reason, String? description) async {
+          await dio.post('/api/reports', data: {
+            'target_type': 1,
+            'target_id': e.userId,
+            'reason': reason,
+            'description': ?description,
+          });
+        },
+      );
+    }));
+    _eventSubs.add(FxEmitter().on<BlockUserEvent>((BlockUserEvent e) async {
+      if (!mounted) return;
+      try {
+        await dio.post('/api/blocks', data: {'blocked_id': int.parse(e.userId)});
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('已拉黑 ${e.nickname}'), duration: const Duration(seconds: 2)),
+          );
+        }
+      } catch (_) {}
+    }));
+  }
+
+  @override
+  void dispose() {
+    for (final StreamSubscription<dynamic> sub in _eventSubs) {
+      sub.cancel();
+    }
+    _convCubit.close();
+    _groupNotifCubit.close();
+    super.dispose();
   }
 
   void _checkUpdate() {

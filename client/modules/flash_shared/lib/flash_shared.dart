@@ -14,3 +14,4 @@ export 'src/windows_buttons.dart';
 export 'src/adaptive_push.dart';
 export 'src/badge.dart';
 export 'src/channel.dart';
+export 'src/fx_emitter.dart';

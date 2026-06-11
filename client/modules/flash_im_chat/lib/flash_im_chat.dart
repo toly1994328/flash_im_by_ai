@@ -19,3 +19,4 @@ export 'src/view/read_receipt_detail.dart';
 export 'src/view/message_action_menu.dart';
 export 'src/view/bubble/reply_bubble.dart';
 export 'src/view/reply_preview_bar.dart';
+export 'src/view/report_sheet.dart';

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../data/message.dart';
 
-enum MenuAction { copy, reply, recall, delete, multiSelect, forward, pin, unpin, openFolder, saveAs }
+enum MenuAction { copy, reply, recall, delete, multiSelect, forward, pin, unpin, openFolder, saveAs, report }
 
 class MessageActionMenu {
   static VoidCallback? show({
@@ -57,6 +57,7 @@ class MessageActionMenu {
       if (isGroup && !isPinned) MenuAction.pin,
       MenuAction.delete,
       MenuAction.multiSelect,
+      if (!isMe) MenuAction.report,
     ];
   }
 
@@ -210,6 +211,7 @@ class _MenuOverlayState extends State<_MenuOverlay>
       MenuAction.unpin => (Icons.push_pin_outlined, '取消'),
       MenuAction.openFolder => (Icons.folder_open, '打开文件夹'),
       MenuAction.saveAs => (Icons.save_alt, '另存为'),
+      MenuAction.report => (Icons.flag_outlined, '举报'),
     };
   }
 }

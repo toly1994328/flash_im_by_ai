@@ -8,6 +8,9 @@ class FriendRepository {
 
   FriendRepository({required Dio dio}) : _dio = dio;
 
+  /// 暴露 Dio 实例（供 BlockRepository 等复用）
+  Dio get dio => _dio;
+
   /// 登录后注入本地存储
   void setStore(LocalStore store) => _store = store;
 

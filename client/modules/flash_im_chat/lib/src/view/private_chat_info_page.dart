@@ -26,6 +26,27 @@ class PrivateChatInfoPage extends StatelessWidget {
     this.showAppBar = true,
   });
 
+  void _confirmBlock(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (BuildContext ctx) => AlertDialog(
+        title: const Text('确认拉黑'),
+        content: Text('拉黑后 $peerName 将无法给你发消息，同时解除好友关系。'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('取消')),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              BlockUserEvent(userId: peerUserId!, nickname: peerName).emit();
+              Navigator.of(context).pop();
+            },
+            child: const Text('确定', style: TextStyle(color: Colors.red)),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -49,6 +70,32 @@ class PrivateChatInfoPage extends StatelessWidget {
                 title: const Text('查找聊天内容', style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
                 trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
                 onTap: onSearchChat,
+              ),
+            ),
+          ],
+          if (peerUserId != null) ...[
+            const SizedBox(height: 10),
+            Container(
+              color: Colors.white,
+              child: Column(
+                children: [
+                  ListTile(
+                    leading: const Icon(Icons.flag_outlined, color: Color(0xFF666666), size: 20),
+                    title: const Text('举报', style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
+                    trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
+                    onTap: () => ReportUserEvent(userId: peerUserId!, nickname: peerName).emit(),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(left: 56),
+                    child: Divider(height: 0.5, thickness: 0.5, color: Colors.grey[200]),
+                  ),
+                  ListTile(
+                    leading: const Icon(Icons.block, color: Colors.red, size: 20),
+                    title: const Text('拉黑', style: TextStyle(fontSize: 16, color: Colors.red)),
+                    trailing: const Icon(Icons.chevron_right, color: Color(0xFFCCCCCC), size: 20),
+                    onTap: () => _confirmBlock(context),
+                  ),
+                ],
               ),
             ),
           ],

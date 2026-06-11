@@ -17,6 +17,7 @@ import '../logic/chat_cubit.dart';
 import '../logic/chat_file_mixin.dart' show FileSizeExceedException;
 import '../logic/chat_state.dart';
 import 'package:flash_im_cache/flash_im_cache.dart' show FileCacheManager, FileCategory;
+import 'report_sheet.dart';
 import 'bubble/message_bubble.dart';
 import 'bubble/image_bubble.dart';
 import 'bubble/video_bubble.dart';
@@ -677,6 +678,8 @@ class _ChatPageState extends State<ChatPage> {
         _openFileFolder(msg);
       case MenuAction.saveAs:
         _saveFileAs(msg);
+      case MenuAction.report:
+        _reportMessage(context, msg);
     }
   }
 
@@ -738,6 +741,24 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
+  /// 举报消息
+  void _reportMessage(BuildContext context, Message msg) {
+    ReportSheet.show(
+      context: context,
+      targetId: msg.id,
+      targetType: 0,
+      onSubmit: (int reason, String? description) async {
+        final Map<String, dynamic> body = {
+          'target_type': 0,
+          'target_id': msg.id,
+          'reason': reason,
+          'description': ?description,
+        };
+        await context.read<MessageRepository>().dio.post('/api/reports', data: body);
+      },
+    );
+  }
+
   void _showMessageMenu(BuildContext context, BuildContext bubbleContext, Message msg, bool isMe) {
     final chatCubit = context.read<ChatCubit>();
     final chatState = chatCubit.state;
@@ -786,6 +807,8 @@ class _ChatPageState extends State<ChatPage> {
             _openFileFolder(msg);
           case MenuAction.saveAs:
             _saveFileAs(msg);
+          case MenuAction.report:
+            _reportMessage(context, msg);
         }
       },
     );
