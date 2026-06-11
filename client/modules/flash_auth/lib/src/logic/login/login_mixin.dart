@@ -1,3 +1,4 @@
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:oktoast/oktoast.dart';
 import '../../data/device_info.dart';
@@ -87,7 +88,13 @@ mixin LoginMixin on State<LoginPage> {
       if (!mounted) return;
       widget.onLoginSuccess(result);
     } catch (e) {
-      if (mounted) showToast('登录失败: $e');
+      if (mounted) {
+        String msg = '登录失败';
+        if (e is DioException && e.response?.data is Map) {
+          msg = (e.response!.data as Map)['error'] as String? ?? msg;
+        }
+        showToast(msg);
+      }
     } finally {
       if (mounted) setState(() => isLoading = false);
     }

@@ -37,6 +37,7 @@ class MessageBubble extends StatelessWidget {
   final bool isSelected;
   final VoidCallback? onToggleSelect;
   final void Function(String content)? onReEdit;
+  final void Function(String senderId, String senderName, String? senderAvatar)? onAvatarTap;
 
   const MessageBubble({
     super.key,
@@ -59,6 +60,7 @@ class MessageBubble extends StatelessWidget {
     this.isSelected = false,
     this.onToggleSelect,
     this.onReEdit,
+    this.onAvatarTap,
   });
 
   @override
@@ -126,7 +128,10 @@ class MessageBubble extends StatelessWidget {
         mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          if (!isMe) AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
+          if (!isMe) GestureDetector(
+            onTap: onAvatarTap != null ? () => onAvatarTap!(message.senderId, message.senderName, message.senderAvatar) : null,
+            child: AvatarWidget(avatar: message.senderAvatar, size: 32, borderRadius: 4),
+          ),
           if (!isMe) const SizedBox(width: 8),
           Flexible(child: _buildContent()),
           if (isMe) const SizedBox(width: 8),

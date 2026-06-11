@@ -49,3 +49,12 @@ class BlockUserEvent extends FxEvent {
 
   const BlockUserEvent({required this.userId, required this.nickname});
 }
+
+/// 查看用户资料事件（从聊天头像点击发出）
+class ViewUserProfileEvent extends FxEvent {
+  final String userId;
+  final String nickname;
+  final String? avatar;
+
+  const ViewUserProfileEvent({required this.userId, required this.nickname, this.avatar});
+}

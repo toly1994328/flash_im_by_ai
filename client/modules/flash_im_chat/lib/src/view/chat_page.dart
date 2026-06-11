@@ -9,7 +9,7 @@ import 'package:fx_logger/fx_logger.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
-import 'package:flash_shared/flash_shared.dart' show MemberPickerResult, WindowsButtons, adaptivePush;
+import 'package:flash_shared/flash_shared.dart' show MemberPickerResult, WindowsButtons, adaptivePush, ViewUserProfileEvent;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
 import 'package:file_picker/file_picker.dart';
 import '../data/message.dart';
@@ -486,6 +486,11 @@ class _ChatPageState extends State<ChatPage> {
             _inputController.text = content;
             _inputController.selection = TextSelection.collapsed(offset: content.length);
           },
+          onAvatarTap: (String senderId, String senderName, String? senderAvatar) {
+            if (senderId == widget.peerUserId || !isMe) {
+              _openUserProfile(senderId, senderName, senderAvatar);
+            }
+          },
           onReadCountTap: widget.isGroup ? () {
             _showReadReceiptDetail(msg.id);
           } : null,
@@ -757,6 +762,11 @@ class _ChatPageState extends State<ChatPage> {
         await context.read<MessageRepository>().dio.post('/api/reports', data: body);
       },
     );
+  }
+
+  /// 点击头像查看用户资料
+  void _openUserProfile(String userId, String nickname, String? avatar) {
+    ViewUserProfileEvent(userId: userId, nickname: nickname, avatar: avatar).emit();
   }
 
   void _showMessageMenu(BuildContext context, BuildContext bubbleContext, Message msg, bool isMe) {

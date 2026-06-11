@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tolyui_rx_layout/tolyui_rx_layout.dart';
 import 'package:flash_session/flash_session.dart';
-import 'package:flash_shared/flash_shared.dart' show FxEmitter, ReportUserEvent, BlockUserEvent;
+import 'package:flash_shared/flash_shared.dart' show FxEmitter, ReportUserEvent, BlockUserEvent, ViewUserProfileEvent;
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
@@ -96,6 +96,15 @@ class HomePageState extends State<HomePage> with HomeActionsMixin {
           );
         }
       } catch (_) {}
+    }));
+    _eventSubs.add(FxEmitter().on<ViewUserProfileEvent>((ViewUserProfileEvent e) {
+      if (!mounted) return;
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => UserProfilePage(
+          profile: UserProfile(id: e.userId, nickname: e.nickname, avatar: e.avatar),
+          repository: context.read<FriendRepository>(),
+        ),
+      ));
     }));
   }
 
