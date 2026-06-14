@@ -91,20 +91,20 @@ pub async fn set_password(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    // 检查是否已设置过密码
-    let row: Option<(Option<String>,)> = sqlx::query_as(
-        "SELECT credential FROM auth_credentials WHERE account_id = $1 AND auth_type = 'phone'"
+    // 检查是否已设置过密码（查找该用户任意带 credential 的凭据）
+    let row: Option<(uuid::Uuid, Option<String>,)> = sqlx::query_as(
+        "SELECT id, credential FROM auth_credentials WHERE account_id = $1 ORDER BY created_at LIMIT 1"
     )
     .bind(user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    match row {
-        Some((Some(_),)) => return Err(StatusCode::CONFLICT), // 409: 已有密码
-        Some((None,)) => {}
+    let cred_id = match row {
+        Some((_, Some(_))) => return Err(StatusCode::CONFLICT), // 409: 已有密码
+        Some((id, None)) => id,
         None => return Err(StatusCode::NOT_FOUND),
-    }
+    };
 
     let salt = SaltString::generate(&mut argon2::password_hash::rand_core::OsRng);
     let password_hash = Argon2::default()
@@ -113,10 +113,10 @@ pub async fn set_password(
         .to_string();
 
     sqlx::query(
-        "UPDATE auth_credentials SET credential = $1 WHERE account_id = $2 AND auth_type = 'phone'"
+        "UPDATE auth_credentials SET credential = $1 WHERE id = $2"
     )
     .bind(&password_hash)
-    .bind(user_id)
+    .bind(cred_id)
     .execute(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
@@ -137,19 +137,18 @@ pub async fn change_password(
         return Err(StatusCode::BAD_REQUEST);
     }
 
-    // 查询现有密码
-    let row: Option<(Option<String>,)> = sqlx::query_as(
-        "SELECT credential FROM auth_credentials WHERE account_id = $1 AND auth_type = 'phone'"
+    // 查询现有密码（查找该用户任意带 credential 的凭据）
+    let row: Option<(uuid::Uuid, Option<String>,)> = sqlx::query_as(
+        "SELECT id, credential FROM auth_credentials WHERE account_id = $1 AND credential IS NOT NULL LIMIT 1"
     )
     .bind(user_id)
     .fetch_optional(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
-    let password_hash = match row {
-        Some((Some(hash),)) => hash,
-        Some((None,)) => return Err(StatusCode::NOT_FOUND), // 404: 未设置过密码
-        None => return Err(StatusCode::NOT_FOUND),
+    let (cred_id, password_hash) = match row {
+        Some((id, Some(hash))) => (id, hash),
+        _ => return Err(StatusCode::NOT_FOUND), // 404: 未设置过密码
     };
 
     // 验证旧密码
@@ -167,10 +166,10 @@ pub async fn change_password(
         .to_string();
 
     sqlx::query(
-        "UPDATE auth_credentials SET credential = $1 WHERE account_id = $2 AND auth_type = 'phone'"
+        "UPDATE auth_credentials SET credential = $1 WHERE id = $2"
     )
     .bind(&new_hash)
-    .bind(user_id)
+    .bind(cred_id)
     .execute(&state.db)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
