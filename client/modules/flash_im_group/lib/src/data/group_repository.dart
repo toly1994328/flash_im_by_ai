@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
+import 'group_detail.dart';
 import 'group_models.dart';
 
 /// 群聊 API 调用
@@ -50,7 +51,13 @@ class GroupRepository {
   }
 
   /// 获取群详情（群信息+成员列表）
-  Future<Map<String, dynamic>> getGroupDetail(String groupId) async {
+  Future<GroupDetail> getGroupDetail(String groupId) async {
+    final res = await _dio.get('/groups/$groupId/detail');
+    return GroupDetail.fromJson(res.data as Map<String, dynamic>);
+  }
+
+  /// 获取群详情原始数据（跨模块调用，返回 Map）
+  Future<Map<String, dynamic>> getGroupDetailRaw(String groupId) async {
     final res = await _dio.get('/groups/$groupId/detail');
     return res.data as Map<String, dynamic>;
   }

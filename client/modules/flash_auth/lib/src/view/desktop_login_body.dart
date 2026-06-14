@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:fx_env/fx_env.dart';
 import 'package:flash_shared/flash_shared.dart';
@@ -310,13 +309,9 @@ class _CornerToggle extends StatefulWidget {
 }
 
 class _CornerToggleState extends State<_CornerToggle> {
-  bool _hovering = false;
-
   @override
   Widget build(BuildContext context) {
     return MouseRegion(
-      onEnter: (_) => setState(() => _hovering = true),
-      onExit: (_) => setState(() => _hovering = false),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: widget.onTap,

@@ -5,8 +5,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:path/path.dart' as p;
 
-import '../data/update_info.dart';
-
 /// 下载进度回调
 typedef OnProgressChange = void Function(double progress);
 

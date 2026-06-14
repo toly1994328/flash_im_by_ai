@@ -133,9 +133,10 @@ class _MobileLayoutState extends State<MobileLayout> {
                     Navigator.of(context).push(MaterialPageRoute(
                       builder: (_) => ScanPage(
                         onUserScanned: (userId) async {
-                          final repo = context.read<FriendRepository>();
+                          if (!mounted) return;
+                          final FriendRepository repo = context.read<FriendRepository>();
                           final profile = await repo.getUserProfile(userId);
-                          if (!context.mounted) return;
+                          if (!mounted) return;
                           Navigator.of(context).push(MaterialPageRoute(
                             builder: (_) => UserProfilePage(profile: profile, repository: repo),
                           ));

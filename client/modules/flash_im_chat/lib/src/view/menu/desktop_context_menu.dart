@@ -2,7 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 
-import '../data/message.dart';
+import '../../data/message.dart';
 import 'message_action_menu.dart';
 
 /// 桌面端右键操作菜单（白底竖向列表）

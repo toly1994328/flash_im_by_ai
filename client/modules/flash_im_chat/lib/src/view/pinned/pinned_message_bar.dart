@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/message.dart';
+import '../../data/message.dart';
 
 /// 置顶消息计数指示器：垂直蓝色分段线
 class _CountIndicator extends StatelessWidget {
@@ -123,6 +123,7 @@ class _PinnedMessageBarState extends State<PinnedMessageBar> with SingleTickerPr
             offset: Offset.zero,
             child: SizeTransition(
               sizeFactor: _fadeAnimation,
+              // ignore: deprecated_member_use
               axisAlignment: -1.0, // 从顶部向下展开
               child: FadeTransition(
                 opacity: _fadeAnimation,

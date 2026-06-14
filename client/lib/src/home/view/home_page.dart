@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:tolyui_rx_layout/tolyui_rx_layout.dart';
 import 'package:flash_session/flash_session.dart';
-import 'package:flash_shared/flash_shared.dart' show FxEmitter, ReportUserEvent, BlockUserEvent, ViewUserProfileEvent;
+import 'package:flash_shared/flash_shared.dart' show FxEmitter, ReportUserEvent, BlockUserEvent, ViewUserProfileEvent, ShowToastEvent;
 import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
@@ -105,6 +105,12 @@ class HomePageState extends State<HomePage> with HomeActionsMixin {
           repository: context.read<FriendRepository>(),
         ),
       ));
+    }));
+    _eventSubs.add(FxEmitter().on<ShowToastEvent>((ShowToastEvent e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.message), duration: e.duration),
+      );
     }));
   }
 

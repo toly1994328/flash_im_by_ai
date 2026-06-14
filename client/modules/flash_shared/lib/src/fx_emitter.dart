@@ -6,7 +6,7 @@ import 'dart:async';
 /// 用法：
 ///   定义事件：class MyEvent extends FxEvent { ... }
 ///   发送：MyEvent(...).emit();
-///   监听：FxEmitter().on<MyEvent>((e) { ... });
+///   监听：`FxEmitter().on<MyEvent>((e) { ... });`
 class FxEmitter {
   FxEmitter._();
   static final FxEmitter _instance = FxEmitter._();
@@ -57,4 +57,14 @@ class ViewUserProfileEvent extends FxEvent {
   final String? avatar;
 
   const ViewUserProfileEvent({required this.userId, required this.nickname, this.avatar});
+}
+
+// ─── 通用 UI 事件 ───
+
+/// 全局 Toast 提示事件（任何模块可发送，App 顶层统一弹 SnackBar）
+class ShowToastEvent extends FxEvent {
+  final String message;
+  final Duration duration;
+
+  const ShowToastEvent(this.message, {this.duration = const Duration(seconds: 3)});
 }

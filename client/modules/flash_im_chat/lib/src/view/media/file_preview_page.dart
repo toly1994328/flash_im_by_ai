@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import '../data/message.dart';
-import '../logic/chat_cubit.dart';
-import '../logic/chat_state.dart';
+import '../../data/message.dart';
+import '../../logic/chat_cubit.dart';
+import '../../logic/chat_state.dart';
 
 class FilePreviewPage extends StatelessWidget {
   final String messageId;

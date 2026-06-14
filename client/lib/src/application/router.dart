@@ -12,20 +12,20 @@ GoRouter createRouter({
   required OnStartupComplete onStartupComplete,
   required Future<bool> Function() restoreSession,
 }) {
-  bool _startupDone = false;
-  bool _restoring = false;
+  bool startupDone = false;
+  bool restoring = false;
 
   return GoRouter(
     initialLocation: '/',
     redirectLimit: 5,
     redirect: (context, state) async {
       final location = state.uri.path;
-      if (!_startupDone && location != '/' && location != '/login') {
-        if (!_restoring) {
-          _restoring = true;
+      if (!startupDone && location != '/' && location != '/login') {
+        if (!restoring) {
+          restoring = true;
           final authenticated = await restoreSession();
-          _startupDone = true;
-          _restoring = false;
+          startupDone = true;
+          restoring = false;
           if (!authenticated) return '/login';
         }
         return null;
@@ -38,7 +38,7 @@ GoRouter createRouter({
         builder: (_, _) => SplashPage(
           tasks: startupTasks,
           onComplete: (results) {
-            _startupDone = true;
+            startupDone = true;
             onStartupComplete(results);
           },
           baseUrl: AppConfig.baseUrl,

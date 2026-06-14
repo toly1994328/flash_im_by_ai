@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/message.dart';
+import '../../data/message.dart';
 
 enum MenuAction { copy, reply, recall, delete, multiSelect, forward, pin, unpin, openFolder, saveAs, report }
 

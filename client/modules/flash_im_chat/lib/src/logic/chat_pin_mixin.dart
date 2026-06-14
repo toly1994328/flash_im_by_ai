@@ -21,6 +21,12 @@ mixin ChatPinMixin on Cubit<ChatState> {
 
   // ─── 置顶 ───
 
+  /// 快速获取当前置顶消息列表
+  List<PinnedMessage> get pinnedMessages {
+    final ChatState s = state;
+    return s is ChatLoaded ? s.pinnedMessages : const [];
+  }
+
   Future<void> loadPinnedMessages() async {
     try {
       final data = await repository.getPinnedMessages(conversationId);

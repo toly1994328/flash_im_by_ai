@@ -1,4 +1,5 @@
 name: flash_auth
+publish_to: none
 description: "Flash IM 认证模块 — 登录、验证码、登录策略"
 version: 0.0.2
 homepage:

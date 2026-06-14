@@ -1,4 +1,4 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_shared/flash_shared.dart';
@@ -48,33 +48,51 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
         RepositoryProvider.value(value: ctx.read<MessageRepository>()),
         RepositoryProvider.value(value: ctx.read<WsClient>()),
       ],
-      child: BlocProvider(
-        create: (_) => ChatCubit(
-          repository: ctx.read<MessageRepository>(),
-          wsClient: ctx.read<WsClient>(),
-          context: ChatContext(
-            conversationId: conversation.id,
-            currentUserId: user.userId.toString(),
-            currentUserName: user.nickname,
-            currentUserAvatar: user.avatar,
-            isGroup: conversation.isGroup,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => ChatCubit(
+              repository: ctx.read<MessageRepository>(),
+              wsClient: ctx.read<WsClient>(),
+              context: ChatContext(
+                conversationId: conversation.id,
+                currentUserId: user.userId.toString(),
+                currentUserName: user.nickname,
+                currentUserAvatar: user.avatar,
+                isGroup: conversation.isGroup,
+              ),
+              onConversationChanged: () => convCubit.loadConversations(),
+              fileCacheManager: globalFileCacheManager,
+              baseUrl: AppConfig.baseUrl,
+            )..loadMessages(),
           ),
-          onConversationChanged: () => convCubit.loadConversations(),
-          fileCacheManager: globalFileCacheManager,
-          baseUrl: AppConfig.baseUrl,
-        )..loadMessages(),
+          if (conversation.isGroup)
+            BlocProvider(
+              create: (_) => ChatGroupCubit(
+                conversationId: conversation.id,
+                wsClient: ctx.read<WsClient>(),
+                repository: ctx.read<MessageRepository>(),
+                initialTitle: conversation.displayName,
+                groupDetailFetcher: () => ctx.read<GroupRepository>().getGroupDetailRaw(conversation.id),
+              ),
+            ),
+          if (!conversation.isGroup && conversation.peerUserId != null)
+            BlocProvider(
+              create: (_) => PeerStatusCubit(
+                peerUserId: conversation.peerUserId!,
+                wsClient: ctx.read<WsClient>(),
+              ),
+            ),
+        ],
         child: ChatPage(
-          conversationId: conversation.id,
-          peerName: conversation.displayName,
-          peerAvatar: conversation.displayAvatar,
-          baseUrl: AppConfig.baseUrl,
-          isGroup: conversation.isGroup,
-          isDisband: false,
-          announcement: null,
-          peerUserId: conversation.peerUserId,
-          groupDetailFetcher: conversation.isGroup
-              ? () => ctx.read<GroupRepository>().getGroupDetail(conversation.id)
-              : null,
+          target: ChatTarget(
+            conversationId: conversation.id,
+            isGroup: conversation.isGroup,
+            peerName: conversation.displayName,
+            peerAvatar: conversation.displayAvatar,
+            peerUserId: conversation.peerUserId,
+          ),
+          viewOptions: ChatViewOptions(baseUrl: AppConfig.baseUrl),
           onAddMember: conversation.isGroup
               ? null
               : () => createGroupFromChat(ctx, conversation),
@@ -98,49 +116,73 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
         RepositoryProvider.value(value: ctx.read<MessageRepository>()),
         RepositoryProvider.value(value: ctx.read<WsClient>()),
       ],
-      child: BlocProvider(
-        create: (_) => ChatCubit(
-          repository: ctx.read<MessageRepository>(),
-          wsClient: ctx.read<WsClient>(),
-          context: ChatContext(
-            conversationId: conversation.id,
-            currentUserId: user.userId.toString(),
-            currentUserName: user.nickname,
-            currentUserAvatar: user.avatar,
-            isGroup: conversation.isGroup,
+      child: MultiBlocProvider(
+        providers: [
+          BlocProvider(
+            create: (_) => ChatCubit(
+              repository: ctx.read<MessageRepository>(),
+              wsClient: ctx.read<WsClient>(),
+              context: ChatContext(
+                conversationId: conversation.id,
+                currentUserId: user.userId.toString(),
+                currentUserName: user.nickname,
+                currentUserAvatar: user.avatar,
+                isGroup: conversation.isGroup,
+              ),
+              onConversationChanged: () => convCubit.loadConversations(),
+              fileCacheManager: globalFileCacheManager,
+              baseUrl: AppConfig.baseUrl,
+            )..loadMessages(),
           ),
-          onConversationChanged: () => convCubit.loadConversations(),
-          fileCacheManager: globalFileCacheManager,
-          baseUrl: AppConfig.baseUrl,
-        )..loadMessages(),
+          if (conversation.isGroup)
+            BlocProvider(
+              create: (_) => ChatGroupCubit(
+                conversationId: conversation.id,
+                wsClient: ctx.read<WsClient>(),
+                repository: ctx.read<MessageRepository>(),
+                initialTitle: conversation.displayName,
+                groupDetailFetcher: () => ctx.read<GroupRepository>().getGroupDetailRaw(conversation.id),
+              ),
+            ),
+          if (!conversation.isGroup && conversation.peerUserId != null)
+            BlocProvider(
+              create: (_) => PeerStatusCubit(
+                peerUserId: conversation.peerUserId!,
+                wsClient: ctx.read<WsClient>(),
+              ),
+            ),
+        ],
         child: ChatPage(
-          conversationId: conversation.id,
-          peerName: conversation.displayName,
-          peerAvatar: conversation.displayAvatar,
-          baseUrl: AppConfig.baseUrl,
-          isGroup: conversation.isGroup,
-          peerUserId: conversation.peerUserId,
-          embedded: true,
+          target: ChatTarget(
+            conversationId: conversation.id,
+            isGroup: conversation.isGroup,
+            peerName: conversation.displayName,
+            peerAvatar: conversation.displayAvatar,
+            peerUserId: conversation.peerUserId,
+          ),
+          viewOptions: ChatViewOptions(baseUrl: AppConfig.baseUrl, embedded: true),
           onToggleDetail: onToggleDetail,
-          groupDetailFetcher: conversation.isGroup
-              ? () => ctx.read<GroupRepository>().getGroupDetail(conversation.id)
-              : null,
           onGroupInfo: conversation.isGroup ? () {
             final session = ctx.read<SessionCubit>().state;
             final user = session.user;
             if (user == null) return;
             Navigator.of(ctx).push(MaterialPageRoute(
-              builder: (_) => GroupChatInfoPage(
+              builder: (_) => GroupInfoScope(
                 repository: ctx.read<GroupRepository>(),
                 conversationId: conversation.id,
-                baseUrl: AppConfig.baseUrl,
                 currentUserId: user.userId.toString(),
-                friendsFetcher: () async => friendsToMembers(),
-                onLeaveOrDisband: () {
-                  Navigator.of(ctx).popUntil((route) => route.isFirst);
-                  convCubit.loadConversations();
-                },
-                onSearchChat: () => openConversationSearch(ctx, conversation),
+                child: GroupChatInfoPage(
+                  repository: ctx.read<GroupRepository>(),
+                  conversationId: conversation.id,
+                  baseUrl: AppConfig.baseUrl,
+                  currentUserId: user.userId.toString(),
+                  friendsFetcher: () async => friendsToMembers(),
+                  onLeaveOrDisband: () {
+                    Navigator.of(ctx).popUntil((route) => route.isFirst);
+                    convCubit.loadConversations();
+                  },
+                  onSearchChat: () => openConversationSearch(ctx, conversation),
+                ),
               ),
             ));
           } : null,
@@ -272,17 +314,22 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
 
   void _openGroupInfo(BuildContext ctx, Conversation conversation, User user) {
     Navigator.of(ctx).push(MaterialPageRoute(
-      builder: (_) => GroupChatInfoPage(
+      builder: (_) => GroupInfoScope(
         repository: ctx.read<GroupRepository>(),
         conversationId: conversation.id,
-        baseUrl: AppConfig.baseUrl,
         currentUserId: user.userId.toString(),
-        friendsFetcher: () async => friendsToMembers(),
-        onLeaveOrDisband: () {
-          Navigator.of(ctx).popUntil((route) => route.isFirst);
-          convCubit.loadConversations();
-        },
-        onSearchChat: () => openConversationSearch(ctx, conversation),
+        child: GroupChatInfoPage(
+          repository: ctx.read<GroupRepository>(),
+          conversationId: conversation.id,
+          baseUrl: AppConfig.baseUrl,
+          currentUserId: user.userId.toString(),
+          friendsFetcher: () async => friendsToMembers(),
+          onLeaveOrDisband: () {
+            Navigator.of(ctx).popUntil((route) => route.isFirst);
+            convCubit.loadConversations();
+          },
+          onSearchChat: () => openConversationSearch(ctx, conversation),
+        ),
       ),
     ));
   }

@@ -1,7 +1,6 @@
 import 'dart:async';
 
 import '../../fx_updater.dart';
-import '../data/update_info.dart';
 
 /// 全局更新状态管理器（单例）
 ///
