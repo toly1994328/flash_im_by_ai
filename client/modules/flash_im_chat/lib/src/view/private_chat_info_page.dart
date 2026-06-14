@@ -75,7 +75,7 @@ class PrivateChatInfoPage extends StatelessWidget {
           ],
           if (peerUserId != null) ...[
             const SizedBox(height: 10),
-            Container(
+            Material(
               color: Colors.white,
               child: Column(
                 children: [

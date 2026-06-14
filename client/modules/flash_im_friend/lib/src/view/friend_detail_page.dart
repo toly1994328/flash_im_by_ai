@@ -247,7 +247,7 @@ class FriendDetailPage extends StatelessWidget {
   }
 
   Widget _buildSettingItem({required String title, VoidCallback? onTap}) {
-    return Container(
+    return Material(
       color: Colors.white,
       child: ListTile(
         title: Text(title, style: const TextStyle(fontSize: 16)),
