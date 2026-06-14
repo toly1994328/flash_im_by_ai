@@ -530,7 +530,7 @@ class _ChatPageState extends State<ChatPage> {
                     category: FileCategory.video,
                   );
                   chatCubit.updateMessageLocalData(msg.id, path);
-                  if (!context.mounted) return;
+                  if (!mounted) return;
                   Navigator.of(context).push(MaterialPageRoute(
                     builder: (_) => VideoPlayerPage(videoUrl: path),
                   ));

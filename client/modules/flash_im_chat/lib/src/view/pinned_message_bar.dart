@@ -123,6 +123,7 @@ class _PinnedMessageBarState extends State<PinnedMessageBar> with SingleTickerPr
             offset: Offset.zero,
             child: SizeTransition(
               sizeFactor: _fadeAnimation,
+              // ignore: deprecated_member_use
               axisAlignment: -1.0, // 从顶部向下展开
               child: FadeTransition(
                 opacity: _fadeAnimation,

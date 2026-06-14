@@ -1,5 +1,4 @@
 import 'package:flash_shared/flash_shared.dart';
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../data/conversation.dart';
 

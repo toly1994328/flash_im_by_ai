@@ -6,7 +6,7 @@ import 'dart:async';
 /// 用法：
 ///   定义事件：class MyEvent extends FxEvent { ... }
 ///   发送：MyEvent(...).emit();
-///   监听：FxEmitter().on<MyEvent>((e) { ... });
+///   监听：`FxEmitter().on<MyEvent>((e) { ... });`
 class FxEmitter {
   FxEmitter._();
   static final FxEmitter _instance = FxEmitter._();

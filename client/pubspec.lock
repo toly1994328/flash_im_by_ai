@@ -754,7 +754,7 @@ packages:
     source: hosted
     version: "2.2.0"
   package_info_plus:
-    dependency: "direct overridden"
+    dependency: "direct main"
     description:
       name: package_info_plus
       sha256: "16eee997588c60225bda0488b6dcfac69280a6b7a3cf02c741895dd370a02968"
@@ -770,7 +770,7 @@ packages:
     source: hosted
     version: "3.2.1"
   path:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path
       sha256: "75cca69d1490965be98c73ceaea117e8a04dd21217b37b292c9ddbec0d955bc5"
@@ -786,7 +786,7 @@ packages:
     source: hosted
     version: "1.1.0"
   path_provider:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: path_provider
       sha256: "50c5dd5b6e1aaf6fb3a78b33f6aa3afca52bf903a8a5298f53101fdaee55bbcd"
@@ -938,7 +938,7 @@ packages:
     source: hosted
     version: "2.2.0"
   qr:
-    dependency: transitive
+    dependency: "direct main"
     description:
       name: qr
       sha256: "5a1d2586170e172b8a8c8470bbbffd5eb0cd38a66c0d77155ea138d3af3a4445"
