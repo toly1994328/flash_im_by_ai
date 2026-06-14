@@ -1,17 +1,52 @@
 # 匠心闪讯 IM
 
-一个完全由 AI 开发的全栈即时通讯项目。一次面向文档开发的探索。  
-后端 Rust（Axum + PostgreSQL + WebSocket），前端 Flutter（多平台）。  
-可产出: `Android`、`iOS`、`鸿蒙`、`Windows`、`MacOS`、`Linux`、`Web` 七端产品。
+<h1 align="center" style="border-bottom: none">
+    <b>
+        <a href="https://github.com/toly1994328/flash_im_by_ai">匠心闪讯</a><br>
+    </b>
+    ⭐️   AI 全栈全端 IM 编程探索  ⭐️ <br>
+</h1>
 
-配套书籍: [《AI 全栈编程生存指南》](https://s.juejin.cn/ds/u2ouelAuNT8/) 记录了成长的全过程，以及依赖的方法论   
+<p align="center">
+这是一个完全由 AI 开发的全栈即时通讯项目。一次新时代 AI 面向文档开发的探索。  
+</p>
+
+<p align="center">
+<a href="https://github.com/toly1994328/flash_im_by_ai"><img src="https://img.shields.io/github/stars/toly1994328/flash_im_by_ai.svg?style=flat&logo=github&colorB=deeppink&label=stars"></a>
+<a href="https://github.com/toly1994328/flash_im_by_ai"><img src="https://img.shields.io/github/forks/toly1994328/flash_im_by_ai.svg"></a>
+<a href="https://www.apache.org/licenses/LICENSE-2.0"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="License: Apache 2.0"></a>
+</p>
+
+
+### 方法论
+
+配套书籍: [《AI 全栈编程生存指南》](https://s.juejin.cn/ds/u2ouelAuNT8/) 记录了成长的全过程，以及方法论探索   
 链接: https://s.juejin.cn/ds/u2ouelAuNT8/  
 项目表现效果，已经如何运行、打包上架、可查看书籍，感谢支持~。
+
+
+---
+
+### 项目架构与体验
+
+后端 Rust（Axum + PostgreSQL + WebSocket），前端 Flutter（七端平台支持）。  
+可产出: `Android`、`iOS`、`鸿蒙`、`Windows`、`MacOS`、`Linux`、`Web` 七端产品。
+
+| 平台 | 状态 | 下载体验 | 备用链接 |
+|------|------|----------|----------|
+| Android | 可构建 | 准备中| — |
+| iOS | ✅ 已上架 | [App Store](https://apps.apple.com/app/id6772819751) | — |
+| Windows | 可构建 | 准备中 | — |
+| macOS | ✅ 已上线 | [Mac App Store](https://apps.apple.com/app/id6772819751) | — |
+| Linux | 可构建 | 准备中 | — |
+| Web | 可构建 | 准备中 | — |
+| 鸿蒙 | 可构建 | 准备中 | — |
+
 
 ---
 
 
-## 功能域
+### 功能域
 
 | 域 | 说明 | 后端模块 | 前端模块 |
 |----|------|---------|---------|
@@ -21,7 +56,9 @@
 | **Search** | 全局搜索 | im-message (search routes) | flash_im_search |
 | **Storage** | 文件上传与存储 | app-storage | — |
 
-## 项目结构
+---
+
+### 项目结构
 
 ```
 flash_im_v1/
@@ -67,64 +104,7 @@ flash_im_v1/
     └── features/           # 功能设计文档（按版本归档）
 ```
 
-## 快速开始
-
-### 后端
-
-```bash
-# 1. 启动 PostgreSQL + 重置数据库
-python scripts/server/reset_db.py
-
-# 2. 启动后端
-python scripts/server/start.py
-```
-
-默认端口 9600，配置在 `server/.env`。
-
-### 前端
-
-```bash
-# Android
-python scripts/client/run.py
-
-# Windows 桌面
-python scripts/client/run.py --platform windows
-
-# macOS 桌面（调试）
-cd client && flutter run -d macos --dart-define-from-file=.env.dev
-```
-
-### macOS 构建与分发
-
-```bash
-# DMG 分发（构建 + 签名 + 打包 + 公证）
-python3 scripts/build_center/macos/build.py --dmg
-
-# App Store 上传（构建 + archive + 上传）
-python3 scripts/build_center/macos/build.py --upload
-
-# 仅上传（使用已有 archive）
-python3 scripts/build_center/macos/build.py --upload-only
-
-# 指定 Flutter SDK 路径
-python3 scripts/build_center/macos/build.py --dmg --sdk ~/flutter_3.27
-```
-
-凭证配置在 `client/ios/.env.publish`（不纳入 git）。
-
-### 部署
-
-```bash
-# 本地编译并上传到服务器（自动重启）
-python scripts/deploy/build.py root@你的服务器IP
-
-# 服务器上管理
-bash flash.sh              # 启动
-bash flash.sh stop         # 停止
-bash flash.sh log          # 查看日志
-bash db.sh migrate         # 执行数据库迁移
-bash env_check.sh          # 环境检测
-```
+---
 
 ## 技术栈
 
