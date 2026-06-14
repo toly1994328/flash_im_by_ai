@@ -43,8 +43,13 @@
 | 鸿蒙 | 可构建 | 准备中 | — |
 
 
----
 
+> 开源不易，请我喝咖啡 ~
+
+![](./docs/ewm/coffee1.webp)
+
+
+---
 
 ### 功能域
 
@@ -120,3 +125,9 @@ flash_im_v1/
 ## 功能网络
 
 项目当前有 **141 个功能节点**，完整的功能网络图和归档记录见 [docs/features/archiver/index.md](docs/features/archiver/index.md)。
+
+
+
+#### Star History
+
+[![Star History Chart](https://api.star-history.com/svg?repos=toly1994328/flash_im_by_ai&type=Date)](https://star-history.com/#toly1994328/flash_im_by_ai&Date)
