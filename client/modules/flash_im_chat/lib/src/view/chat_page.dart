@@ -9,7 +9,7 @@ import 'package:fx_logger/fx_logger.dart';
 import 'package:shimmer/shimmer.dart';
 import 'package:window_manager/window_manager.dart';
 import 'package:flash_im_core/flash_im_core.dart' show WsClient, GroupInfoUpdate, UserStatusNotification;
-import 'package:flash_shared/flash_shared.dart' show MemberPickerResult, WindowsButtons, adaptivePush, ViewUserProfileEvent;
+import 'package:flash_shared/flash_shared.dart' show MemberPickerResult, ViewUserProfileEvent;
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
 import 'package:file_picker/file_picker.dart';
 import '../data/message.dart';

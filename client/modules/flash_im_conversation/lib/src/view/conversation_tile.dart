@@ -176,43 +176,6 @@ class ConversationTile extends StatelessWidget {
     );
   }
 
-  void _showDebugInfo(BuildContext context) {
-    final info = StringBuffer();
-    info.writeln('id: ${conversation.id}');
-    info.writeln('type: ${conversation.type} (${conversation.isGroup ? "群聊" : "单聊"})');
-    info.writeln('name: ${conversation.name}');
-    info.writeln('peerUserId: ${conversation.peerUserId}');
-    info.writeln('peerNickname: ${conversation.peerNickname}');
-    info.writeln('unreadCount: ${conversation.unreadCount}');
-    info.writeln('isPinned: ${conversation.isPinned}');
-    info.writeln('isMuted: ${conversation.isMuted}');
-    info.writeln('lastMessageAt: ${conversation.lastMessageAt}');
-    info.writeln('lastMessagePreview: ${conversation.lastMessagePreview}');
-    info.writeln('lastMessageExtra: ${conversation.lastMessageExtra}');
-    info.writeln('mentionMeRecords: ${conversation.mentionMeRecords.map((r) => '${r.messageId}:${r.type.name}').toList()}');
-    info.writeln('avatar: ${conversation.avatar}');
-    info.writeln('createdAt: ${conversation.createdAt}');
-
-    showDialog(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        title: const Text('会话详情', style: TextStyle(fontSize: 14)),
-        content: SingleChildScrollView(
-          child: SelectableText(
-            info.toString(),
-            style: const TextStyle(fontSize: 12, fontFamily: 'monospace'),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: const Text('关闭'),
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildUnreadBadge() {
     return UnreadBadge(count: conversation.unreadCount, size: BadgeSize.medium);
   }

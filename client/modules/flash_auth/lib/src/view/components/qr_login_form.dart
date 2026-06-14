@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 import '../../data/auth_repository.dart';
 import '../../data/login_result.dart';
-import '../../data/scan_models.dart';
 import '../login_page.dart';
 
 /// 扫码登录表单：展示二维码 + 轮询状态 + 自动登录

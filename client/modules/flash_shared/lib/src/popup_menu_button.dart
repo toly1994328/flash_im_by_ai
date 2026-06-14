@@ -64,7 +64,6 @@ class _WxPopupMenuButtonState extends State<WxPopupMenuButton>
     _overlay = OverlayEntry(
       builder: (context) {
         final screenWidth = MediaQuery.of(context).size.width;
-        final rightDistance = screenWidth - offset.dx - size.width + 4;
 
         if (kApp.isDesktop) {
           // 桌面端：白色卡片 + 白色尖角，居中对齐按钮
