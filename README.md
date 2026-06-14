@@ -1,4 +1,3 @@
-# 匠心闪讯 IM
 
 <h1 align="center" style="border-bottom: none">
     <b>
