@@ -1,6 +1,15 @@
-# 闪讯 IM
+# 匠心闪讯 IM
 
-一个全栈即时通讯项目。后端 Rust（Axum + PostgreSQL + WebSocket），前端 Flutter（多平台）。
+一个完全由 AI 开发的全栈即时通讯项目。一次面向文档开发的探索。  
+后端 Rust（Axum + PostgreSQL + WebSocket），前端 Flutter（多平台）。  
+可产出: `Android`、`iOS`、`鸿蒙`、`Windows`、`MacOS`、`Linux`、`Web` 七端产品。
+
+配套书籍: [《AI 全栈编程生存指南》](https://s.juejin.cn/ds/u2ouelAuNT8/) 记录了成长的全过程，以及依赖的方法论   
+链接: https://s.juejin.cn/ds/u2ouelAuNT8/  
+项目表现效果，已经如何运行、打包上架、可查看书籍，感谢支持~。
+
+---
+
 
 ## 功能域
 
