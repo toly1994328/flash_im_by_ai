@@ -22,6 +22,7 @@ import platform
 import shutil
 import subprocess
 import sys
+import time
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 PROJECT_ROOT = os.path.normpath(os.path.join(SCRIPT_DIR, "..", ".."))
@@ -35,11 +36,11 @@ SYSTEM = platform.system()
 
 
 def info(msg):
-    print(f"\033[34m[INFO]\033[0m {msg}")
+    print(f"\033[34m[INFO]\033[0m {msg}", flush=True)
 
 
 def ok(msg):
-    print(f"\033[32m[OK]\033[0m {msg}")
+    print(f"\033[32m[OK]\033[0m {msg}", flush=True)
 
 
 def fail(msg):
@@ -72,7 +73,8 @@ def file_size_human(path):
 
 def main():
     upload_only = "--upload-only" in sys.argv
-    args = [a for a in sys.argv[1:] if a != "--upload-only"]
+    deploy_all = "--deploy" in sys.argv
+    args = [a for a in sys.argv[1:] if a not in ("--upload-only", "--deploy")]
     remote_host = args[0] if args else None
 
     print()
@@ -183,7 +185,7 @@ def main():
 
         # 停止服务
         info("停止远程服务...")
-        subprocess.run(["ssh", remote_host, "systemctl stop flash-im"], capture_output=True)
+        subprocess.run(["ssh", remote_host, "systemctl stop flash-im"], capture_output=True, timeout=15)
 
         # 创建远程目录
         run(["ssh", remote_host, f"mkdir -p {REMOTE_DIR}"])
@@ -192,53 +194,50 @@ def main():
         remote_path = f"{remote_host}:{REMOTE_DIR}/{BINARY_NAME}"
         run(["scp", binary_path, remote_path])
 
-        # 同步 migrations 目录
-        migrations_dir = os.path.join(SERVER_DIR, "migrations")
-        if os.path.isdir(migrations_dir):
-            info("同步 migrations 到远程...")
-            run(["scp", "-r", migrations_dir, f"{remote_host}:{REMOTE_DIR}/"])
+        # 完整部署时同步附属文件
+        if deploy_all or (not upload_only):
+            # 同步 migrations 目录
+            migrations_dir = os.path.join(SERVER_DIR, "migrations")
+            if os.path.isdir(migrations_dir):
+                info("同步 migrations 到远程...")
+                run(["scp", "-r", migrations_dir, f"{remote_host}:{REMOTE_DIR}/"])
 
-        # 同步 static 目录
-        static_dir = os.path.join(SERVER_DIR, "static")
-        if os.path.isdir(static_dir):
-            info("同步 static 到远程...")
-            run(["scp", "-r", static_dir, f"{remote_host}:{REMOTE_DIR}/"])
-            ok("migrations 同步完成")
+            # 同步 static 目录
+            static_dir = os.path.join(SERVER_DIR, "static")
+            if os.path.isdir(static_dir):
+                info("同步 static 到远程...")
+                run(["scp", "-r", static_dir, f"{remote_host}:{REMOTE_DIR}/"])
 
-        # 同步部署脚本（.env、flash.sh、db.sh）
-        deploy_dir = os.path.join(PROJECT_ROOT, "scripts", "deploy")
-        env_file = os.path.join(SERVER_DIR, ".env")
-        flash_script = os.path.join(deploy_dir, "flash.sh")
-        db_script = os.path.join(deploy_dir, "db.sh")
+            # 同步部署脚本（.env、flash.sh、db.sh）
+            deploy_dir = os.path.join(PROJECT_ROOT, "scripts", "deploy")
+            env_file = os.path.join(SERVER_DIR, ".env")
+            flash_script = os.path.join(deploy_dir, "flash.sh")
+            db_script = os.path.join(deploy_dir, "db.sh")
 
-        if os.path.isfile(env_file):
-            info("同步 .env 到远程...")
-            run(["scp", env_file, f"{remote_host}:{REMOTE_DIR}/"])
-            ok(".env 同步完成")
+            if os.path.isfile(env_file):
+                info("同步 .env 到远程...")
+                run(["scp", env_file, f"{remote_host}:{REMOTE_DIR}/"])
 
-        if os.path.isfile(flash_script):
-            info("同步 flash.sh 到远程...")
-            run(["scp", flash_script, f"{remote_host}:{REMOTE_DIR}/"])
-            run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/flash.sh"])
-            ok("flash.sh 同步完成")
+            if os.path.isfile(flash_script):
+                info("同步 flash.sh 到远程...")
+                run(["scp", flash_script, f"{remote_host}:{REMOTE_DIR}/"])
+                run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/flash.sh"])
 
-        if os.path.isfile(db_script):
-            info("同步 db.sh 到远程...")
-            run(["scp", db_script, f"{remote_host}:{REMOTE_DIR}/"])
-            run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/db.sh"])
-            ok("db.sh 同步完成")
+            if os.path.isfile(db_script):
+                info("同步 db.sh 到远程...")
+                run(["scp", db_script, f"{remote_host}:{REMOTE_DIR}/"])
+                run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/db.sh"])
 
-        # 同步 seed 目录
-        seed_dir = os.path.join(PROJECT_ROOT, "scripts", "server", "im_seed")
-        if os.path.isdir(seed_dir):
-            info("同步 im_seed 到远程...")
-            run(["scp", "-r", seed_dir, f"{remote_host}:{REMOTE_DIR}/"])
-            ok("im_seed 同步完成")
+            # 同步 seed 目录
+            seed_dir = os.path.join(PROJECT_ROOT, "scripts", "server", "im_seed")
+            if os.path.isdir(seed_dir):
+                info("同步 im_seed 到远程...")
+                run(["scp", "-r", seed_dir, f"{remote_host}:{REMOTE_DIR}/"])
 
         # 赋予可执行权限并重启服务
-        run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/{BINARY_NAME}"])
+        time.sleep(2)  # 等待 SSH 连接释放，避免被服务器限流
         info("重启远程服务...")
-        run(["ssh", remote_host, "systemctl restart flash-im"])
+        run(["ssh", remote_host, f"chmod +x {REMOTE_DIR}/{BINARY_NAME} && systemctl restart flash-im"])
 
         ok("部署完成！")
     else:
