@@ -20,3 +20,15 @@ extension MessageCacheExt on Message {
         localData: localData,
       );
 }
+
+/// Message 显示相关扩展
+extension MessageDisplayExt on Message {
+  /// 消息内容摘要（用于回复预览等场景）
+  String get contentSummary => switch (type) {
+    MessageType.text => content,
+    MessageType.image => '[图片]',
+    MessageType.video => '[视频]',
+    MessageType.audio => '[语音]',
+    _ => '[文件]',
+  };
+}

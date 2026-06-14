@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 
-/// 群成员信息（@选择用）
-class MentionMember {
-  final String userId;
-  final String nickname;
-  final String? avatar;
+import '../../data/mention_member.dart';
 
-  const MentionMember({required this.userId, required this.nickname, this.avatar});
-}
+export '../../data/mention_member.dart';
 
 /// @成员选择浮层：输入框上方弹出，内部异步加载成员列表
 class MentionPicker extends StatefulWidget {

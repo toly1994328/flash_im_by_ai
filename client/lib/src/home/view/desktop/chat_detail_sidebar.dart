@@ -28,15 +28,20 @@ class ChatDetailSidebar extends StatelessWidget {
       onGenerateRoute: (_) => MaterialPageRoute(
         builder: (navContext) {
           if (conversation.isGroup) {
-            return GroupChatInfoPage(
+            return GroupInfoScope(
               repository: context.read<GroupRepository>(),
               conversationId: conversation.id,
-              baseUrl: AppConfig.baseUrl,
               currentUserId: context.read<SessionCubit>().state.user?.userId.toString(),
-              friendsFetcher: () async => homeState.friendsToMembers(),
-              showAppBar: false,
-              onLeaveOrDisband: onLeaveOrDisband,
-              onSearchChat: () => _pushSearch(navContext, context),
+              child: GroupChatInfoPage(
+                repository: context.read<GroupRepository>(),
+                conversationId: conversation.id,
+                baseUrl: AppConfig.baseUrl,
+                currentUserId: context.read<SessionCubit>().state.user?.userId.toString(),
+                friendsFetcher: () async => homeState.friendsToMembers(),
+                showAppBar: false,
+                onLeaveOrDisband: onLeaveOrDisband,
+                onSearchChat: () => _pushSearch(navContext, context),
+              ),
             );
           }
           return PrivateChatInfoPage(

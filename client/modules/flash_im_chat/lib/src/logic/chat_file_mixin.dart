@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
 import 'package:flash_im_cache/flash_im_cache.dart';
+import 'package:flash_shared/flash_shared.dart' show ShowToastEvent;
 
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
@@ -74,7 +75,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
     // 大小限制校验
     if (localFileSize > fileSendLimits.maxImageSize) {
       _log.w('image too large: $localFileSize > ${fileSendLimits.maxImageSize}');
-      throw FileSizeExceedException('图片大小超过限制（${_formatSize(fileSendLimits.maxImageSize)}）');
+      ShowToastEvent('图片大小超过限制（${_formatSize(fileSendLimits.maxImageSize)}）').emit();
+      return;
     }
 
     final localMessage = Message.sending(
@@ -147,7 +149,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
     final int videoFileSize = await File(filePath).length();
     if (videoFileSize > fileSendLimits.maxVideoSize) {
       _log.w('video too large: $videoFileSize > ${fileSendLimits.maxVideoSize}');
-      throw FileSizeExceedException('视频大小超过限制（${_formatSize(fileSendLimits.maxVideoSize)}）');
+      ShowToastEvent('视频大小超过限制（${_formatSize(fileSendLimits.maxVideoSize)}）').emit();
+      return;
     }
 
     final localId = 'local_${nextLocalId()}';
@@ -230,7 +233,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
     // 大小限制校验
     if (fileSize > fileSendLimits.maxFileSize) {
       _log.w('file too large: $fileSize > ${fileSendLimits.maxFileSize}');
-      throw FileSizeExceedException('文件大小超过限制（${_formatSize(fileSendLimits.maxFileSize)}）');
+      ShowToastEvent('文件大小超过限制（${_formatSize(fileSendLimits.maxFileSize)}）').emit();
+      return;
     }
 
     final localMessage = Message.sending(
@@ -301,7 +305,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
     // 时长限制校验
     if (durationMs > fileSendLimits.maxAudioDurationMs) {
       _log.w('audio too long: ${durationMs}ms > ${fileSendLimits.maxAudioDurationMs}ms');
-      throw FileSizeExceedException('语音时长超过限制（${fileSendLimits.maxAudioDurationMs ~/ 60000}分钟）');
+      ShowToastEvent('语音时长超过限制（${fileSendLimits.maxAudioDurationMs ~/ 60000}分钟）').emit();
+      return;
     }
 
     final localId = 'local_${nextLocalId()}';

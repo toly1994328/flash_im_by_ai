@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../data/message.dart';
+import '../../data/message.dart';
 
 /// 置顶消息计数指示器：垂直蓝色分段线
 class _CountIndicator extends StatelessWidget {

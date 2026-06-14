@@ -6,7 +6,7 @@ import 'package:flash_shared/flash_shared.dart';
 
 import 'emoji_panel.dart';
 import 'mention_picker.dart';
-import 'voice_input/voice_input_widget.dart';
+import '../voice_input/voice_input_widget.dart';
 
 /// 输入栏底部面板模式
 enum _PanelMode { none, emoji, more }

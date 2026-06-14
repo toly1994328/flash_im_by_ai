@@ -58,3 +58,13 @@ class ViewUserProfileEvent extends FxEvent {
 
   const ViewUserProfileEvent({required this.userId, required this.nickname, this.avatar});
 }
+
+// ─── 通用 UI 事件 ───
+
+/// 全局 Toast 提示事件（任何模块可发送，App 顶层统一弹 SnackBar）
+class ShowToastEvent extends FxEvent {
+  final String message;
+  final Duration duration;
+
+  const ShowToastEvent(this.message, {this.duration = const Duration(seconds: 3)});
+}
