@@ -300,7 +300,11 @@ class _ChatPageState extends State<ChatPage> {
           onReEdit: _handleReEdit,
           onAvatarTap: _openUserProfile,
           onReadCountTap: _isGroup ? () => _showReadReceipt(msg.id) : null,
-          onImageTap: () => _mediaHandler.openImage(context, msg),
+          onImageTap: () {
+            final List<Message> imageList = messages.where((m) => m.type == MessageType.image && m.status != MessageStatus.sending).toList();
+            final int idx = imageList.indexWhere((m) => m.id == msg.id);
+            _mediaHandler.openImage(context, msg, imageMessages: imageList, index: idx >= 0 ? idx : 0);
+          },
           onVideoTap: () => _mediaHandler.openVideo(context, msg),
           onFileTap: () => _mediaHandler.openFile(context, msg),
         );

@@ -9,10 +9,12 @@ import 'package:fx_env/fx_env.dart';
 import 'package:fx_logger/fx_logger.dart';
 
 import '../../data/message.dart';
+import '../../data/message_media_ext.dart';
 import '../../view/media/file_preview_page.dart';
-import '../../view/media/image_preview_page.dart';
 import '../../view/media/video_player_page.dart';
 import '../chat_cubit.dart';
+import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
+import 'package:tolyui_mediax_ui/tolyui_mediax_ui.dart';
 
 /// 媒体文件操作处理器（logic 层）
 /// 负责：缓存判断 + 下载 + 系统打开 + 另存为
@@ -24,12 +26,45 @@ class ChatMediaHandler {
 
   ChatMediaHandler({required ChatCubit cubit, this.baseUrl}) : _cubit = cubit;
 
-  /// 点击图片：全屏预览
-  void openImage(BuildContext context, Message msg) {
-    final String imageUrl = _fullUrl(msg.content);
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => ImagePreviewPage(imageUrl: imageUrl),
-    ));
+  /// 点击图片：全屏预览（支持多图滑动 + Hero 动画）
+  void openImage(BuildContext context, Message msg, {List<Message>? imageMessages, int? index}) {
+    final List<ImageMeta> items = (imageMessages ?? [msg])
+        .map((m) => m.toImageMeta(baseUrl: baseUrl ?? ''))
+        .toList();
+    final int initialIndex = index ?? 0;
+
+    Navigator.of(context).push(
+      PageRouteBuilder<void>(
+        opaque: false,
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 250),
+        pageBuilder: (_, _, _) => MediaPreviewPage(
+          items: items,
+          initialIndex: initialIndex,
+          onDismiss: () => Navigator.of(context).pop(),
+          itemBuilder: (ctx, i, item) {
+            final ImageMeta imageMeta = item as ImageMeta;
+            return ImageViewer(
+              heroTag: imageMeta.heroTag ?? imageMeta.hashCode,
+              mediaBuilder: (_, meta) => MediaImageView(
+                meta: meta as ImageMeta,
+                level: MediaSourceLevel.source,
+                fit: BoxFit.contain,
+              ),
+              meta: imageMeta,
+              imageSize: imageMeta.originalSize != null
+                  ? Size(
+                      imageMeta.originalSize!.width.toDouble(),
+                      imageMeta.originalSize!.height.toDouble(),
+                    )
+                  : null,
+            );
+          },
+        ),
+        transitionsBuilder: (_, Animation<double> anim, _, Widget child) =>
+            FadeTransition(opacity: anim, child: child),
+      ),
+    );
   }
 
   /// 点击视频：已缓存 → 系统打开/播放，未缓存 → 下载后打开
