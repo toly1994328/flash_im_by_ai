@@ -41,15 +41,21 @@ class ImageBubble extends StatelessWidget {
       onTap: onTap,
       child: Hero(
         tag: meta.heroTag ?? meta.hashCode,
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(8),
-          child: SizedBox(
-            width: width,
-            height: height,
-            child: MediaImageView(
-              meta: meta,
-              level: MediaSourceLevel.thumbnail,
-              fit: crop ? BoxFit.cover : BoxFit.cover,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0x1A000000), width: 0.5),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: MediaImageView(
+                meta: meta,
+                level: MediaSourceLevel.thumbnail,
+                fit: crop ? BoxFit.cover : BoxFit.cover,
+              ),
             ),
           ),
         ),
