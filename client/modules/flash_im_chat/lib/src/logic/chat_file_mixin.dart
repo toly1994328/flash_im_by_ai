@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:typed_data';
+import 'dart:ui' as ui;
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
@@ -79,6 +81,18 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return;
     }
 
+    // 读取图片尺寸（用于发送中气泡预览）
+    int imgWidth = 0;
+    int imgHeight = 0;
+    try {
+      final Uint8List bytes = await File(filePath).readAsBytes();
+      final ui.Codec codec = await ui.instantiateImageCodec(bytes);
+      final ui.FrameInfo frame = await codec.getNextFrame();
+      imgWidth = frame.image.width;
+      imgHeight = frame.image.height;
+      frame.image.dispose();
+    } catch (_) {}
+
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
@@ -87,7 +101,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
       senderAvatar: currentUserAvatar,
       content: filePath,
       type: MessageType.image,
-      extra: {'size': localFileSize},
+      extra: {'size': localFileSize, 'width': imgWidth, 'height': imgHeight},
     );
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 
@@ -115,7 +129,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
       if (latest is ChatLoaded) {
         final updated = latest.messages.map((m) {
           if (m.id == localId) {
-            return m.copyWith(extra: imageExtra);
+            return m.copyWith(content: result.originalUrl, extra: imageExtra);
           }
           return m;
         }).toList();
