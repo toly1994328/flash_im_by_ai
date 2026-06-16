@@ -71,6 +71,7 @@ class ChatMediaHandler {
   Future<void> openVideo(BuildContext context, Message msg) async {
     final String videoUrl = _fullUrl(msg.content);
     final String? cachedPath = extractLocalPath(msg);
+    _log.d('openVideo: videoUrl=$videoUrl, cachedPath=$cachedPath');
 
     if (kApp.isDesktop) {
       if (cachedPath != null && File(cachedPath).existsSync()) {

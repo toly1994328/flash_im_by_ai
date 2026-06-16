@@ -168,7 +168,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     }
 
     final localId = 'local_${nextLocalId()}';
-    pendingLocalPaths[localId] = thumbnailPath;
+    pendingLocalPaths[localId] = filePath;
     final localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
@@ -207,9 +207,14 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       final latest = state;
       if (latest is ChatLoaded) {
+        final String localDataJson = jsonEncode({
+          'path': filePath,
+          'thumbnail_path': thumbnailPath,
+          'cached_at': DateTime.now().millisecondsSinceEpoch,
+        });
         final updated = latest.messages.map((m) {
           if (m.id == localId) {
-            return m.copyWith(extra: videoExtra.toJson());
+            return m.copyWith(content: result.videoUrl, extra: videoExtra.toJson(), localData: localDataJson);
           }
           return m;
         }).toList();

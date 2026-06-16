@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
@@ -36,6 +37,9 @@ class VideoBubble extends StatelessWidget {
       (videoExtra?.height ?? 0).toDouble(),
     );
 
+    // 判断视频是否已下载到本地
+    final bool isCached = _hasLocalVideo();
+
     return GestureDetector(
       onTap: onTap,
       child: Container(
@@ -53,12 +57,16 @@ class VideoBubble extends StatelessWidget {
               _buildThumbnail(videoExtra, width, height),
               if (!isUploading)
                 Container(
-                  width: 44, height: 44,
+                  width: 36, height: 36,
                   decoration: BoxDecoration(
                     color: Colors.black.withValues(alpha: 0.4),
                     shape: BoxShape.circle,
                   ),
-                  child: const Icon(Icons.play_arrow, color: Colors.white, size: 28),
+                  child: Icon(
+                    isCached ? Icons.play_arrow : Icons.download_rounded,
+                    color: Colors.white,
+                    size: isCached ? 22 : 18,
+                  ),
                 ),
               if (videoExtra != null && !isUploading)
                 Positioned(
@@ -102,13 +110,25 @@ class VideoBubble extends StatelessWidget {
   }
 
   Widget _buildThumbnail(VideoExtra? videoExtra, double width, double height) {
-    // 本地缩略图优先
+    // 本地缩略图优先（已缓存的）
     if (localThumbnailPath != null && File(localThumbnailPath!).existsSync()) {
       return Image.file(
         File(localThumbnailPath!),
         width: width, height: height, fit: BoxFit.cover,
         errorBuilder: (_, _, _) => _placeholder(width, height),
       );
+    }
+
+    // 发送中：content 是缩略图本地路径
+    if (message.status == MessageStatus.sending) {
+      final String thumbPath = message.content;
+      if (File(thumbPath).existsSync()) {
+        return Image.file(
+          File(thumbPath),
+          width: width, height: height, fit: BoxFit.cover,
+          errorBuilder: (_, _, _) => _placeholder(width, height),
+        );
+      }
     }
 
     // 网络缩略图用 MediaImageView（有缓存）
@@ -132,4 +152,15 @@ class VideoBubble extends StatelessWidget {
     color: Colors.grey[200],
     child: const Center(child: Icon(Icons.videocam, size: 48, color: Colors.grey)),
   );
+
+  bool _hasLocalVideo() {
+    if (message.localData == null) return false;
+    try {
+      final Map<String, dynamic> json = jsonDecode(message.localData!) as Map<String, dynamic>;
+      final String? path = json['path'] as String?;
+      return path != null && File(path).existsSync();
+    } catch (_) {
+      return false;
+    }
+  }
 }
