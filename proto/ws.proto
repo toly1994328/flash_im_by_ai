@@ -20,6 +20,7 @@ enum WsFrameType {
   READ_RECEIPT = 15;
   MESSAGE_RECALLED = 16;
   PIN_CHANGED = 17;
+  STORAGE_QUOTA_UPDATE = 18;
 }
 
 message WsFrame {

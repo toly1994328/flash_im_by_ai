@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
 import 'package:path_provider/path_provider.dart';
@@ -11,6 +12,7 @@ import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
 import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:flash_shared/flash_shared.dart' show ShowToastEvent;
 
+import '../data/file_hash.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import 'chat_state.dart';
@@ -63,6 +65,19 @@ mixin ChatFileMixin on Cubit<ChatState> {
   /// 暂存发送中的本地文件路径：localId → localPath
   final Map<String, String> pendingLocalPaths = {};
 
+  // ─── 公共预检方法 ───
+
+  /// 上传前预检：算 hash → 秒传检查 + 配额预检
+  ///
+  /// 返回值：
+  /// - (hash, dedupResult) 当 dedupResult != null 表示秒传命中
+  /// - 配额不足时内部弹 toast 并抛出异常（调用方 catch 后 return）
+  Future<(String hash, Map<String, dynamic>? dedup)> _preUploadCheck(String filePath, int fileSize) async {
+    final String hash = await computeFileSha1(filePath);
+    final Map<String, dynamic>? existing = await repository.checkHash(hash, size: fileSize);
+    return (hash, existing);
+  }
+
   // ─── 图片发送 ───
 
   /// 从本地文件发送图片消息
@@ -70,9 +85,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     final current = state;
     if (current is! ChatLoaded) return;
 
-    final localId = 'local_${nextLocalId()}';
-    pendingLocalPaths[localId] = filePath;
-    final localFileSize = await File(filePath).length();
+    final int localFileSize = await File(filePath).length();
 
     // 大小限制校验
     if (localFileSize > fileSendLimits.maxImageSize) {
@@ -81,7 +94,27 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return;
     }
 
-    // 读取图片尺寸（用于发送中气泡预览）
+    // 计算 hash + 秒传检查 + 配额预检（在创建占位消息之前）
+    final String hash;
+    final Map<String, dynamic>? dedup;
+    try {
+      (hash, dedup) = await _preUploadCheck(filePath, localFileSize);
+    } on DioException catch (e) {
+      if (_handleQuotaError(e)) return;
+      rethrow;
+    }
+
+    if (dedup != null) {
+      _log.d('image dedup hit: file_id=${dedup['file_id']}');
+      _sendDedupImageMessage(current, filePath, dedup);
+      return;
+    }
+
+    // 配额充足 + 非秒传，走正常上传流程
+    final String localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
+
+    // 读取图片尺寸
     int imgWidth = 0;
     int imgHeight = 0;
     try {
@@ -93,7 +126,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
       frame.image.dispose();
     } catch (_) {}
 
-    final localMessage = Message.sending(
+    final Message localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
       senderId: currentUserId,
@@ -106,7 +139,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 
     try {
-      final result = await repository.uploadImage(filePath, onProgress: (p) {
+      final result = await repository.uploadImage(filePath, hash: hash, onProgress: (p) {
         _log.d('image progress: ${(p * 100).toInt()}%');
         final s = state;
         if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
@@ -148,6 +181,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 10));
     } catch (e) {
+      _handleQuotaError(e);
       markFailed(localId);
     }
   }
@@ -167,9 +201,45 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return;
     }
 
-    final localId = 'local_${nextLocalId()}';
+    // 计算 hash + 秒传检查 + 配额预检（在创建占位消息之前）
+    final String hash;
+    final Map<String, dynamic>? dedup;
+    try {
+      (hash, dedup) = await _preUploadCheck(filePath, videoFileSize);
+    } on DioException catch (e) {
+      if (_handleQuotaError(e)) return;
+      rethrow;
+    }
+
+    if (dedup != null) {
+      _log.d('video dedup hit: file_id=${dedup['file_id']}');
+      final String videoUrl = dedup['url'] as String;
+      final String thumbUrl = dedup['thumb_url'] as String? ?? '';
+      final int dur = dedup['duration_ms'] as int? ?? durationMs;
+      final int w = dedup['width'] as int? ?? width;
+      final int h = dedup['height'] as int? ?? height;
+      final int sz = dedup['size'] as int? ?? 0;
+
+      final String localId = 'local_${nextLocalId()}';
+      pendingLocalPaths[localId] = filePath;
+      final VideoExtra videoExtra = VideoExtra(thumbnailUrl: thumbUrl, durationMs: dur, width: w, height: h, fileSize: sz);
+      final Message localMessage = Message.sending(
+        localId: localId, conversationId: conversationId, senderId: currentUserId,
+        senderName: currentUserName, senderAvatar: currentUserAvatar,
+        content: videoUrl, type: MessageType.video, extra: videoExtra.toJson(),
+      );
+      emit(current.copyWith(messages: [...current.messages, localMessage]));
+      final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      pendingMessages[clientId] = localId;
+      wsClient.sendMessage(conversationId: conversationId, content: videoUrl, type: proto.MessageType.VIDEO, extra: utf8.encode(jsonEncode(videoExtra.toJson())), clientId: clientId);
+      setupTimeout(clientId, localId, const Duration(seconds: 30));
+      return;
+    }
+
+    // 正常上传流程
+    final String localId = 'local_${nextLocalId()}';
     pendingLocalPaths[localId] = filePath;
-    final localMessage = Message.sending(
+    final Message localMessage = Message.sending(
       localId: localId,
       conversationId: conversationId,
       senderId: currentUserId,
@@ -184,7 +254,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     try {
       final result = await repository.uploadVideo(
         filePath, thumbnailPath, durationMs,
-        width: width, height: height,
+        hash: hash, width: width, height: height,
         onProgress: (p) {
           _log.d('video progress: ${(p * 100).toInt()}%');
           final s = state;
@@ -233,6 +303,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 30));
     } catch (e) {
+      _handleQuotaError(e);
       markFailed(localId);
     }
   }
@@ -244,10 +315,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
     final current = state;
     if (current is! ChatLoaded) return;
 
-    final localId = 'local_${nextLocalId()}';
-    pendingLocalPaths[localId] = filePath;
-    final fileName = filePath.split('/').last.split('\\').last;
-    final fileSize = await File(filePath).length();
+    final String fileName = filePath.split('/').last.split('\\').last;
+    final int fileSize = await File(filePath).length();
 
     // 大小限制校验
     if (fileSize > fileSendLimits.maxFileSize) {
@@ -256,20 +325,49 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return;
     }
 
-    final localMessage = Message.sending(
-      localId: localId,
-      conversationId: conversationId,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      senderAvatar: currentUserAvatar,
-      content: fileName,
-      type: MessageType.file,
+    // 预检：hash + 秒传 + 配额（在占位消息之前）
+    final String hash;
+    final Map<String, dynamic>? dedup;
+    try {
+      (hash, dedup) = await _preUploadCheck(filePath, fileSize);
+    } on DioException catch (e) {
+      if (_handleQuotaError(e)) return;
+      rethrow;
+    }
+
+    if (dedup != null) {
+      _log.d('file dedup hit: file_id=${dedup['file_id']}');
+      final String fileUrl = dedup['url'] as String;
+      final int sz = dedup['size'] as int? ?? 0;
+      final String localId = 'local_${nextLocalId()}';
+      pendingLocalPaths[localId] = filePath;
+      final FileExtra fileExtra = FileExtra(fileName: fileName, fileSize: sz, fileUrl: fileUrl, fileType: fileName.split('.').last);
+      final Message localMessage = Message.sending(
+        localId: localId, conversationId: conversationId, senderId: currentUserId,
+        senderName: currentUserName, senderAvatar: currentUserAvatar,
+        content: fileUrl, type: MessageType.file, extra: fileExtra.toJson(),
+      );
+      emit(current.copyWith(messages: [...current.messages, localMessage]));
+      final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      pendingMessages[clientId] = localId;
+      wsClient.sendMessage(conversationId: conversationId, content: fileUrl, type: proto.MessageType.FILE, extra: utf8.encode(jsonEncode(fileExtra.toJson())), clientId: clientId);
+      setupTimeout(clientId, localId, const Duration(seconds: 30));
+      return;
+    }
+
+    // 正常上传流程
+    final String localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
+    final Message localMessage = Message.sending(
+      localId: localId, conversationId: conversationId, senderId: currentUserId,
+      senderName: currentUserName, senderAvatar: currentUserAvatar,
+      content: fileName, type: MessageType.file,
       extra: {'file_name': fileName, 'file_type': fileName.split('.').last, 'file_size': fileSize},
     );
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 
     try {
-      final result = await repository.uploadFile(filePath, onProgress: (p) {
+      final result = await repository.uploadFile(filePath, hash: hash, onProgress: (p) {
         _log.d('file progress: ${(p * 100).toInt()}%');
         final s = state;
         if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
@@ -310,6 +408,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 30));
     } catch (e) {
+      _handleQuotaError(e);
       markFailed(localId);
     }
   }
@@ -328,54 +427,69 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return;
     }
 
-    final localId = 'local_${nextLocalId()}';
-    pendingLocalPaths[localId] = filePath;
-    final fileSize = await File(filePath).length();
-    final audioExtra = {'duration_ms': durationMs, 'file_size': fileSize};
+    final int fileSize = await File(filePath).length();
 
-    final localMessage = Message.sending(
-      localId: localId,
-      conversationId: conversationId,
-      senderId: currentUserId,
-      senderName: currentUserName,
-      senderAvatar: currentUserAvatar,
-      content: filePath,
-      type: MessageType.audio,
-      extra: audioExtra,
+    // 预检：hash + 秒传 + 配额（在占位消息之前）
+    final String hash;
+    final Map<String, dynamic>? dedup;
+    try {
+      (hash, dedup) = await _preUploadCheck(filePath, fileSize);
+    } on DioException catch (e) {
+      if (_handleQuotaError(e)) return;
+      rethrow;
+    }
+
+    if (dedup != null) {
+      _log.d('audio dedup hit: file_id=${dedup['file_id']}');
+      final String audioUrl = dedup['url'] as String;
+      final int sz = dedup['size'] as int? ?? 0;
+      final String localId = 'local_${nextLocalId()}';
+      pendingLocalPaths[localId] = filePath;
+      final Map<String, dynamic> extra = {'duration_ms': durationMs, 'file_size': sz};
+      final Message localMessage = Message.sending(
+        localId: localId, conversationId: conversationId, senderId: currentUserId,
+        senderName: currentUserName, senderAvatar: currentUserAvatar,
+        content: audioUrl, type: MessageType.audio, extra: extra,
+      );
+      emit(current.copyWith(messages: [...current.messages, localMessage]));
+      final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      pendingMessages[clientId] = localId;
+      wsClient.sendMessage(conversationId: conversationId, content: audioUrl, type: proto.MessageType.AUDIO, extra: utf8.encode(jsonEncode(extra)), clientId: clientId);
+      setupTimeout(clientId, localId, const Duration(seconds: 15));
+      return;
+    }
+
+    // 正常上传流程
+    final String localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
+    final Map<String, dynamic> audioExtra = {'duration_ms': durationMs, 'file_size': fileSize};
+    final Message localMessage = Message.sending(
+      localId: localId, conversationId: conversationId, senderId: currentUserId,
+      senderName: currentUserName, senderAvatar: currentUserAvatar,
+      content: filePath, type: MessageType.audio, extra: audioExtra,
     );
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 
     try {
-      final result = await repository.uploadFile(filePath, onProgress: (p) {
+      final result = await repository.uploadFile(filePath, hash: hash, onProgress: (p) {
         _log.d('audio progress: ${(p * 100).toInt()}%');
       });
 
-      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
-
-      final extra = {'duration_ms': durationMs, 'file_size': result.fileSize};
-
-      final latest = state;
+      final Map<String, dynamic> extra = {'duration_ms': durationMs, 'file_size': result.fileSize};
+      final ChatState latest = state;
       if (latest is ChatLoaded) {
-        final updated = latest.messages.map((m) {
-          if (m.id == localId) {
-            return m.copyWith(content: result.fileUrl, extra: extra);
-          }
+        final List<Message> updated = latest.messages.map((Message m) {
+          if (m.id == localId) return m.copyWith(content: result.fileUrl, extra: extra);
           return m;
         }).toList();
         emit(latest.copyWith(messages: updated));
       }
-
-      wsClient.sendMessage(
-        conversationId: conversationId,
-        content: result.fileUrl,
-        type: proto.MessageType.AUDIO,
-        extra: utf8.encode(jsonEncode(extra)),
-        clientId: clientId,
-      );
-
+      wsClient.sendMessage(conversationId: conversationId, content: result.fileUrl, type: proto.MessageType.AUDIO, extra: utf8.encode(jsonEncode(extra)), clientId: clientId);
       setupTimeout(clientId, localId, const Duration(seconds: 15));
     } catch (e) {
+      _handleQuotaError(e);
       markFailed(localId);
     }
   }
@@ -475,6 +589,59 @@ mixin ChatFileMixin on Cubit<ChatState> {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+  }
+
+  /// 秒传命中时直接发送图片消息（无占位消息、无上传进度）
+  void _sendDedupImageMessage(ChatLoaded current, String filePath, Map<String, dynamic> existing) {
+    final String url = existing['url'] as String;
+    final String? thumbUrl = existing['thumb_url'] as String?;
+    final int w = existing['width'] as int? ?? 0;
+    final int h = existing['height'] as int? ?? 0;
+    final int sz = existing['size'] as int? ?? 0;
+
+    final String localId = 'local_${nextLocalId()}';
+    pendingLocalPaths[localId] = filePath;
+    final Map<String, dynamic> imageExtra = {
+      'width': w, 'height': h, 'size': sz,
+      'format': url.split('.').last,
+      'thumbnail_url': thumbUrl ?? '',
+    };
+    final Message localMessage = Message.sending(
+      localId: localId,
+      conversationId: conversationId,
+      senderId: currentUserId,
+      senderName: currentUserName,
+      senderAvatar: currentUserAvatar,
+      content: url,
+      type: MessageType.image,
+      extra: imageExtra,
+    );
+    emit(current.copyWith(messages: [...current.messages, localMessage]));
+
+    final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+    pendingMessages[clientId] = localId;
+    wsClient.sendMessage(
+      conversationId: conversationId,
+      content: url,
+      type: proto.MessageType.IMAGE,
+      extra: utf8.encode(jsonEncode(imageExtra)),
+      clientId: clientId,
+    );
+    setupTimeout(clientId, localId, const Duration(seconds: 10));
+  }
+
+  /// 检查是否是配额不足错误，是则弹提示并返回 true
+  bool _handleQuotaError(Object e) {
+    if (e is DioException && e.response?.statusCode == 403) {
+      final dynamic body = e.response?.data;
+      if (body is Map && body['code'] == 'QUOTA_EXCEEDED') {
+        final int used = body['used_bytes'] as int? ?? 0;
+        final int quota = body['quota_bytes'] as int? ?? 0;
+        ShowToastEvent('云空间不足（已用 ${_formatSize(used)} / ${_formatSize(quota)}）').emit();
+        return true;
+      }
+    }
+    return false;
   }
 }
 

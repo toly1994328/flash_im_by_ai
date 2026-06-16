@@ -16,7 +16,7 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::compression::CompressionLayer;
 use tower_http::set_header::SetResponseHeaderLayer;
 use axum::http::{HeaderName, HeaderValue};
-use app_storage::{StorageConfig, StorageService};
+use app_storage::{LocalFs, StorageConfig, StorageService};
 use app_storage::api::storage_routes;
 
 #[tokio::main]
@@ -54,6 +54,7 @@ async fn main() {
     let dispatcher = Arc::new(MessageDispatcher::new(msg_service.clone(), ws_state.clone(), db.clone()));
 
     // WS handler 状态
+    let ws_for_storage = ws_state.clone();
     let ws_handler_state = Arc::new(WsHandlerState {
         ws_state,
         dispatcher: dispatcher.clone(),
@@ -61,7 +62,25 @@ async fn main() {
     });
 
     // 文件存储服务
-    let storage = Arc::new(StorageService::new(StorageConfig::from_env()));
+    let storage_config = StorageConfig::from_env();
+    let local_fs = LocalFs::new(storage_config.base_path.clone());
+    let mut storage = StorageService::new(local_fs, storage_config, db.clone());
+
+    // 配额变更时推 WS 通知
+    storage.set_on_quota_changed(Arc::new(move |user_id, used_bytes, quota_bytes| {
+        let ws = ws_for_storage.clone();
+        tokio::spawn(async move {
+            use im_ws::proto::{WsFrame, WsFrameType, StorageQuotaNotification};
+            use prost::Message;
+            let notification = StorageQuotaNotification { used_bytes, quota_bytes };
+            let frame = WsFrame {
+                r#type: WsFrameType::StorageQuotaUpdate as i32,
+                payload: notification.encode_to_vec(),
+            };
+            ws.send_to_user(user_id, frame.encode_to_vec()).await;
+        });
+    }));
+    let storage = Arc::new(storage);
 
     // 好友服务
     let friend_repo = Arc::new(FriendRepository::new(db.clone()));

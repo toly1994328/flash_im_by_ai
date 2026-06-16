@@ -61,51 +61,63 @@ class TestFixtures {
 
   /// 构造图片上传结果
   static ImageUploadResult imageUploadResult({
+    int fileId = 1,
     String originalUrl = '/uploads/original/test.jpg',
     String thumbnailUrl = '/uploads/thumb/test.webp',
     int width = 800,
     int height = 600,
     int size = 102400,
     String format = 'jpg',
+    bool isDedup = false,
   }) =>
       ImageUploadResult(
+        fileId: fileId,
         originalUrl: originalUrl,
         thumbnailUrl: thumbnailUrl,
         width: width,
         height: height,
         size: size,
         format: format,
+        isDedup: isDedup,
       );
 
   /// 构造视频上传结果
   static VideoUploadResult videoUploadResult({
+    int fileId = 2,
     String videoUrl = '/uploads/video/test.mp4',
     String thumbnailUrl = '/uploads/thumb/test.jpg',
     int durationMs = 5000,
     int width = 1920,
     int height = 1080,
     int fileSize = 1048576,
+    bool isDedup = false,
   }) =>
       VideoUploadResult(
+        fileId: fileId,
         videoUrl: videoUrl,
         thumbnailUrl: thumbnailUrl,
         durationMs: durationMs,
         width: width,
         height: height,
         fileSize: fileSize,
+        isDedup: isDedup,
       );
 
   /// 构造文件上传结果
   static FileUploadResult fileUploadResult({
+    int fileId = 3,
     String fileUrl = '/uploads/file/test.pdf',
     String fileName = 'test.pdf',
     int fileSize = 204800,
     String fileType = 'pdf',
+    bool isDedup = false,
   }) =>
       FileUploadResult(
+        fileId: fileId,
         fileUrl: fileUrl,
         fileName: fileName,
         fileSize: fileSize,
         fileType: fileType,
+        isDedup: isDedup,
       );
 }

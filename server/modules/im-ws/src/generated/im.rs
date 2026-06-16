@@ -89,6 +89,7 @@ pub enum WsFrameType {
     ReadReceipt = 15,
     MessageRecalled = 16,
     PinChanged = 17,
+    StorageQuotaUpdate = 18,
 }
 impl WsFrameType {
     /// String value of the enum field names used in the ProtoBuf definition.
@@ -115,6 +116,7 @@ impl WsFrameType {
             Self::ReadReceipt => "READ_RECEIPT",
             Self::MessageRecalled => "MESSAGE_RECALLED",
             Self::PinChanged => "PIN_CHANGED",
+            Self::StorageQuotaUpdate => "STORAGE_QUOTA_UPDATE",
         }
     }
     /// Creates an enum from field names used in the ProtoBuf definition.
@@ -138,6 +140,7 @@ impl WsFrameType {
             "READ_RECEIPT" => Some(Self::ReadReceipt),
             "MESSAGE_RECALLED" => Some(Self::MessageRecalled),
             "PIN_CHANGED" => Some(Self::PinChanged),
+            "STORAGE_QUOTA_UPDATE" => Some(Self::StorageQuotaUpdate),
             _ => None,
         }
     }
@@ -262,6 +265,13 @@ pub struct PinChangedNotification {
     pub action: ::prost::alloc::string::String,
     #[prost(string, tag = "4")]
     pub pinned_by: ::prost::alloc::string::String,
+}
+#[derive(Clone, Copy, PartialEq, ::prost::Message)]
+pub struct StorageQuotaNotification {
+    #[prost(int64, tag = "1")]
+    pub used_bytes: i64,
+    #[prost(int64, tag = "2")]
+    pub quota_bytes: i64,
 }
 #[derive(Clone, Copy, Debug, PartialEq, Eq, Hash, PartialOrd, Ord, ::prost::Enumeration)]
 #[repr(i32)]
