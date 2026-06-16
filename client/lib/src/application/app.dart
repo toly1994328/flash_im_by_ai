@@ -3,6 +3,9 @@ import 'package:fx_env/fx_env.dart';
 import 'package:go_router/go_router.dart';
 import 'package:oktoast/oktoast.dart';
 import 'package:flash_shared/flash_shared.dart';
+import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
+
+import 'media_resolver.dart';
 
 class FlashApp extends StatelessWidget {
   final GoRouter router;
@@ -16,7 +19,9 @@ class FlashApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return OKToast(
+    return MediaSourceProvider(
+      resolver: const AppMediaSourceResolver(),
+      child: OKToast(
       position: ToastPosition.bottom,
       textPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
       child: MaterialApp.router(
@@ -43,6 +48,7 @@ class FlashApp extends StatelessWidget {
         ),
         routerConfig: router,
       ),
+    ),
     );
   }
 }

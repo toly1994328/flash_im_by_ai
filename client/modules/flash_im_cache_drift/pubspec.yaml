@@ -12,7 +12,6 @@ dependencies:
     sdk: flutter
   drift: ^2.25.0
   drift_flutter: 0.3.0
-  sqlite3: 3.3.2
   path_provider: ^2.1.5
   flash_im_cache:
     path: ../flash_im_cache

@@ -87,7 +87,7 @@ impl Default for StorageConfig {
             max_image_size: 10 * 1024 * 1024,  // 10MB
             max_video_size: 50 * 1024 * 1024,   // 50MB
             max_file_size: 50 * 1024 * 1024,     // 50MB
-            thumbnail_max_size: 200,
+            thumbnail_max_size: 400,
             thumbnail_quality: 80,
         }
     }

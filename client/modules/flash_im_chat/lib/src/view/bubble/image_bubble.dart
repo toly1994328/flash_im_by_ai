@@ -1,7 +1,13 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
-import '../../data/message.dart';
+import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
+import 'package:tolyui_mediax_image/tolyui_mediax_image.dart';
 
+import '../../data/message.dart';
+import '../../data/message_media_ext.dart';
+import 'bubble_size.dart';
+
+/// 图片消息气泡
 class ImageBubble extends StatelessWidget {
   final Message message;
   final String? baseUrl;
@@ -18,79 +24,82 @@ class ImageBubble extends StatelessWidget {
     this.localPath,
   });
 
-  String _fullUrl(String url) =>
-      (baseUrl != null && url.startsWith('/')) ? '$baseUrl$url' : url;
-
   @override
   Widget build(BuildContext context) {
-    final url = message.content;
-    final isLocal = !url.startsWith('http') && !url.startsWith('/uploads');
-    final isUploading = uploadProgress != null && uploadProgress! < 1.0
-        && message.status == MessageStatus.sending;
+    final bool isSending = message.status == MessageStatus.sending;
 
-    final rawW = (message.extra?['width'] as num?)?.toDouble();
-    final rawH = (message.extra?['height'] as num?)?.toDouble();
-    double? placeholderW, placeholderH;
-    if (rawW != null && rawH != null && rawW > 0 && rawH > 0) {
-      const maxW = 250.0, maxH = 300.0;
-      final s = (rawW / maxW > rawH / maxH) ? (maxW / rawW) : (maxH / rawH);
-      final finalScale = s > 1.0 ? 1.0 : s;
-      placeholderW = rawW * finalScale;
-      placeholderH = rawH * finalScale;
+    // 发送中：本地文件预览 + 上传遮罩（不加 Hero）
+    if (isSending) {
+      return _buildLocalPreview();
     }
 
-    Widget placeholder({bool loading = false}) {
-      return Container(
-        width: placeholderW ?? 200, height: placeholderH ?? 150,
-        color: Colors.grey[100],
-        child: Center(child: loading
-          ? const SizedBox(width: 24, height: 24,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.grey))
-          : const Icon(Icons.broken_image_outlined, color: Colors.grey, size: 32)),
-      );
-    }
-
-    Widget imageWidget;
-    if (localPath != null && File(localPath!).existsSync()) {
-      imageWidget = Image.file(File(localPath!), fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => placeholder());
-    } else if (isLocal) {
-      imageWidget = Image.file(File(url), fit: BoxFit.cover,
-        errorBuilder: (_, _, _) => placeholder());
-    } else {
-      final imageUrl = _fullUrl(url);
-      imageWidget = Stack(children: [
-        placeholder(loading: true),
-        Positioned.fill(child: Image.network(imageUrl, fit: BoxFit.cover,
-          errorBuilder: (_, _, _) => placeholder())),
-      ]);
-    }
+    // 已发送：MediaImageView + Hero
+    final ImageMeta meta = message.toImageMeta(baseUrl: baseUrl ?? '');
+    final (:double width, :double height, :bool crop) = BubbleSize.fromOriginalSize(meta.originalSize);
 
     return GestureDetector(
-      onTap: isLocal ? null : onTap,
-      child: Container(
-        alignment: Alignment.center,
-        width: placeholderW, height: placeholderH,
-        constraints: const BoxConstraints(maxWidth: 250, maxHeight: 300),
-        padding: const EdgeInsets.all(2),
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFDEE0E2)),
-        ),
-        child: ClipRRect(
-          borderRadius: BorderRadius.circular(6),
-          child: Stack(children: [
-            imageWidget,
-            if (isUploading) Positioned.fill(child: _uploadOverlay()),
-          ]),
+      onTap: onTap,
+      child: Hero(
+        tag: meta.heroTag ?? meta.hashCode,
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(color: const Color(0x1A000000), width: 0.5),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(8),
+            child: SizedBox(
+              width: width,
+              height: height,
+              child: MediaImageView(
+                meta: meta,
+                level: MediaSourceLevel.thumbnail,
+                fit: crop ? BoxFit.cover : BoxFit.cover,
+              ),
+            ),
+          ),
         ),
       ),
     );
   }
 
-  Widget _uploadOverlay() => Container(
-    color: Colors.black.withValues(alpha: 0.3),
-    child: Center(child: SizedBox(width: 36, height: 36,
-      child: CircularProgressIndicator(value: uploadProgress, strokeWidth: 3, color: Colors.white))),
-  );
+  Widget _buildLocalPreview() {
+    final (:double width, :double height, :bool crop) = BubbleSize.calc(
+      (message.extra?['width'] as num?)?.toDouble() ?? 0,
+      (message.extra?['height'] as num?)?.toDouble() ?? 0,
+    );
+    final String url = localPath ?? message.content;
+    final bool isUploading = uploadProgress != null && uploadProgress! < 1.0;
+
+    return Container(
+      width: width,
+      height: height,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: const Color(0xFFDEE0E2)),
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(6),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.file(File(url), fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(color: Colors.grey[100])),
+            if (isUploading)
+              Container(
+                color: Colors.black.withValues(alpha: 0.3),
+                child: Center(
+                  child: SizedBox(
+                    width: 36, height: 36,
+                    child: CircularProgressIndicator(
+                      value: uploadProgress, strokeWidth: 3, color: Colors.white,
+                    ),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
 }

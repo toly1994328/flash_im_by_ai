@@ -474,13 +474,15 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     if (total > 0) _cacheLog.d('auto cache: $total tasks');
   }
 
-  void updateMessageLocalData(String messageId, String localPath) {
+  void updateMessageLocalData(String messageId, String localPath, {String? thumbnailPath}) {
     final s = state;
     if (s is! ChatLoaded) return;
-    final String localDataJson = jsonEncode({
+    final Map<String, dynamic> data = {
       'path': localPath,
       'cached_at': DateTime.now().millisecondsSinceEpoch,
-    });
+      if (thumbnailPath != null) 'thumbnail_path': thumbnailPath,
+    };
+    final String localDataJson = jsonEncode(data);
     final List<Message> updated = s.messages.map((Message m) {
       if (m.id == messageId) return m.copyWith(localData: localDataJson);
       return m;
