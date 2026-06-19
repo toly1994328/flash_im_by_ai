@@ -90,6 +90,11 @@ impl MessageService {
         let message = self.repo.create(&msg, seq).await
             .map_err(|e| { println!("❌ [msg] create message failed: {}", e); StatusCode::INTERNAL_SERVER_ERROR })?;
 
+        // 如果是媒体消息，记录文件引用（best-effort，失败不影响发送）
+        if msg.msg_type >= 1 && msg.msg_type <= 4 {
+            self.record_file_reference(&msg, &message).await;
+        }
+
         // 生成预览
         let preview = crate::models::generate_preview(&msg.content, msg.msg_type);
 
@@ -135,6 +140,39 @@ impl MessageService {
         ).await;
 
         Ok(message)
+    }
+
+    /// 记录文件引用（从消息 content 中的 URL 反查 file_objects）
+    async fn record_file_reference(&self, msg: &NewMessage, message: &Message) {
+        // content 格式: /uploads/original/2026/06/uuid.jpg
+        // storage_path 格式: original/2026/06/uuid.jpg
+        let url_prefix = "/uploads/";
+        let storage_path = if msg.content.starts_with(url_prefix) {
+            &msg.content[url_prefix.len()..]
+        } else {
+            return; // 不是 uploads URL，跳过
+        };
+
+        let result: Option<(i64,)> = sqlx::query_as(
+            "SELECT id FROM file_objects WHERE storage_path = $1"
+        )
+        .bind(storage_path)
+        .fetch_optional(&self.db)
+        .await
+        .unwrap_or(None);
+
+        let Some((file_id,)) = result else { return };
+
+        let _ = sqlx::query(
+            "INSERT INTO file_references (file_id, message_id, user_id) \
+             VALUES ($1, $2, $3)"
+        )
+        .bind(file_id)
+        .bind(message.id)
+        .bind(msg.sender_id)
+        .execute(&self.db)
+        .await
+        .inspect_err(|e| println!("⚠️ [msg] file_reference insert failed: {}", e));
     }
 
     /// 发送系统消息（跳过成员校验，sender_id=999999999）

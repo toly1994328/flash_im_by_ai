@@ -1,0 +1,24 @@
+# GET /api/storage/files
+
+查询用户的所有文件列表（分页）。
+
+## Parameters
+
+| 参数 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| category | string | 否 | image/video/audio/file |
+| page | int | 否 | 页码，默认 1 |
+| limit | int | 否 | 每页条数，默认 20 |
+
+## Response `200`
+
+```json
+{"data":[{"id":14,"url":"/uploads/file/2026/06/b837b7d4-e35d-4ae9-93e0-115dc0752ed6.txt","thumb_url":null,"size":155,"mime_type":"text/plain","mime_category":"file","width":null,"height":null,"duration_ms":null,"ref_count":1,"created_at":"2026-06-18T03:33:23.278086Z"},{"id":13,"url":"/uploads/original/2026/06/ca5d61d5-5fe4-4b3c-87b1-2e880616e1b7.png","thumb_url":"/uploads/thumb/2026/06/ca5d61d5-5fe4-4b3c-87b1-2e880616e1b7.webp","size":74,"mime_type":"image/png","mime_category":"image","width":2,"height":2,"duration_ms":null,"ref_count":1,"created_at":"2026-06-18T03:33:23.212703Z"},{"id":12,"url":"/uploads/file/2026/06/a3fbf1f0-356a-4b34-94fd-e76e570da7e6.mp4","thumb_url":null,"size":27747674,"mime_type":"application/octet-stream","mime_category":"file","width":null,"height":null,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T23:18:34.238450Z"},{"id":11,"url":"/uploads/file/2026/06/4f8f36c2-06c5-486c-9552-de9d0282d665.mp4","thumb_url":null,"size":10987942,"mime_type":"application/octet-stream","mime_category":"file","width":null,"height":null,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:55:17.803657Z"},{"id":10,"url":"/uploads/file/2026/06/925cc12f-f3ed-44fa-97dd-893b8a891c21.pdf","thumb_url":null,"size":525986,"mime_type":"application/pdf","mime_category":"file","width":null,"height":null,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:54:33.802784Z"},{"id":9,"url":"/uploads/file/2026/06/75ddfa60-d032-4f1c-a2ff-205cabb8387e.wav","thumb_url":null,"size":2301740,"mime_type":"audio/wav","mime_category":"audio","width":null,"height":null,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:53:51.258457Z"},{"id":8,"url":"/uploads/original/2026/06/0dffda5f-26ce-4f56-b792-f29c65e34223.jpg","thumb_url":"/uploads/thumb/2026/06/0dffda5f-26ce-4f56-b792-f29c65e34223.webp","size":402405,"mime_type":"image/jpg","mime_category":"image","width":1800,"height":4000,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:52:12.655766Z"},{"id":7,"url":"/uploads/original/2026/06/2dcfe978-0bc1-4b52-a10a-361fbb813eb0.jpg","thumb_url":"/uploads/thumb/2026/06/2dcfe978-0bc1-4b52-a10a-361fbb813eb0.webp","size":491767,"mime_type":"image/jpg","mime_category":"image","width":1080,"height":2400,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:51:34.402028Z"},{"id":6,"url":"/uploads/original/2026/06/08192cf9-a1bf-438e-9d22-c7e53b9db20a.jpg","thumb_url":"/uploads/thumb/2026/06/08192cf9-a1bf-438e-9d22-c7e53b9db20a.webp","size":896953,"mime_type":"image/jpg","mime_category":"image","width":2400,"height":1080,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:51:01.462058Z"},{"id":5,"url":"/uploads/original/2026/06/4f1b10f5-f352-4adc-bb6a-63ec7e1a946b.jpg","thumb_url":"/uploads/thumb/2026/06/4f1b10f5-f352-4adc-bb6a-63ec7e1a946b.webp","size":1578702,"mime_type":"image/jpg","mime_category":"image","width":1080,"height":2400,"duration_ms":null,"ref_count":1,"created_at":"2026-06-16T22:48:38.514751Z"},{"id":4,"url":"/uploads/video/2026/06/c86105e6-2db3-4650-8531-00fc443db5a7.mp4","thumb_url":"/uploads/thumb/2026/06/c86105e6-2db3-4650-8531-00fc443db5a7.jpg","size":30672426,"mime_type":"video/mp4","mime_category":"video","width":1066,"height":480,"duration_ms":59307,"ref_count":1,"created_at":"2026-06-16T22:45:37.366775Z"},{"id":3,"url":"/uploads/video/2026/06/582a4f0a-e565-43c2-9246-1e73233a2bae.mp4","thumb_url":"/uploads/thumb/2026/06/582a4f0a-e565-43c2-9246-1e73233a2bae.jpg","size":3624411,"mime_type":"video/mp4","mime_category":"video","width":1066,"height":480,"duration_ms":11946,"ref_count":1,"created_at":"2026-06-16T22:44:14.653151Z"},{"id":2,"url":"/uploads/video/2026/06/6409fea1-7fd2-46df-9e5e-ff19f1992432.mp4","thumb_url":"/uploads/thumb/2026/06/6409fea1-7fd2-46df-9e5e-ff19f1992432.jpg","size":5484818,"mime_type":"video/mp4","mime_category":"video","width":480,"height":1066,"duration_ms":10581,"ref_count":1,"created_at":"2026-06-16T22:38:54.131455Z"},{"id":1,"url":"/uploads/video/2026/06/3460f316-9e60-4034-9e0e-8bc141f7a37b.mp4","thumb_url":"/uploads/thumb/2026/06/3460f316-9e60-4034-9e0e-8bc141f7a37b.jpg","size":2154475,"mime_type":"video/mp4","mime_category":"video","width":480,"height":1066,"duration_ms":3951,"ref_count":2,"created_at":"2026-06-16T22:25:01.307009Z"}],"total":14,"page":1,"limit":20}
+```
+
+## curl
+
+```bash
+curl -s -X GET "http://127.0.0.1:9600/api/storage/files"
+  -H "Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIyIiwiZXhwIjoxNzgyMzU4NDAzLCJpYXQiOjE3ODE3NTM2MDN9.vdZwvanUGIXhwZNEwyBfUJAOTDZAgvAebegLh-FcduM"
+```

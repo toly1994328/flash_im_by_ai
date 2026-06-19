@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.35.0（图片/视频预览体验升级：mediax + Hero 动画 + 多图滑动 + 持久化缓存）
+最后更新：v0.37.0（云空间独立 Tab：文件列表/详情/删除 + 全局下载管理器 + 分色圆环配额 + 吸顶 Tab）
 
 ---
 
@@ -36,6 +36,13 @@
 | I-19 | 邮箱登录 | flash-auth (handler) | 后端 | v0.25.0 | ✅ |
 | I-20 | 扫码会话管理 | flash-auth (handler) | 后端 | v0.27.0 | ✅ |
 | I-21 | 版本信息管理 | app-center | 后端 | v0.31.0 | ✅ |
+| I-22 | StorageBackend 存储抽象 | app-storage (backend) | 后端 | v0.0.6_file_system | ✅ |
+| I-23 | 文件元数据服务 | app-storage (repository+service) | 后端 | v0.0.6_file_system | ✅ |
+| I-24 | 秒传检查接口 | app-storage (api) | 后端 | v0.0.6_file_system | ✅ |
+| I-25 | WS 配额通知 | main.rs + im-ws (proto) | 后端 | v0.0.6_file_system | ✅ |
+| I-26 | 文件列表查询接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
+| I-27 | 文件详情查询接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
+| I-28 | 文件删除接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
 
 ### 领域层（D）
 
@@ -83,6 +90,11 @@
 | D-40 | 消息撤回 | im-message (routes) | 后端 | v0.0.1_operation | ✅ |
 | D-41 | 语音消息类型 | im-message (models) | 后端 | v0.22.0 | ✅ |
 | D-42 | 欢迎消息 | flash-auth (welcome) | 后端 | v0.23.0 | ✅ |
+| D-43 | 用户云配额管理 | app-storage (service+repository) | 后端 | v0.0.6_file_system | ✅ |
+| D-44 | 文件去重（秒传） | app-storage (service) | 后端 | v0.0.6_file_system | ✅ |
+| D-45 | 文件引用追踪 | im-message (service) + app-storage | 后端 | v0.0.6_file_system | ✅ |
+| D-46 | 文件删除与配额回收 | app-storage (service) | 后端 | cloud/v0.0.1 | ✅ |
+| D-47 | 原始文件名存储 | app-storage (service) | 后端 | cloud/v0.0.1 | ✅ |
 
 ### 前端基础层（F）
 
@@ -106,6 +118,9 @@
 | F-16 | SyncEngine | flash_im_cache (sync_engine) | v0.0.1_cache | ✅ |
 | F-17 | MESSAGE_RECALLED WS 帧分发 | flash_im_core | v0.0.1_operation | ✅ |
 | F-18 | 文件缓存管理器 | flash_im_cache (file_cache_manager) | v0.33.0 | ✅ |
+| F-19 | 文件 SHA-1 计算 | flash_im_chat (file_hash) | v0.0.6_file_system | ✅ |
+| F-20 | WS 配额通知分发 | flash_im_core (ws_client) | v0.0.6_file_system | ✅ |
+| F-21 | 全局下载管理器 | flash_cloud (cloud_download_manager) | cloud/v0.0.1 | ✅ |
 
 ### 前端业务层（P）
 
@@ -185,6 +200,11 @@
 | P-73 | 版本检测与更新弹窗 | fx_updater + update_trigger | v0.31.0 | ✅ |
 | P-74 | 桌面端文件操作菜单 | flash_im_chat (desktop_context_menu) | v0.33.0 | ✅ |
 | P-75 | 发送大小限制 | flash_im_chat (chat_file_mixin / FileSendLimits) | v0.33.0 | ✅ |
+| P-76 | 云空间卡片 | home/profile (cloud_storage_card) | v0.0.6_file_system | ✅ |
+| P-77 | 云空间详情页 | home/profile (cloud_storage_page) | v0.0.6_file_system | ✅ |
+| P-78 | 配额不足提示 | flash_im_chat (chat_file_mixin) | v0.0.6_file_system | ✅ |
+| P-79 | 云空间 Tab 页 | flash_cloud (cloud_space_page) | cloud/v0.0.1 | ✅ |
+| P-80 | 文件详情页 | flash_cloud (file_detail_page) | cloud/v0.0.1 | ✅ |
 
 
 ---
@@ -388,6 +408,40 @@ graph LR
 graph LR
     I10[I-10 文件存储服务] --> I11[I-11 上传API]
     I10 --> I12[I-12 静态文件服务]
+    I22[I-22 StorageBackend] --> I10
+    I23[I-23 文件元数据] --> I22
+    I23 --> D43[D-43 云配额管理]
+    I23 --> D44[D-44 文件去重]
+    I24[I-24 秒传检查] --> I23
+    I25[I-25 WS配额通知] -.->|推送| F20[F-20 WS配额分发]
+    D45[D-45 引用追踪] --> I23
+    F19[F-19 SHA-1计算] --> P76[P-76 云空间卡片]
+    F20 --> P76
+    P76 --> P77[P-77 详情页]
+    P78[P-78 配额不足] -.-> D43
+```
+
+### Cloud 域
+
+```mermaid
+graph TB
+    subgraph 后端
+        I26[I-26 文件列表] --> I23
+        I27[I-27 文件详情] --> I23
+        I27 --> D45
+        I28[I-28 文件删除] --> D46[D-46 删除回收]
+        D46 --> I22
+        D46 --> D43
+        D47[D-47 原始文件名] --> I23
+    end
+    subgraph 前端
+        F21[F-21 下载管理器] -.->|HTTP| I12
+        P79[P-79 云空间Tab] -.->|HTTP| I26
+        P79 --> F21
+        P80[P-80 文件详情] -.->|HTTP| I27
+        P80 --> F21
+        P80 -.->|HTTP| I28
+    end
 ```
 
 ---
@@ -430,6 +484,8 @@ graph LR
 | v0.33.0 | 2026-06-11 | 156 | [trace/v0.33.0_2026-06-11.md](trace/v0.33.0_2026-06-11.md) |
 | v0.34.0 | 2026-06-14 | 156 | [trace/v0.34.0_2026-06-14.md](trace/v0.34.0_2026-06-14.md) |
 | v0.35.0 | 2026-06-16 | 156 | [trace/v0.35.0_2026-06-16.md](trace/v0.35.0_2026-06-16.md) |
+| v0.36.0 | 2026-06-17 | 167 | [trace/v0.36.0_2026-06-17.md](trace/v0.36.0_2026-06-17.md) |
+| v0.37.0 | 2026-06-19 | 172 | [trace/v0.37.0_2026-06-19.md](trace/v0.37.0_2026-06-19.md) |
 
 ---
 
@@ -454,3 +510,5 @@ graph LR
 | 桌面端登录 | [auth/client.md](modules/auth/client.md) | P-66~P-67 |
 | 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-72 |
 | 版本更新 | [starter/server.md](modules/starter/server.md) [starter/client.md](modules/starter/client.md) | I-21, P-73 |
+| 云资源存储 | [storage/server.md](modules/storage/server.md) [storage/client.md](modules/storage/client.md) | I-22~I-25, D-43~D-45, F-19~F-20, P-76~P-78 |
+| 云空间管理 | [cloud/server.md](modules/cloud/server.md) [cloud/client.md](modules/cloud/client.md) | I-26~I-28, D-46~D-47, F-21, P-79~P-80 |

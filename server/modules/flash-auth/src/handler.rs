@@ -360,6 +360,13 @@ async fn find_or_create_user(
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
+    // 创建用户云存储配额记录
+    sqlx::query("INSERT INTO user_storage_quota (user_id) VALUES ($1)")
+        .bind(account_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
     tx.commit().await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
@@ -472,6 +479,13 @@ async fn find_or_create_user_by_email(
     .execute(&mut *tx)
     .await
     .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+    // 创建用户云存储配额记录
+    sqlx::query("INSERT INTO user_storage_quota (user_id) VALUES ($1)")
+        .bind(account_id)
+        .execute(&mut *tx)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
     tx.commit().await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;

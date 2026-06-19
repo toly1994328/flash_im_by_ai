@@ -8,80 +8,98 @@ import 'message.dart';
 import 'message_ext.dart';
 
 class ImageUploadResult {
+  final int fileId;
   final String originalUrl;
   final String thumbnailUrl;
   final int width;
   final int height;
   final int size;
   final String format;
+  final bool isDedup;
 
   const ImageUploadResult({
+    required this.fileId,
     required this.originalUrl,
     required this.thumbnailUrl,
     required this.width,
     required this.height,
     required this.size,
     required this.format,
+    required this.isDedup,
   });
 
   factory ImageUploadResult.fromJson(Map<String, dynamic> json) =>
       ImageUploadResult(
+        fileId: json['file_id'] as int? ?? 0,
         originalUrl: json['original_url'] as String,
         thumbnailUrl: json['thumbnail_url'] as String? ?? '',
         width: json['width'] as int? ?? 0,
         height: json['height'] as int? ?? 0,
         size: json['size'] as int? ?? 0,
         format: json['format'] as String? ?? '',
+        isDedup: json['is_dedup'] as bool? ?? false,
       );
 }
 
 class VideoUploadResult {
+  final int fileId;
   final String videoUrl;
   final String thumbnailUrl;
   final int durationMs;
   final int width;
   final int height;
   final int fileSize;
+  final bool isDedup;
 
   const VideoUploadResult({
+    required this.fileId,
     required this.videoUrl,
     required this.thumbnailUrl,
     required this.durationMs,
     required this.width,
     required this.height,
     required this.fileSize,
+    required this.isDedup,
   });
 
   factory VideoUploadResult.fromJson(Map<String, dynamic> json) =>
       VideoUploadResult(
+        fileId: json['file_id'] as int? ?? 0,
         videoUrl: json['video_url'] as String,
         thumbnailUrl: json['thumbnail_url'] as String? ?? '',
         durationMs: json['duration_ms'] as int? ?? 0,
         width: json['width'] as int? ?? 0,
         height: json['height'] as int? ?? 0,
         fileSize: json['file_size'] as int? ?? 0,
+        isDedup: json['is_dedup'] as bool? ?? false,
       );
 }
 
 class FileUploadResult {
+  final int fileId;
   final String fileUrl;
   final String fileName;
   final int fileSize;
   final String fileType;
+  final bool isDedup;
 
   const FileUploadResult({
+    required this.fileId,
     required this.fileUrl,
     required this.fileName,
     required this.fileSize,
     required this.fileType,
+    required this.isDedup,
   });
 
   factory FileUploadResult.fromJson(Map<String, dynamic> json) =>
       FileUploadResult(
+        fileId: json['file_id'] as int? ?? 0,
         fileUrl: json['file_url'] as String,
         fileName: json['file_name'] as String? ?? '',
         fileSize: json['file_size'] as int? ?? 0,
         fileType: json['file_type'] as String? ?? '',
+        isDedup: json['is_dedup'] as bool? ?? false,
       );
 }
 
@@ -97,6 +115,20 @@ class MessageRepository implements IMessageRepository {
 
   /// 登录后注入本地存储
   void setStore(LocalStore store) => _store = store;
+
+  /// 秒传检查（带配额预检）
+  @override
+  Future<Map<String, dynamic>?> checkHash(String hash, {int? size}) async {
+    try {
+      final Map<String, dynamic> params = {'hash': hash};
+      if (size != null) params['size'] = size;
+      final Response<dynamic> res = await _dio.get('/api/storage/check', queryParameters: params);
+      return res.data as Map<String, dynamic>;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 404) return null;
+      rethrow; // 403 QUOTA_EXCEEDED 等错误继续抛出
+    }
+  }
 
   /// 获取当前本地存储
   @override
@@ -155,13 +187,15 @@ class MessageRepository implements IMessageRepository {
   @override
   Future<ImageUploadResult> uploadImage(
     String filePath, {
+    required String hash,
     void Function(double progress)? onProgress,
   }) async {
-    final fileName = filePath.split('/').last.split('\\').last;
-    final formData = FormData.fromMap({
+    final String fileName = filePath.split('/').last.split('\\').last;
+    final FormData formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      'hash': hash,
     });
-    final res = await _dio.post(
+    final Response<dynamic> res = await _dio.post(
       '/api/upload/image',
       data: formData,
       onSendProgress: (count, total) {
@@ -176,18 +210,20 @@ class MessageRepository implements IMessageRepository {
     String videoPath,
     String thumbnailPath,
     int durationMs, {
+    required String hash,
     int width = 0,
     int height = 0,
     void Function(double progress)? onProgress,
   }) async {
-    final formData = FormData.fromMap({
+    final FormData formData = FormData.fromMap({
       'video': await MultipartFile.fromFile(videoPath),
       'thumbnail': await MultipartFile.fromFile(thumbnailPath),
+      'hash': hash,
       'duration_ms': durationMs.toString(),
       'width': width.toString(),
       'height': height.toString(),
     });
-    final res = await _dio.post(
+    final Response<dynamic> res = await _dio.post(
       '/api/upload/video',
       data: formData,
       onSendProgress: (count, total) {
@@ -200,13 +236,15 @@ class MessageRepository implements IMessageRepository {
   @override
   Future<FileUploadResult> uploadFile(
     String filePath, {
+    required String hash,
     void Function(double progress)? onProgress,
   }) async {
-    final fileName = filePath.split('/').last.split('\\').last;
-    final formData = FormData.fromMap({
+    final String fileName = filePath.split('/').last.split('\\').last;
+    final FormData formData = FormData.fromMap({
       'file': await MultipartFile.fromFile(filePath, filename: fileName),
+      'hash': hash,
     });
-    final res = await _dio.post(
+    final Response<dynamic> res = await _dio.post(
       '/api/upload/file',
       data: formData,
       onSendProgress: (count, total) {

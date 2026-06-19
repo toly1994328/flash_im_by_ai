@@ -82,6 +82,9 @@ class WsClient {
   final _pinChangedController = StreamController<WsFrame>.broadcast();
   Stream<WsFrame> get pinChangedStream => _pinChangedController.stream;
 
+  final _storageQuotaController = StreamController<WsFrame>.broadcast();
+  Stream<WsFrame> get storageQuotaStream => _storageQuotaController.stream;
+
   final Set<String> _onlineUserIds = {};
 
   bool isUserOnline(String userId) => _onlineUserIds.contains(userId);
@@ -207,6 +210,8 @@ class WsClient {
         _messageRecalledController.add(frame);
       case WsFrameType.PIN_CHANGED:
         _pinChangedController.add(frame);
+      case WsFrameType.STORAGE_QUOTA_UPDATE:
+        _storageQuotaController.add(frame);
       default:
         break;
     }
@@ -339,5 +344,6 @@ class WsClient {
     _readReceiptController.close();
     _messageRecalledController.close();
     _pinChangedController.close();
+    _storageQuotaController.close();
   }
 }

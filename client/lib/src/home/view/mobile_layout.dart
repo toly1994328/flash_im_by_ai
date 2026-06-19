@@ -8,6 +8,7 @@ import 'package:flash_im_core/flash_im_core.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import 'package:flash_cloud/flash_cloud.dart';
 import 'package:fx_updater/fx_updater.dart';
 import '../../../main.dart' show globalSyncEngine;
 import 'package:flash_auth/flash_auth.dart';
@@ -38,7 +39,8 @@ class _MobileLayoutState extends State<MobileLayout> {
     final pages = [
       _buildMessageTab(),
       _buildContactsTab(),
-      const ProfilePage(),
+      _buildCloudTab(),
+      ProfilePage(onCloudTap: () => setState(() => _currentIndex = 2)),
     ];
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -88,6 +90,12 @@ class _MobileLayoutState extends State<MobileLayout> {
                   ),
                   _buildNavItem(
                     index: 2,
+                    icon: Icons.cloud_outlined,
+                    activeIcon: Icons.cloud,
+                    label: '云空间',
+                  ),
+                  _buildNavItem(
+                    index: 3,
                     icon: Icons.person_outline,
                     activeIcon: Icons.person,
                     label: '我',
@@ -298,6 +306,14 @@ class _MobileLayoutState extends State<MobileLayout> {
           groupNotificationCount: groupNotifState.pendingCount,
         );
       },
+    );
+  }
+
+  Widget _buildCloudTab() {
+    final CloudRepository cloudRepo = context.read<CloudRepository>();
+    return CloudSpacePage(
+      repository: cloudRepo,
+      baseUrl: AppConfig.baseUrl,
     );
   }
 

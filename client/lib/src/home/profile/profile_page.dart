@@ -2,14 +2,20 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
+import 'package:flash_im_chat/flash_im_chat.dart' show MessageRepository;
+import 'package:flash_im_core/flash_im_core.dart' show WsClient;
 import 'package:fx_updater/fx_updater.dart';
 
+import 'cloud_storage_card.dart';
 import 'settings_page.dart';
 import 'my_qr_code_page.dart';
+import 'storage_quota_cubit.dart';
+import 'storage_repository.dart';
 
 /// 微信风格"我"页面
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final VoidCallback? onCloudTap;
+  const ProfilePage({super.key, this.onCloudTap});
 
   @override
   Widget build(BuildContext context) {
@@ -34,6 +40,9 @@ class ProfilePage extends StatelessWidget {
                 user: user,
                 onTap: () => _pushPage(context, const EditProfilePage()),
               ),
+              const SizedBox(height: 8),
+              // 云空间卡片
+              _buildCloudStorageCard(context),
               const SizedBox(height: 8),
               // 功能列表
               _buildGroup([
@@ -62,6 +71,28 @@ class ProfilePage extends StatelessWidget {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildCloudStorageCard(BuildContext context) {
+    final MessageRepository msgRepo = context.read<MessageRepository>();
+    final WsClient wsClient = context.read<WsClient>();
+    return BlocProvider(
+      create: (_) => StorageQuotaCubit(
+        repository: StorageRepository(dio: msgRepo.dio),
+        wsClient: wsClient,
+      )..loadQuota(),
+      child: BlocBuilder<StorageQuotaCubit, StorageQuotaState>(
+        builder: (ctx, state) {
+          if (state.status != StorageQuotaStatus.loaded || state.quota == null) {
+            return const SizedBox.shrink();
+          }
+          return CloudStorageCard(
+            quota: state.quota!,
+            onTap: onCloudTap,
+          );
+        },
+      ),
     );
   }
 

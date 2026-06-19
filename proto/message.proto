@@ -92,3 +92,8 @@ message PinChangedNotification {
   string action = 3;
   string pinned_by = 4;
 }
+
+message StorageQuotaNotification {
+  int64 used_bytes = 1;
+  int64 quota_bytes = 2;
+}

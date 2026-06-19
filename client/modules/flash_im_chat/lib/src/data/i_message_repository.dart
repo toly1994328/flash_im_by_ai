@@ -11,13 +11,18 @@ abstract class IMessageRepository {
   Future<List<Message>> getMessages(String conversationId, {int? beforeSeq, int limit = 50});
 
   /// 上传图片
-  Future<ImageUploadResult> uploadImage(String filePath, {void Function(double)? onProgress});
+  Future<ImageUploadResult> uploadImage(String filePath, {required String hash, void Function(double)? onProgress});
 
   /// 上传视频
-  Future<VideoUploadResult> uploadVideo(String filePath, String thumbPath, int durationMs, {int width, int height, void Function(double)? onProgress});
+  Future<VideoUploadResult> uploadVideo(String filePath, String thumbPath, int durationMs, {required String hash, int width, int height, void Function(double)? onProgress});
 
   /// 上传文件
-  Future<FileUploadResult> uploadFile(String filePath, {void Function(double)? onProgress});
+  Future<FileUploadResult> uploadFile(String filePath, {required String hash, void Function(double)? onProgress});
+
+  /// 秒传检查 + 配额预检
+  /// 返回 null 表示不存在且配额充足（需上传），非 null 表示已存在（秒传）
+  /// 配额不足时抛出 DioException(403)
+  Future<Map<String, dynamic>?> checkHash(String hash, {int? size});
 
   /// 下载文件到本地
   Future<String> downloadFile(String url, String savePath, {void Function(double)? onProgress});

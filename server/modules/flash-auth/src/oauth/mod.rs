@@ -69,6 +69,12 @@ pub async fn find_or_create_by_oauth(
     .execute(&mut *tx)
     .await?;
 
+    // 创建用户云存储配额记录
+    sqlx::query("INSERT INTO user_storage_quota (user_id) VALUES ($1)")
+        .bind(account_id)
+        .execute(&mut *tx)
+        .await?;
+
     tx.commit().await?;
 
     println!("🆕 新用户注册({}): {} (ID: {})", info.provider, info.nickname, account_id);

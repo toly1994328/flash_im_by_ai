@@ -312,6 +312,13 @@ packages:
       relative: true
     source: path
     version: "0.0.2"
+  flash_cloud:
+    dependency: "direct main"
+    description:
+      path: "modules/flash_cloud"
+      relative: true
+    source: path
+    version: "0.0.1"
   flash_im_cache:
     dependency: "direct main"
     description:
@@ -609,6 +616,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "0.2.2"
+  intl:
+    dependency: transitive
+    description:
+      name: intl
+      sha256: d6f56758b7d3014a48af9701c085700aac781a92a87a62b1333b46d8879661cf
+      url: "https://pub.dev"
+    source: hosted
+    version: "0.19.0"
   jni:
     dependency: transitive
     description:
