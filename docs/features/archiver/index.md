@@ -120,6 +120,7 @@
 | F-18 | 文件缓存管理器 | flash_im_cache (file_cache_manager) | v0.33.0 | ✅ |
 | F-19 | 文件 SHA-1 计算 | flash_im_chat (file_hash) | v0.0.6_file_system | ✅ |
 | F-20 | WS 配额通知分发 | flash_im_core (ws_client) | v0.0.6_file_system | ✅ |
+| F-21 | 全局下载管理器 | flash_cloud (cloud_download_manager) | cloud/v0.0.1 | ✅ |
 
 ### 前端业务层（P）
 
@@ -420,6 +421,29 @@ graph LR
     P78[P-78 配额不足] -.-> D43
 ```
 
+### Cloud 域
+
+```mermaid
+graph TB
+    subgraph 后端
+        I26[I-26 文件列表] --> I23
+        I27[I-27 文件详情] --> I23
+        I27 --> D45
+        I28[I-28 文件删除] --> D46[D-46 删除回收]
+        D46 --> I22
+        D46 --> D43
+        D47[D-47 原始文件名] --> I23
+    end
+    subgraph 前端
+        F21[F-21 下载管理器] -.->|HTTP| I12
+        P79[P-79 云空间Tab] -.->|HTTP| I26
+        P79 --> F21
+        P80[P-80 文件详情] -.->|HTTP| I27
+        P80 --> F21
+        P80 -.->|HTTP| I28
+    end
+```
+
 ---
 ## 三、存档记录
 
@@ -487,3 +511,4 @@ graph LR
 | 桌面端 UI | [desktop/client.md](modules/desktop/client.md) | P-64~P-72 |
 | 版本更新 | [starter/server.md](modules/starter/server.md) [starter/client.md](modules/starter/client.md) | I-21, P-73 |
 | 云资源存储 | [storage/server.md](modules/storage/server.md) [storage/client.md](modules/storage/client.md) | I-22~I-25, D-43~D-45, F-19~F-20, P-76~P-78 |
+| 云空间管理 | [cloud/server.md](modules/cloud/server.md) [cloud/client.md](modules/cloud/client.md) | I-26~I-28, D-46~D-47, F-21, P-79~P-80 |
