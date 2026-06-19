@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.36.0（云资源管理系统：StorageBackend 抽象 + SHA-1 去重秒传 + 100MB 配额 + 云空间卡片/详情页 + WS 配额通知）
+最后更新：v0.37.0（云空间独立 Tab：文件列表/详情/删除 + 全局下载管理器 + 分色圆环配额 + 吸顶 Tab）
 
 ---
 
@@ -40,6 +40,9 @@
 | I-23 | 文件元数据服务 | app-storage (repository+service) | 后端 | v0.0.6_file_system | ✅ |
 | I-24 | 秒传检查接口 | app-storage (api) | 后端 | v0.0.6_file_system | ✅ |
 | I-25 | WS 配额通知 | main.rs + im-ws (proto) | 后端 | v0.0.6_file_system | ✅ |
+| I-26 | 文件列表查询接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
+| I-27 | 文件详情查询接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
+| I-28 | 文件删除接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
 
 ### 领域层（D）
 
@@ -90,6 +93,8 @@
 | D-43 | 用户云配额管理 | app-storage (service+repository) | 后端 | v0.0.6_file_system | ✅ |
 | D-44 | 文件去重（秒传） | app-storage (service) | 后端 | v0.0.6_file_system | ✅ |
 | D-45 | 文件引用追踪 | im-message (service) + app-storage | 后端 | v0.0.6_file_system | ✅ |
+| D-46 | 文件删除与配额回收 | app-storage (service) | 后端 | cloud/v0.0.1 | ✅ |
+| D-47 | 原始文件名存储 | app-storage (service) | 后端 | cloud/v0.0.1 | ✅ |
 
 ### 前端基础层（F）
 
@@ -197,6 +202,8 @@
 | P-76 | 云空间卡片 | home/profile (cloud_storage_card) | v0.0.6_file_system | ✅ |
 | P-77 | 云空间详情页 | home/profile (cloud_storage_page) | v0.0.6_file_system | ✅ |
 | P-78 | 配额不足提示 | flash_im_chat (chat_file_mixin) | v0.0.6_file_system | ✅ |
+| P-79 | 云空间 Tab 页 | flash_cloud (cloud_space_page) | cloud/v0.0.1 | ✅ |
+| P-80 | 文件详情页 | flash_cloud (file_detail_page) | cloud/v0.0.1 | ✅ |
 
 
 ---
@@ -454,6 +461,7 @@ graph LR
 | v0.34.0 | 2026-06-14 | 156 | [trace/v0.34.0_2026-06-14.md](trace/v0.34.0_2026-06-14.md) |
 | v0.35.0 | 2026-06-16 | 156 | [trace/v0.35.0_2026-06-16.md](trace/v0.35.0_2026-06-16.md) |
 | v0.36.0 | 2026-06-17 | 167 | [trace/v0.36.0_2026-06-17.md](trace/v0.36.0_2026-06-17.md) |
+| v0.37.0 | 2026-06-19 | 172 | [trace/v0.37.0_2026-06-19.md](trace/v0.37.0_2026-06-19.md) |
 
 ---
 

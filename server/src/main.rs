@@ -112,11 +112,11 @@ async fn main() {
         .merge(group_routes(group_api_state))
         .merge(app_center::router(db.clone()))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
-        .nest_service("/uploads", ServeDir::new("uploads"))
         .nest_service("/static", ServeDir::new("static"))
         .nest_service("/im", ServeDir::new("static/im").fallback(ServeFile::new("static/im/index.html")))
-        // Gzip/Brotli 压缩：JS/Wasm 文件压缩率 ~70%
+        // Gzip/Brotli 压缩：JS/Wasm 文件压缩率 ~70%（不压缩 uploads，保留 Content-Length）
         .layer(CompressionLayer::new())
+        .nest_service("/uploads", ServeDir::new("uploads"))
         // COOP/COEP 头：启用 SharedArrayBuffer，让 skwasm 多线程渲染生效
         .layer(SetResponseHeaderLayer::overriding(
             HeaderName::from_static("cross-origin-embedder-policy"),

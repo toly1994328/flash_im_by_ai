@@ -29,12 +29,13 @@ impl StorageRepo {
         height: Option<i32>,
         duration_ms: Option<i64>,
         thumb_path: Option<&str>,
+        original_name: Option<&str>,
         uploader_id: i64,
     ) -> Result<FileObject, sqlx::Error> {
         sqlx::query_as::<_, FileObject>(
             "INSERT INTO file_objects \
-             (hash, storage_path, size, mime_type, mime_category, width, height, duration_ms, thumb_path, uploader_id) \
-             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10) \
+             (hash, storage_path, size, mime_type, mime_category, width, height, duration_ms, thumb_path, original_name, uploader_id) \
+             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11) \
              RETURNING *"
         )
         .bind(hash)
@@ -46,6 +47,7 @@ impl StorageRepo {
         .bind(height)
         .bind(duration_ms)
         .bind(thumb_path)
+        .bind(original_name)
         .bind(uploader_id)
         .fetch_one(db)
         .await
@@ -148,4 +150,103 @@ impl StorageRepo {
         .await?;
         Ok(rows.into_iter().map(|(id,)| id).collect())
     }
+
+    // ─── 云空间 Tab 查询 ───
+
+    /// 分页查询用户文件列表
+    pub async fn list_files(
+        db: &PgPool,
+        user_id: i64,
+        category: Option<&str>,
+        page: i64,
+        limit: i64,
+    ) -> Result<(Vec<FileObject>, i64), sqlx::Error> {
+        let offset = (page - 1) * limit;
+
+        let (data, total) = if let Some(cat) = category {
+            let rows = sqlx::query_as::<_, FileObject>(
+                "SELECT * FROM file_objects WHERE uploader_id = $1 AND mime_category = $2 \
+                 ORDER BY created_at DESC LIMIT $3 OFFSET $4"
+            )
+            .bind(user_id).bind(cat).bind(limit).bind(offset)
+            .fetch_all(db).await?;
+
+            let (count,): (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM file_objects WHERE uploader_id = $1 AND mime_category = $2"
+            )
+            .bind(user_id).bind(cat)
+            .fetch_one(db).await?;
+
+            (rows, count)
+        } else {
+            let rows = sqlx::query_as::<_, FileObject>(
+                "SELECT * FROM file_objects WHERE uploader_id = $1 \
+                 ORDER BY created_at DESC LIMIT $2 OFFSET $3"
+            )
+            .bind(user_id).bind(limit).bind(offset)
+            .fetch_all(db).await?;
+
+            let (count,): (i64,) = sqlx::query_as(
+                "SELECT COUNT(*) FROM file_objects WHERE uploader_id = $1"
+            )
+            .bind(user_id)
+            .fetch_one(db).await?;
+
+            (rows, count)
+        };
+
+        Ok((data, total))
+    }
+
+    /// 按 ID 查询文件（校验 uploader_id）
+    pub async fn get_file_by_id(
+        db: &PgPool,
+        file_id: i64,
+        user_id: i64,
+    ) -> Result<Option<FileObject>, sqlx::Error> {
+        sqlx::query_as::<_, FileObject>(
+            "SELECT * FROM file_objects WHERE id = $1 AND uploader_id = $2"
+        )
+        .bind(file_id).bind(user_id)
+        .fetch_optional(db).await
+    }
+
+    /// 查询文件被哪些会话引用（含会话信息）
+    pub async fn get_file_conversations(
+        db: &PgPool,
+        file_id: i64,
+    ) -> Result<Vec<FileConvRow>, sqlx::Error> {
+        sqlx::query_as::<_, FileConvRow>(
+            "SELECT m.conversation_id, c.type as conv_type, COUNT(*)::BIGINT as message_count \
+             FROM file_references fr \
+             JOIN messages m ON m.id = fr.message_id \
+             JOIN conversations c ON c.id = m.conversation_id \
+             WHERE fr.file_id = $1 \
+             GROUP BY m.conversation_id, c.type"
+        )
+        .bind(file_id)
+        .fetch_all(db).await
+    }
+
+    /// 物理删除 file_objects 记录
+    pub async fn delete_file_object(db: &PgPool, file_id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM file_objects WHERE id = $1")
+            .bind(file_id).execute(db).await?;
+        Ok(())
+    }
+
+    /// 删除某文件的所有引用记录
+    pub async fn delete_references_by_file(db: &PgPool, file_id: i64) -> Result<(), sqlx::Error> {
+        sqlx::query("DELETE FROM file_references WHERE file_id = $1")
+            .bind(file_id).execute(db).await?;
+        Ok(())
+    }
+}
+
+/// 文件引用会话查询行
+#[derive(Debug, sqlx::FromRow)]
+pub struct FileConvRow {
+    pub conversation_id: Uuid,
+    pub conv_type: i16,
+    pub message_count: i64,
 }

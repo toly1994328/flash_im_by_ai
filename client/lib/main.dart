@@ -15,6 +15,7 @@ import 'package:flash_im_chat/flash_im_chat.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
 import 'package:flash_im_search/flash_im_search.dart';
+import 'package:flash_cloud/flash_cloud.dart';
 import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:flash_im_cache_drift/flash_im_cache_drift.dart';
 import 'package:go_router/go_router.dart';
@@ -64,6 +65,8 @@ void main() async {
   final friendRepo = FriendRepository(dio: httpClient.dio);
   final groupRepo = GroupRepository(dio: httpClient.dio);
   final searchRepo = SearchRepository(dio: httpClient.dio);
+  final cloudRepo = CloudRepository(dio: httpClient.dio);
+  CloudDownloadManager().init(dio: httpClient.dio, baseUrl: AppConfig.baseUrl);
 
   final wsClient = WsClient(
     config: ImConfig(wsUrl: 'ws://${AppConfig.host}:${AppConfig.port}/ws/im'),
@@ -192,6 +195,7 @@ void main() async {
         RepositoryProvider.value(value: friendRepo),
         RepositoryProvider.value(value: groupRepo),
         RepositoryProvider.value(value: searchRepo),
+        RepositoryProvider.value(value: cloudRepo),
         RepositoryProvider.value(value: authRepository),
       ],
       child: MultiBlocProvider(

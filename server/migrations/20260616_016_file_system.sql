@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS file_objects (
     height        INT,
     duration_ms   BIGINT,
     thumb_path    VARCHAR(500),
+    original_name VARCHAR(255),
     ref_count     INT          NOT NULL DEFAULT 1,
     uploader_id   BIGINT       NOT NULL REFERENCES accounts(id),
     created_at    TIMESTAMPTZ  NOT NULL DEFAULT NOW()

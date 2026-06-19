@@ -16,6 +16,7 @@ pub struct FileObject {
     pub height: Option<i32>,
     pub duration_ms: Option<i64>,
     pub thumb_path: Option<String>,
+    pub original_name: Option<String>,
     pub ref_count: i32,
     pub uploader_id: i64,
     pub created_at: DateTime<Utc>,
@@ -99,4 +100,58 @@ pub struct QuotaExceededResponse {
     pub message: &'static str,
     pub used_bytes: i64,
     pub quota_bytes: i64,
+}
+
+// ─── 云空间 Tab 接口响应 ───
+
+/// 文件列表响应
+#[derive(Debug, Serialize)]
+pub struct FileListResponse {
+    pub data: Vec<FileListItem>,
+    pub total: i64,
+    pub page: i64,
+    pub limit: i64,
+}
+
+/// 文件列表项
+#[derive(Debug, Serialize)]
+pub struct FileListItem {
+    pub id: i64,
+    pub url: String,
+    pub thumb_url: Option<String>,
+    pub size: i64,
+    pub mime_type: String,
+    pub mime_category: String,
+    pub width: Option<i32>,
+    pub height: Option<i32>,
+    pub duration_ms: Option<i64>,
+    pub original_name: Option<String>,
+    pub ref_count: i32,
+    pub created_at: DateTime<Utc>,
+}
+
+/// 文件详情响应
+#[derive(Debug, Serialize)]
+pub struct FileDetailResponse {
+    pub file: FileListItem,
+    pub conversations: Vec<FileConversationRef>,
+}
+
+/// 文件引用的会话
+#[derive(Debug, Serialize)]
+pub struct FileConversationRef {
+    pub conversation_id: String,
+    pub conversation_name: String,
+    pub conversation_type: i16,
+    pub avatar: Option<String>,
+    pub message_count: i64,
+}
+
+/// 文件删除响应
+#[derive(Debug, Serialize)]
+pub struct FileDeleteResponse {
+    pub message: String,
+    pub freed_bytes: i64,
+    pub new_used_bytes: i64,
+    pub new_quota_bytes: i64,
 }

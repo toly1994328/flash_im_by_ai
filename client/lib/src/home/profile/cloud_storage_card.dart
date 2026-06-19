@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'storage_repository.dart';
 
-/// "我的"页面云空间卡片
+/// "我的"页面云空间卡片（底部 6px 分色进度条）
 class CloudStorageCard extends StatelessWidget {
   final StorageQuota quota;
   final VoidCallback? onTap;
@@ -15,12 +15,12 @@ class CloudStorageCard extends StatelessWidget {
       color: Colors.white,
       child: InkWell(
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        child: Stack(
+          children: [
+            // 前景内容
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+              child: Row(
                 children: [
                   const Icon(Icons.cloud_outlined, size: 22, color: Color(0xFF3B82F6)),
                   const SizedBox(width: 12),
@@ -35,10 +35,16 @@ class CloudStorageCard extends StatelessWidget {
                   Icon(Icons.chevron_right, size: 20, color: Colors.grey[400]),
                 ],
               ),
-              const SizedBox(height: 10),
-              _buildProgressBar(),
-            ],
-          ),
+            ),
+            // 底部 6px 分色进度条
+            Positioned(
+              left: 0,
+              right: 0,
+              bottom: 0,
+              height: 3,
+              child: _buildProgressBar(),
+            ),
+          ],
         ),
       ),
     );
@@ -49,7 +55,6 @@ class CloudStorageCard extends StatelessWidget {
     final int total = quota.quotaBytes;
     if (total <= 0) return const SizedBox.shrink();
 
-    final List<_BarSegment> segments = [];
     final Map<String, Color> colors = {
       'image': const Color(0xFF2196F3),
       'video': const Color(0xFFFFC107),
@@ -57,40 +62,19 @@ class CloudStorageCard extends StatelessWidget {
       'file': const Color(0xFF4CAF50),
     };
 
+    final List<Widget> segments = [];
     for (final MapEntry<String, Color> entry in colors.entries) {
       final CategoryUsage? usage = bd[entry.key];
       if (usage != null && usage.size > 0) {
-        segments.add(_BarSegment(
-          fraction: usage.size / total,
-          color: entry.value,
+        segments.add(Expanded(
+          flex: (usage.size * 1000 ~/ total).clamp(1, 1000),
+          child: Container(color: entry.value),
         ));
       }
     }
+    final int emptyFlex = ((1 - quota.usagePercent) * 1000).round().clamp(1, 1000);
+    segments.add(Expanded(flex: emptyFlex, child: Container(color: Colors.white)));
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(3),
-      child: Container(
-        height: 6,
-        color: const Color(0xFFEEEEEE),
-        child: Row(
-          children: segments.map((s) {
-            return Expanded(
-              flex: (s.fraction * 1000).round().clamp(1, 1000),
-              child: Container(color: s.color),
-            );
-          }).toList()
-            ..add(Expanded(
-              flex: ((1 - quota.usagePercent) * 1000).round().clamp(1, 1000),
-              child: const SizedBox.shrink(),
-            )),
-        ),
-      ),
-    );
+    return Row(children: segments);
   }
-}
-
-class _BarSegment {
-  final double fraction;
-  final Color color;
-  const _BarSegment({required this.fraction, required this.color});
 }

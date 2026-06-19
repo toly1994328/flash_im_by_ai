@@ -250,6 +250,139 @@ async fn get_quota(
     Ok(Json(result))
 }
 
+/// GET /api/storage/files — 分页查询用户文件列表
+async fn list_files(
+    State(storage): State<Arc<AppStorageService>>,
+    headers: HeaderMap,
+    axum::extract::Query(query): axum::extract::Query<FileListQuery>,
+) -> Result<Json<FileListResponse>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+    let page = query.page.unwrap_or(1).max(1);
+    let limit = query.limit.unwrap_or(20).clamp(1, 50);
+    let category = query.category.as_deref();
+
+    let (files, total) = crate::repository::StorageRepo::list_files(
+        storage.db(), user_id, category, page, limit
+    ).await?;
+
+    let url_prefix = storage.url_prefix();
+    let data: Vec<FileListItem> = files.into_iter().map(|f| FileListItem {
+        id: f.id,
+        url: format!("{}/{}", url_prefix, f.storage_path),
+        thumb_url: f.thumb_path.map(|p| format!("{}/{}", url_prefix, p)),
+        size: f.size,
+        mime_type: f.mime_type,
+        mime_category: f.mime_category,
+        width: f.width,
+        height: f.height,
+        duration_ms: f.duration_ms,
+        original_name: f.original_name,
+        ref_count: f.ref_count,
+        created_at: f.created_at,
+    }).collect();
+
+    Ok(Json(FileListResponse { data, total, page, limit }))
+}
+
+/// GET /api/storage/files/{id} — 文件详情
+async fn file_detail(
+    State(storage): State<Arc<AppStorageService>>,
+    headers: HeaderMap,
+    axum::extract::Path(file_id): axum::extract::Path<i64>,
+) -> Result<Json<FileDetailResponse>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+
+    let file = crate::repository::StorageRepo::get_file_by_id(storage.db(), file_id, user_id).await?
+        .ok_or_else(|| AppError::not_found("文件不存在"))?;
+
+    let url_prefix = storage.url_prefix();
+    let file_item = FileListItem {
+        id: file.id,
+        url: format!("{}/{}", url_prefix, file.storage_path),
+        thumb_url: file.thumb_path.map(|p| format!("{}/{}", url_prefix, p)),
+        size: file.size,
+        mime_type: file.mime_type,
+        mime_category: file.mime_category,
+        width: file.width,
+        height: file.height,
+        duration_ms: file.duration_ms,
+        original_name: file.original_name,
+        ref_count: file.ref_count,
+        created_at: file.created_at,
+    };
+
+    // 查引用会话
+    let conv_rows = crate::repository::StorageRepo::get_file_conversations(storage.db(), file_id).await?;
+    let mut conversations: Vec<FileConversationRef> = Vec::new();
+    for row in conv_rows {
+        let (name, avatar) = get_conversation_display(storage.db(), row.conversation_id, row.conv_type, user_id).await;
+        conversations.push(FileConversationRef {
+            conversation_id: row.conversation_id.to_string(),
+            conversation_name: name,
+            conversation_type: row.conv_type,
+            avatar,
+            message_count: row.message_count,
+        });
+    }
+
+    Ok(Json(FileDetailResponse { file: file_item, conversations }))
+}
+
+/// DELETE /api/storage/files/{id} — 删除文件
+async fn delete_file_handler(
+    State(storage): State<Arc<AppStorageService>>,
+    headers: HeaderMap,
+    axum::extract::Path(file_id): axum::extract::Path<i64>,
+) -> Result<Json<FileDeleteResponse>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+    let result = storage.delete_file(file_id, user_id).await
+        .map_err(|e| match e {
+            crate::service::StorageError::Io(ref io_err) if io_err.kind() == std::io::ErrorKind::NotFound => {
+                AppError::not_found("文件不存在")
+            }
+            _ => AppError::internal(e, "delete_file"),
+        })?;
+    Ok(Json(result))
+}
+
+/// 获取会话显示名称和头像
+async fn get_conversation_display(
+    db: &sqlx::PgPool,
+    conversation_id: uuid::Uuid,
+    conv_type: i16,
+    current_user_id: i64,
+) -> (String, Option<String>) {
+    if conv_type == 1 {
+        // 群聊：取群名
+        let row: Option<(String,)> = sqlx::query_as(
+            "SELECT COALESCE(gi.name, '群聊') FROM conversations c \
+             LEFT JOIN group_info gi ON gi.conversation_id = c.id \
+             WHERE c.id = $1"
+        ).bind(conversation_id).fetch_optional(db).await.unwrap_or(None);
+        let name = row.map(|(n,)| n).unwrap_or_else(|| "群聊".to_string());
+        (name, None)
+    } else {
+        // 单聊：取对方昵称
+        let row: Option<(String, Option<String>)> = sqlx::query_as(
+            "SELECT p.nickname, p.avatar FROM conversation_members cm \
+             JOIN user_profiles p ON p.account_id = cm.user_id \
+             WHERE cm.conversation_id = $1 AND cm.user_id != $2 \
+             LIMIT 1"
+        ).bind(conversation_id).bind(current_user_id).fetch_optional(db).await.unwrap_or(None);
+        match row {
+            Some((name, avatar)) => (name, avatar),
+            None => ("未知用户".to_string(), None),
+        }
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct FileListQuery {
+    category: Option<String>,
+    page: Option<i64>,
+    limit: Option<i64>,
+}
+
 /// GET /api/storage/check?hash=xxx&size=xxx — 秒传检查 + 配额预检
 ///
 /// 客户端上传前先用 hash + size 查询：
@@ -323,5 +456,7 @@ pub fn storage_routes(storage: Arc<AppStorageService>) -> Router {
         .route("/api/upload/file", post(upload_file).layer(DefaultBodyLimit::max(file_limit)))
         .route("/api/storage/quota", get(get_quota))
         .route("/api/storage/check", get(check_hash))
+        .route("/api/storage/files", get(list_files))
+        .route("/api/storage/files/{id}", get(file_detail).delete(delete_file_handler))
         .with_state(storage)
 }

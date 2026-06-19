@@ -7,7 +7,6 @@ import 'package:flash_im_core/flash_im_core.dart' show WsClient;
 import 'package:fx_updater/fx_updater.dart';
 
 import 'cloud_storage_card.dart';
-import 'cloud_storage_page.dart';
 import 'settings_page.dart';
 import 'my_qr_code_page.dart';
 import 'storage_quota_cubit.dart';
@@ -15,7 +14,8 @@ import 'storage_repository.dart';
 
 /// 微信风格"我"页面
 class ProfilePage extends StatelessWidget {
-  const ProfilePage({super.key});
+  final VoidCallback? onCloudTap;
+  const ProfilePage({super.key, this.onCloudTap});
 
   @override
   Widget build(BuildContext context) {
@@ -89,14 +89,7 @@ class ProfilePage extends StatelessWidget {
           }
           return CloudStorageCard(
             quota: state.quota!,
-            onTap: () {
-              Navigator.of(ctx).push(MaterialPageRoute(
-                builder: (_) => BlocProvider.value(
-                  value: ctx.read<StorageQuotaCubit>(),
-                  child: const CloudStoragePage(),
-                ),
-              ));
-            },
+            onTap: onCloudTap,
           );
         },
       ),

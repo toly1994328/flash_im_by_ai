@@ -1,4 +1,4 @@
-//! 文件存储服务（含去重、配额检查、存储编排）
+﻿//! 文件存储服务（含去重、配额检查、存储编排）
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
@@ -128,6 +128,14 @@ impl<B: StorageBackend> StorageService<B> {
         self.config.max_file_size
     }
 
+    pub fn db(&self) -> &PgPool {
+        &self.db
+    }
+
+    pub fn url_prefix(&self) -> &str {
+        &self.config.url_prefix
+    }
+
     /// 查询文件是否已存在（秒传检查，不修改 ref_count）
     pub async fn check_file_exists(&self, hash: &str) -> Result<Option<FileObject>, StorageError> {
         let existing = StorageRepo::find_by_hash(&self.db, hash).await?;
@@ -229,11 +237,12 @@ impl<B: StorageBackend> StorageService<B> {
 
         // 写入数据库
         let mime_type = format!("image/{}", format);
+        let original_name = truncate_filename(filename, 255);
         let file_obj = StorageRepo::insert_file_object(
             &self.db, hash, &original_rel, size as i64,
             &mime_type, "image",
             Some(width as i32), Some(height as i32), None,
-            Some(&thumb_rel), user_id,
+            Some(&thumb_rel), Some(&original_name), user_id,
         ).await?;
 
         // 扣减配额
@@ -310,12 +319,13 @@ impl<B: StorageBackend> StorageService<B> {
 
         // 写入数据库
         let mime_type = format!("video/{}", ext);
+        let original_name = truncate_filename(video_filename, 255);
         let file_obj = StorageRepo::insert_file_object(
             &self.db, hash, &video_rel, file_size as i64,
             &mime_type, "video",
             Some(metadata.width as i32), Some(metadata.height as i32),
             Some(metadata.duration_ms as i64),
-            Some(&thumb_rel), user_id,
+            Some(&thumb_rel), Some(&original_name), user_id,
         ).await?;
 
         // 扣减配额
@@ -390,10 +400,11 @@ impl<B: StorageBackend> StorageService<B> {
         let mime_type = mime_from_ext(&ext);
 
         // 写入数据库
+        let original_name = truncate_filename(filename, 255);
         let file_obj = StorageRepo::insert_file_object(
             &self.db, hash, &file_rel, file_size as i64,
             &mime_type, mime_category,
-            None, None, None, None, user_id,
+            None, None, None, None, Some(&original_name), user_id,
         ).await?;
 
         // 扣减配额
@@ -458,6 +469,55 @@ impl<B: StorageBackend> StorageService<B> {
         }
         Ok(())
     }
+
+    /// 删除文件（云空间管理）
+    pub async fn delete_file(&self, file_id: i64, user_id: i64) -> Result<FileDeleteResponse, StorageError> {
+        let file = StorageRepo::get_file_by_id(&self.db, file_id, user_id).await?
+            .ok_or(StorageError::Io(std::io::Error::new(std::io::ErrorKind::NotFound, "文件不存在")))?;
+
+        if file.ref_count > 1 {
+            StorageRepo::decrement_ref_count(&self.db, file_id).await?;
+            let quota = StorageRepo::get_quota(&self.db, user_id).await?
+                .unwrap_or(UserStorageQuota { user_id, used_bytes: 0, quota_bytes: 104857600, updated_at: chrono::Utc::now() });
+            return Ok(FileDeleteResponse {
+                message: "引用计数已减少".to_string(),
+                freed_bytes: 0,
+                new_used_bytes: quota.used_bytes,
+                new_quota_bytes: quota.quota_bytes,
+            });
+        }
+
+        // ref_count = 1，物理删除
+        let size = file.size;
+        StorageRepo::delete_references_by_file(&self.db, file_id).await?;
+        let _ = self.backend.delete(&file.storage_path).await;
+        if let Some(ref thumb) = file.thumb_path {
+            let _ = self.backend.delete(thumb).await;
+        }
+        StorageRepo::delete_file_object(&self.db, file_id).await?;
+        StorageRepo::update_quota_used(&self.db, user_id, -size).await?;
+
+        let quota = StorageRepo::get_quota(&self.db, user_id).await?
+            .unwrap_or(UserStorageQuota { user_id, used_bytes: 0, quota_bytes: 104857600, updated_at: chrono::Utc::now() });
+        self.notify_quota_changed(user_id, quota.used_bytes, quota.quota_bytes);
+
+        Ok(FileDeleteResponse {
+            message: "文件已删除".to_string(),
+            freed_bytes: size,
+            new_used_bytes: quota.used_bytes,
+            new_quota_bytes: quota.quota_bytes,
+        })
+    }
+}
+
+/// 截断文件名，保留尾部（含扩展名），最大 255 字符
+fn truncate_filename(name: &str, max_len: usize) -> String {
+    if name.len() <= max_len {
+        return name.to_string();
+    }
+    // 保留尾部 max_len 个字符（包含扩展名）
+    let start = name.len() - max_len;
+    format!("…{}", &name[start..])
 }
 
 /// 根据扩展名推断 MIME type
