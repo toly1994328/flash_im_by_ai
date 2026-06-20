@@ -3,12 +3,14 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flash_shared/flash_shared.dart' show ShowToastEvent;
 import 'package:fx_env/fx_env.dart';
 import 'package:fx_media/fx_media.dart';
 import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
 
 import '../../data/message.dart';
 import '../../data/message_media_ext.dart';
+import '../../logic/chat_state.dart';
 import '../../view/media/file_preview_page.dart';
 import '../chat_cubit.dart';
 
@@ -73,6 +75,16 @@ class ChatMediaHandler {
       if (cachedPath != null && File(cachedPath).existsSync()) {
         FxMedia.file.open(cachedPath);
       } else {
+        // 检查是否已标记为资源已删除（404）
+        final ChatState s = _cubit.state;
+        if (s is ChatLoaded) {
+          final FileDownloadInfo? dlInfo = s.fileDownloads[msg.id];
+          if (dlInfo != null && dlInfo.status == FileDownloadStatus.error &&
+              (dlInfo.error?.contains('404') == true || dlInfo.error?.contains('Not Found') == true)) {
+            ShowToastEvent('文件已从云端删除').emit();
+            return;
+          }
+        }
         final String fileUrl = fileExtra.fileUrl;
         final String fullUrl = _fullUrl(fileUrl);
         _cubit.downloadFile(msg.id, fullUrl, fileExtra.fileName);
