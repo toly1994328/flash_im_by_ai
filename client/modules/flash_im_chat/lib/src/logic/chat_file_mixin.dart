@@ -161,6 +161,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
       };
 
       final latest = state;
+      _log.d('[ImgSend] upload done: url=${result.originalUrl}, state=${latest.runtimeType}');
       if (latest is ChatLoaded) {
         final updated = latest.messages.map((m) {
           if (m.id == localId) {
@@ -173,6 +174,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
+      _log.d('[ImgSend] ws send: clientId=$clientId');
       wsClient.sendMessage(
         conversationId: conversationId,
         content: result.originalUrl,
@@ -183,6 +185,23 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 10));
     } catch (e) {
+      // Broken pipe / 网络断开时，如果进度已达 100% 可能后端已成功
+      // 重试一次秒传检查（hash 已算过），如果命中说明上传其实成功了
+      if (_isBrokenPipe(e)) {
+        _log.w('[ImgSend] broken pipe, retrying dedup check...');
+        try {
+          final Map<String, dynamic>? retryDedup = await repository.checkHash(hash, size: localFileSize);
+          if (retryDedup != null) {
+            _log.d('[ImgSend] retry dedup hit, recovering...');
+            final ChatState current2 = state;
+            if (current2 is ChatLoaded) {
+              _sendDedupImageMessage(current2, filePath, retryDedup);
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+      _log.e('[ImgSend] failed', error: e);
       _handleQuotaError(e);
       markFailed(localId);
     }
@@ -625,6 +644,14 @@ mixin ChatFileMixin on Cubit<ChatState> {
         ShowToastEvent('云空间不足（已用 ${_formatSize(used)} / ${_formatSize(quota)}）').emit();
         return true;
       }
+    }
+    return false;
+  }
+  /// 检查是否是 Broken pipe 类网络断开错误
+  bool _isBrokenPipe(Object e) {
+    if (e is DioException) {
+      final String msg = e.error?.toString() ?? '';
+      return msg.contains('Broken pipe') || msg.contains('Connection reset') || msg.contains('Connection closed');
     }
     return false;
   }

@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/widgets.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../data/im_config.dart';
@@ -23,7 +24,7 @@ enum WsConnectionState {
 ///
 /// 负责连接、Protobuf 帧认证、心跳保活、断线重连、帧收发。
 /// 会话级对象：登录后创建，退出时销毁。
-class WsClient {
+class WsClient with WidgetsBindingObserver {
   final ImConfig _config;
   final TokenProvider _tokenProvider;
 
@@ -97,7 +98,21 @@ class WsClient {
     required ImConfig config,
     required TokenProvider tokenProvider,
   })  : _config = config,
-        _tokenProvider = tokenProvider;
+        _tokenProvider = tokenProvider {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // 回到前台：如果已断连，立即重连
+      if (_state == WsConnectionState.disconnected && !_intentionalDisconnect) {
+        print('[D/WS] app resumed, reconnecting...');
+        _reconnectTimer?.cancel();
+        connect();
+      }
+    }
+  }
 
   void _setState(WsConnectionState newState) {
     _state = newState;
@@ -359,6 +374,7 @@ class WsClient {
 
   /// 释放所有资源
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     disconnect();
     _stateController.close();
     _frameController.close();
