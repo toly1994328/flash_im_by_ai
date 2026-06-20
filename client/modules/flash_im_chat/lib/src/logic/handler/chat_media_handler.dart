@@ -75,7 +75,12 @@ class ChatMediaHandler {
       if (cachedPath != null && File(cachedPath).existsSync()) {
         FxMedia.file.open(cachedPath);
       } else {
-        // 检查是否已标记为资源已删除（404）
+        // 检查是否已标记为资源已删除
+        if (_isMarkedDeleted(msg)) {
+          ShowToastEvent('文件已从云端删除').emit();
+          return;
+        }
+        // 检查 fileDownloads 中是否已有 404 错误
         final ChatState s = _cubit.state;
         if (s is ChatLoaded) {
           final FileDownloadInfo? dlInfo = s.fileDownloads[msg.id];
@@ -132,6 +137,18 @@ class ChatMediaHandler {
       return parsed['path'] as String?;
     } catch (_) {
       return null;
+    }
+  }
+
+  /// 检查消息是否已标记为资源已删除
+  bool _isMarkedDeleted(Message msg) {
+    if (msg.localData == null) return false;
+    try {
+      final Map<String, dynamic> parsed =
+          jsonDecode(msg.localData!) as Map<String, dynamic>;
+      return parsed['deleted'] == true;
+    } catch (_) {
+      return false;
     }
   }
 

@@ -550,9 +550,14 @@ mixin ChatFileMixin on Cubit<ChatState> {
             _updateLocalDataInState(messageId, localPath);
             sub.cancel();
           case FxDownloadError(:final Object error):
+            final String errMsg = error.toString();
             _emitDownloadUpdate(messageId, FileDownloadInfo(
-              status: FileDownloadStatus.error, error: error.toString(),
+              status: FileDownloadStatus.error, error: errMsg,
             ));
+            // 404 持久化到 localData，避免重进后再次触发无效下载
+            if (errMsg.contains('404') || errMsg.contains('Not Found')) {
+              _markResourceDeleted(messageId);
+            }
             sub.cancel();
         }
       },
@@ -654,6 +659,19 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return msg.contains('Broken pipe') || msg.contains('Connection reset') || msg.contains('Connection closed');
     }
     return false;
+  }
+
+  /// 将资源已删除状态持久化到 localData
+  void _markResourceDeleted(String messageId) {
+    final ChatState s = state;
+    if (s is! ChatLoaded) return;
+    final String localDataJson = jsonEncode({'deleted': true});
+    final List<Message> updated = s.messages.map((Message m) {
+      if (m.id == messageId) return m.copyWith(localData: localDataJson);
+      return m;
+    }).toList();
+    emit(s.copyWith(messages: updated));
+    repository.store?.updateLocalData(messageId, localDataJson);
   }
 }
 

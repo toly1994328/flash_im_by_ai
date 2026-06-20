@@ -34,8 +34,9 @@ class FileBubble extends StatelessWidget {
     final isError = dlInfo != null && dlInfo.status == FileDownloadStatus.error;
     final bool isResourceDeleted = isError && (dlInfo.error?.contains('404') == true || dlInfo.error?.contains('Not Found') == true);
 
-    final nameColor = isIdle ? const Color(0xFF999999) : const Color(0xFF333333);
-    final bgColor = isIdle ? const Color(0xFFF5F5F5) : Colors.white;
+    final bool showGrey = isIdle || isError || isDownloading;
+    final nameColor = showGrey ? const Color(0xFF999999) : const Color(0xFF333333);
+    final bgColor = showGrey ? const Color(0xFFF5F5F5) : Colors.white;
 
     return GestureDetector(
       onTap: onTap,
