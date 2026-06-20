@@ -3,6 +3,7 @@ import 'dart:math';
 import 'dart:typed_data';
 
 import 'package:fixnum/fixnum.dart';
+import 'package:flutter/widgets.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../data/im_config.dart';
@@ -23,7 +24,7 @@ enum WsConnectionState {
 ///
 /// 负责连接、Protobuf 帧认证、心跳保活、断线重连、帧收发。
 /// 会话级对象：登录后创建，退出时销毁。
-class WsClient {
+class WsClient with WidgetsBindingObserver {
   final ImConfig _config;
   final TokenProvider _tokenProvider;
 
@@ -36,6 +37,9 @@ class WsClient {
   int _missedPongs = 0;
   bool _intentionalDisconnect = false;
   WsConnectionState _state = WsConnectionState.disconnected;
+
+  /// 断线期间待发送的帧队列（重连后自动补发）
+  final List<WsFrame> _pendingFrames = [];
 
   final _stateController = StreamController<WsConnectionState>.broadcast();
   Stream<WsConnectionState> get stateStream => _stateController.stream;
@@ -94,7 +98,21 @@ class WsClient {
     required ImConfig config,
     required TokenProvider tokenProvider,
   })  : _config = config,
-        _tokenProvider = tokenProvider;
+        _tokenProvider = tokenProvider {
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      // 回到前台：如果已断连，立即重连
+      if (_state == WsConnectionState.disconnected && !_intentionalDisconnect) {
+        print('[D/WS] app resumed, reconnecting...');
+        _reconnectTimer?.cancel();
+        connect();
+      }
+    }
+  }
 
   void _setState(WsConnectionState newState) {
     _state = newState;
@@ -106,16 +124,19 @@ class WsClient {
     if (_state == WsConnectionState.authenticated ||
         _state == WsConnectionState.connecting ||
         _state == WsConnectionState.authenticating) {
+      print('[D/WS] connect() skipped: state=$_state');
       return;
     }
 
     _intentionalDisconnect = false;
     _setState(WsConnectionState.connecting);
+    print('[D/WS] connect() starting...');
 
     try {
       final channel = WebSocketChannel.connect(Uri.parse(_config.wsUrl));
       await channel.ready;
       _channel = channel;
+      print('[D/WS] channel established');
 
       _setState(WsConnectionState.authenticating);
 
@@ -130,10 +151,11 @@ class WsClient {
       // 监听消息
       _subscription = _channel!.stream.listen(
         _onData,
-        onDone: _onDisconnected,
-        onError: (_) => _onDisconnected(),
+        onDone: () { print('[D/WS] stream onDone'); _onDisconnected(); },
+        onError: (e) { print('[D/WS] stream onError: $e'); _onDisconnected(); },
       );
-    } catch (_) {
+    } catch (e) {
+      print('[W/WS] connect() failed: $e');
       _onDisconnected();
     }
   }
@@ -163,6 +185,7 @@ class WsClient {
           _reconnectAttempts = 0;
           _setState(WsConnectionState.authenticated);
           _startHeartbeat();
+          _flushPendingFrames();
         } else {
           _setState(WsConnectionState.disconnected);
           _cleanup();
@@ -174,6 +197,7 @@ class WsClient {
     // 已认证：处理帧
     if (frame.type == WsFrameType.PONG) {
       _missedPongs = 0;
+      print('[D/WS] PONG received, missedPongs reset to 0');
       return;
     }
 
@@ -231,12 +255,14 @@ class WsClient {
 
       _missedPongs++;
       if (_missedPongs >= _config.heartbeatTimeout) {
+        print('[W/WS] heartbeat timeout: missedPongs=$_missedPongs, triggering disconnect');
         _onDisconnected();
       }
     });
   }
 
   void _onDisconnected() {
+    print('[D/WS] _onDisconnected called, state=$_state, intentional=$_intentionalDisconnect');
     _cleanup();
     _onlineUserIds.clear();
     _setState(WsConnectionState.disconnected);
@@ -252,10 +278,12 @@ class WsClient {
       ),
     );
     _reconnectAttempts++;
+    print('[D/WS] scheduling reconnect in ${delay.inMilliseconds}ms (attempt=$_reconnectAttempts)');
     _reconnectTimer = Timer(delay, connect);
   }
 
   void _cleanup() {
+    print('[D/WS] _cleanup: channel=${_channel != null ? "alive" : "null"}');
     _heartbeatTimer?.cancel();
     _heartbeatTimer = null;
     _subscription?.cancel();
@@ -266,7 +294,25 @@ class WsClient {
 
   /// 发送帧
   void sendFrame(WsFrame frame) {
+    if (_channel == null) {
+      // PING 帧不入队（断线时不需要堆积心跳）
+      if (frame.type != WsFrameType.PING) {
+        print('[D/WS] sendFrame queued: frameType=${frame.type}, queueSize=${_pendingFrames.length + 1}');
+        _pendingFrames.add(frame);
+      }
+      return;
+    }
     _channel?.sink.add(frame.writeToBuffer());
+  }
+
+  /// 重连成功后补发待发帧
+  void _flushPendingFrames() {
+    if (_pendingFrames.isEmpty) return;
+    print('[D/WS] flushing ${_pendingFrames.length} pending frames');
+    for (final WsFrame frame in _pendingFrames) {
+      _channel?.sink.add(frame.writeToBuffer());
+    }
+    _pendingFrames.clear();
   }
 
   /// 发送聊天消息
@@ -277,6 +323,7 @@ class WsClient {
     List<int>? extra,
     String? clientId,
   }) {
+    print('[D/WS] sendMessage: type=$type, state=$_state, channel=${_channel != null}');
     final req = msg.SendMessageRequest()
       ..conversationId = conversationId
       ..type = type
@@ -327,6 +374,7 @@ class WsClient {
 
   /// 释放所有资源
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     disconnect();
     _stateController.close();
     _frameController.close();

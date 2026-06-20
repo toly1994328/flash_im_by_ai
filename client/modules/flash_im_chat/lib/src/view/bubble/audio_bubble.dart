@@ -1,6 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:just_audio/just_audio.dart';
-import 'package:fx_logger/fx_logger.dart';
+import 'package:fx_media/fx_media.dart';
 
 import '../../data/message.dart';
 
@@ -27,24 +28,22 @@ class AudioBubble extends StatefulWidget {
 }
 
 class _AudioBubbleState extends State<AudioBubble> {
-  static final _log = FxLog('Audio');
+  StreamSubscription<FxAudioSnapshot>? _sub;
 
-  final AudioPlayer _player = AudioPlayer();
-  bool _isPlaying = false;
+  String get _audioId => widget.message.id;
 
   int get _durationMs => (widget.message.extra?['duration_ms'] as int?) ?? 0;
 
   String get _formattedDuration {
-    final seconds = _durationMs ~/ 1000;
-    final m = seconds ~/ 60;
-    final s = seconds % 60;
+    final int seconds = _durationMs ~/ 1000;
+    final int m = seconds ~/ 60;
+    final int s = seconds % 60;
     return '$m:${s.toString().padLeft(2, '0')}';
   }
 
   String get _audioUrl {
-    // 优先本地缓存路径
     if (widget.localPath != null) return widget.localPath!;
-    final content = widget.message.content;
+    final String content = widget.message.content;
     if (content.startsWith('http')) return content;
     if (widget.baseUrl != null) return '${widget.baseUrl}$content';
     return content;
@@ -52,60 +51,49 @@ class _AudioBubbleState extends State<AudioBubble> {
 
   bool get _isLocalFile {
     if (widget.localPath != null) return true;
-    final content = widget.message.content;
+    final String content = widget.message.content;
     return !content.startsWith('http') && !content.startsWith('/uploads');
+  }
+
+  bool get _isPlaying {
+    final String? current = FxMedia.audio.currentId;
+    return current == _audioId;
   }
 
   @override
   void initState() {
     super.initState();
-    _player.playerStateStream.listen((state) {
+    _sub = FxMedia.audio.snapshotStream.listen((FxAudioSnapshot snapshot) {
       if (!mounted) return;
-      final playing = state.playing;
-      final completed = state.processingState == ProcessingState.completed;
-      if (completed && _isPlaying) {
-        setState(() => _isPlaying = false);
-      } else if (playing != _isPlaying && !completed) {
-        setState(() => _isPlaying = playing);
+      // 只在和自己相关的状态变化时 rebuild
+      if (snapshot.currentId == _audioId || FxMedia.audio.currentId == null) {
+        setState(() {});
       }
     });
   }
 
   @override
   void dispose() {
-    _player.dispose();
+    _sub?.cancel();
     super.dispose();
   }
 
   Future<void> _togglePlay() async {
-    try {
-      if (_isPlaying) {
-        await _player.pause();
+    if (_isPlaying) {
+      await FxMedia.audio.pause();
+    } else {
+      final String url = _audioUrl;
+      if (_isLocalFile) {
+        await FxMedia.audio.playFile(url, id: _audioId);
       } else {
-        final url = _audioUrl;
-        if (_player.processingState == ProcessingState.completed ||
-            _player.processingState == ProcessingState.idle) {
-          if (_isLocalFile) {
-            await _player.setFilePath(url);
-          } else {
-            await _player.setUrl(url);
-          }
-        }
-        await _player.play();
-      }
-    } catch (e) {
-      _log.e('播放失败', error: e);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('语音播放失败')),
-        );
+        await FxMedia.audio.play(url, id: _audioId);
       }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    final bgColor = widget.isMe ? const Color(0xFFDBEAFE) : Colors.white;
+    final Color bgColor = widget.isMe ? const Color(0xFFDBEAFE) : Colors.white;
 
     return GestureDetector(
       onTap: _togglePlay,

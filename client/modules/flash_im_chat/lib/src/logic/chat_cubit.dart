@@ -5,6 +5,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:fx_logger/fx_logger.dart';
+import 'package:fx_media/fx_media.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import '../data/message_ext.dart';
@@ -34,7 +35,6 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   final Map<String, String> _pendingMessages = {};
   int _localIdCounter = 0;
   final LocalStore? _store;
-  final FileCacheManager? _fileCacheManager;
   final String? _baseUrl;
 
   int _peerReadSeq = 0;
@@ -58,9 +58,6 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
 
   @override
   LocalStore? get localStore => _store ?? _repository.store;
-
-  @override
-  FileCacheManager? get fileCacheManager => _fileCacheManager;
 
   @override
   FileSendLimits get fileSendLimits => const FileSendLimits();
@@ -138,13 +135,11 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     required ChatContext context,
     this.onConversationChanged,
     LocalStore? store,
-    FileCacheManager? fileCacheManager,
     String? baseUrl,
   })  : _repository = repository,
         _wsClient = wsClient,
         chatCtx = context,
         _store = store,
-        _fileCacheManager = fileCacheManager,
         _baseUrl = baseUrl,
         super(const ChatInitial()) {
     initWsListeners();
@@ -346,8 +341,8 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
 
       // 发送的文件类消息：写 localData 标记 + 更新内存状态
       final String? localPath = pendingLocalPaths.remove(localId);
-      if (localPath != null && _fileCacheManager != null) {
-        _fileCacheManager.markLocal(messageId: ack.messageId, localPath: localPath);
+      _cacheLog.d('[ACK] messageId=${ack.messageId}, localId=$localId, localPath=$localPath');
+      if (localPath != null) {
         updateMessageLocalData(ack.messageId, localPath);
       }
     } catch (_) {}
@@ -408,8 +403,6 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   static final _cacheLog = FxLog('ImgCache');
 
   void _autoCacheImages(List<Message> messages) {
-    if (_fileCacheManager == null) return;
-
     // 图片消息自动缓存
     final List<Message> needCacheImages = messages
         .where((Message m) => m.isImage && m.localData == null && m.status == MessageStatus.sent)
@@ -418,11 +411,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       final String url = (_baseUrl != null && msg.content.startsWith('/'))
           ? '$_baseUrl${msg.content}'
           : msg.content;
-      _fileCacheManager.getFile(
-        url: url,
-        messageId: msg.id,
-        category: FileCategory.image,
-      ).then((String path) {
+      FxMedia.download.get(url: url, id: fxMediaIdFromUrl(msg.content)).then((String path) {
         updateMessageLocalData(msg.id, path);
       }).catchError((Object e) {
         _cacheLog.w('auto cache image failed: ${msg.id}, $e');
@@ -439,12 +428,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       final String fullThumbUrl = (_baseUrl != null && thumbUrl.startsWith('/'))
           ? '$_baseUrl$thumbUrl'
           : thumbUrl;
-      // 用 messageId + _thumb 后缀区分视频封面
-      _fileCacheManager.getFile(
-        url: fullThumbUrl,
-        messageId: '${msg.id}_thumb',
-        category: FileCategory.image,
-      ).then((String path) {
+      FxMedia.download.get(url: fullThumbUrl, id: fxMediaIdFromUrl(thumbUrl)).then((String path) {
         _updateVideoThumbnailPath(msg.id, path);
       }).catchError((Object e) {
         _cacheLog.w('auto cache thumb failed: ${msg.id}, $e');
@@ -459,11 +443,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       final String url = (_baseUrl != null && msg.content.startsWith('/'))
           ? '$_baseUrl${msg.content}'
           : msg.content;
-      _fileCacheManager.getFile(
-        url: url,
-        messageId: msg.id,
-        category: FileCategory.audio,
-      ).then((String path) {
+      FxMedia.download.get(url: url, id: fxMediaIdFromUrl(msg.content)).then((String path) {
         updateMessageLocalData(msg.id, path);
       }).catchError((Object e) {
         _cacheLog.w('auto cache audio failed: ${msg.id}, $e');
@@ -488,6 +468,8 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
       return m;
     }).toList();
     emit(s.copyWith(messages: updated));
+    // 持久化到数据库
+    localStore?.updateLocalData(messageId, localDataJson);
   }
 
   /// 更新视频消息的封面缩略图本地路径
@@ -505,7 +487,10 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
         if (!data.containsKey('cached_at')) {
           data['cached_at'] = DateTime.now().millisecondsSinceEpoch;
         }
-        return m.copyWith(localData: jsonEncode(data));
+        final String localDataJson = jsonEncode(data);
+        // 持久化到数据库
+        localStore?.updateLocalData(messageId, localDataJson);
+        return m.copyWith(localData: localDataJson);
       }
       return m;
     }).toList();

@@ -31,9 +31,12 @@ class FileBubble extends StatelessWidget {
     final isIdle = !isMe && (dlInfo == null || dlInfo.status == FileDownloadStatus.idle);
     final isDone = dlInfo != null && dlInfo.status == FileDownloadStatus.done;
     final isDownloading = dlInfo != null && dlInfo.status == FileDownloadStatus.downloading;
+    final isError = dlInfo != null && dlInfo.status == FileDownloadStatus.error;
+    final bool isResourceDeleted = isError && (dlInfo.error?.contains('404') == true || dlInfo.error?.contains('Not Found') == true);
 
-    final nameColor = isIdle ? const Color(0xFF999999) : const Color(0xFF333333);
-    final bgColor = isIdle ? const Color(0xFFF5F5F5) : Colors.white;
+    final bool showGrey = isIdle || isError || isDownloading;
+    final nameColor = showGrey ? const Color(0xFF999999) : const Color(0xFF333333);
+    final bgColor = showGrey ? const Color(0xFFF5F5F5) : Colors.white;
 
     return GestureDetector(
       onTap: onTap,
@@ -74,6 +77,22 @@ class FileBubble extends StatelessWidget {
                         if (isDone) ...[
                           const SizedBox(width: 6),
                           const Icon(Icons.check_circle, color: Colors.green, size: 14),
+                        ],
+                        if (isError) ...[
+                          const SizedBox(width: 6),
+                          Icon(
+                            isResourceDeleted ? Icons.cloud_off : Icons.error_outline,
+                            color: isResourceDeleted ? const Color(0xFF999999) : const Color(0xFFFF4D4F),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            isResourceDeleted ? '已删除' : '失败',
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: isResourceDeleted ? const Color(0xFF999999) : const Color(0xFFFF4D4F),
+                            ),
+                          ),
                         ],
                       ])),
                 ],

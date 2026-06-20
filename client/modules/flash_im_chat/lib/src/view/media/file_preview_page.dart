@@ -141,26 +141,44 @@ class FilePreviewPage extends StatelessWidget {
       FileDownloadStatus.error => Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Text(dlInfo?.error ?? '下载失败',
-            style: const TextStyle(color: Colors.red, fontSize: 14),
-            textAlign: TextAlign.center),
-          const SizedBox(height: 12),
-          GestureDetector(
-            onTap: () => _startDownload(context),
-            child: Container(
-              width: 200, height: 44,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF5F5F5),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              alignment: Alignment.center,
-              child: const Text('重试',
-                style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
-            ),
+          Icon(
+            _isResourceDeleted(dlInfo) ? Icons.cloud_off : Icons.error_outline,
+            color: _isResourceDeleted(dlInfo) ? const Color(0xFF999999) : Colors.red,
+            size: 36,
           ),
+          const SizedBox(height: 8),
+          Text(
+            _isResourceDeleted(dlInfo) ? '文件已从云端删除' : '下载失败',
+            style: TextStyle(
+              color: _isResourceDeleted(dlInfo) ? const Color(0xFF999999) : Colors.red,
+              fontSize: 14,
+            ),
+            textAlign: TextAlign.center,
+          ),
+          if (!_isResourceDeleted(dlInfo)) ...[
+            const SizedBox(height: 12),
+            GestureDetector(
+              onTap: () => _startDownload(context),
+              child: Container(
+                width: 200, height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF5F5F5),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                alignment: Alignment.center,
+                child: const Text('重试',
+                  style: TextStyle(fontSize: 16, color: Color(0xFF333333))),
+              ),
+            ),
+          ],
         ],
       ),
     };
+  }
+
+  bool _isResourceDeleted(FileDownloadInfo? dlInfo) {
+    final String error = dlInfo?.error ?? '';
+    return error.contains('404') || error.contains('Not Found');
   }
 
   void _startDownload(BuildContext context) {

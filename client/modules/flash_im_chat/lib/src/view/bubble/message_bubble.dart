@@ -266,12 +266,14 @@ class MessageBubble extends StatelessWidget {
     // 解析本地缓存路径
     String? cachedPath;
     String? cachedThumbnailPath;
+    bool isResourceDeleted = false;
     if (message.localData != null) {
       try {
         final Map<String, dynamic> parsed =
             jsonDecode(message.localData!) as Map<String, dynamic>;
         cachedPath = parsed['path'] as String?;
         cachedThumbnailPath = parsed['thumbnail_path'] as String?;
+        isResourceDeleted = parsed['deleted'] == true;
       } catch (_) {}
     }
 
@@ -287,6 +289,7 @@ class MessageBubble extends StatelessWidget {
         message: message,
         baseUrl: baseUrl,
         uploadProgress: uploadProgress,
+        downloadInfo: fileDownloadInfo,
         onTap: onVideoTap,
         localThumbnailPath: cachedThumbnailPath,
       ),
@@ -294,9 +297,11 @@ class MessageBubble extends StatelessWidget {
         message: message,
         isMe: isMe,
         uploadProgress: uploadProgress,
-        downloadInfo: cachedPath != null && File(cachedPath).existsSync()
-            ? FileDownloadInfo(status: FileDownloadStatus.done, progress: 1.0, localPath: cachedPath)
-            : fileDownloadInfo,
+        downloadInfo: isResourceDeleted
+            ? const FileDownloadInfo(status: FileDownloadStatus.error, error: '404')
+            : cachedPath != null && File(cachedPath).existsSync()
+                ? FileDownloadInfo(status: FileDownloadStatus.done, progress: 1.0, localPath: cachedPath)
+                : fileDownloadInfo,
         onTap: onFileTap,
       ),
       MessageType.audio => AudioBubble(

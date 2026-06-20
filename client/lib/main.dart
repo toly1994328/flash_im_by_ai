@@ -18,6 +18,7 @@ import 'package:flash_im_search/flash_im_search.dart';
 import 'package:flash_cloud/flash_cloud.dart';
 import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:flash_im_cache_drift/flash_im_cache_drift.dart';
+import 'package:fx_media/fx_media.dart';
 import 'package:go_router/go_router.dart';
 import 'src/application/app.dart';
 import 'src/application/config.dart';
@@ -27,9 +28,6 @@ import 'src/application/tasks/restore_session_task.dart';
 
 /// 全局 SyncEngine 引用，供页面级 Cubit 注册回调
 SyncEngine? globalSyncEngine;
-
-/// 全局 FileCacheManager 引用，供 ChatCubit 注入
-FileCacheManager? globalFileCacheManager;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -66,7 +64,21 @@ void main() async {
   final groupRepo = GroupRepository(dio: httpClient.dio);
   final searchRepo = SearchRepository(dio: httpClient.dio);
   final cloudRepo = CloudRepository(dio: httpClient.dio);
-  CloudDownloadManager().init(dio: httpClient.dio, baseUrl: AppConfig.baseUrl);
+
+  // 初始化 FxMedia
+  final Directory mediaCacheBaseDir = await getApplicationCacheDirectory();
+  final String mediaCacheDir = p.join(mediaCacheBaseDir.path, 'fx_media');
+  FxMedia.init(
+    cacheDir: mediaCacheDir,
+    downloadFn: (String url, String savePath, {void Function(double progress)? onProgress}) async {
+      await httpClient.dio.download(url, savePath, onReceiveProgress: (int count, int total) {
+        if (total > 0 && onProgress != null) {
+          onProgress(count / total);
+        }
+      });
+    },
+    maxConcurrent: 5,
+  );
 
   final wsClient = WsClient(
     config: ImConfig(wsUrl: 'ws://${AppConfig.host}:${AppConfig.port}/ws/im'),
@@ -78,10 +90,8 @@ void main() async {
 
   void disposeCache() {
     syncEngine?.dispose();
-    globalFileCacheManager?.dispose();
     localStore?.dispose();
     syncEngine = null;
-    globalFileCacheManager = null;
     localStore = null;
   }
 
@@ -114,19 +124,6 @@ void main() async {
     );
     syncEngine!.start();
     globalSyncEngine = syncEngine;
-
-    // 初始化文件缓存管理器
-    final Directory appSupportDir = await getApplicationSupportDirectory();
-    final String baseDir = p.join(appSupportDir.path, 'UserData', user.userId.toString());
-    globalFileCacheManager = FileCacheManagerImpl(
-      store: localStore!,
-      download: (String url, String savePath, {void Function(double progress)? onProgress}) async {
-        await httpClient.dio.download(url, savePath, onReceiveProgress: (int count, int total) {
-          if (total > 0) onProgress?.call(count / total);
-        });
-      },
-      baseDir: baseDir,
-    );
 
     log.i('SyncEngine started, total initCache: ${sw.elapsedMilliseconds}ms');
   }

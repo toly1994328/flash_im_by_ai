@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -6,10 +7,9 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:fx_media/fx_media.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
-import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:flash_shared/flash_shared.dart' show ShowToastEvent;
 
 import '../data/file_hash.dart';
@@ -56,7 +56,6 @@ mixin ChatFileMixin on Cubit<ChatState> {
   String get currentUserName;
   String? get currentUserAvatar;
   Map<String, String> get pendingMessages;
-  FileCacheManager? get fileCacheManager;
   FileSendLimits get fileSendLimits;
   int nextLocalId();
   void setupTimeout(String clientId, String localId, Duration timeout);
@@ -73,8 +72,11 @@ mixin ChatFileMixin on Cubit<ChatState> {
   /// - (hash, dedupResult) 当 dedupResult != null 表示秒传命中
   /// - 配额不足时内部弹 toast 并抛出异常（调用方 catch 后 return）
   Future<(String hash, Map<String, dynamic>? dedup)> _preUploadCheck(String filePath, int fileSize) async {
+    _log.d('[PreCheck] start: file=$filePath, size=$fileSize');
     final String hash = await computeFileSha1(filePath);
+    _log.d('[PreCheck] hash=$hash, checking dedup...');
     final Map<String, dynamic>? existing = await repository.checkHash(hash, size: fileSize);
+    _log.d('[PreCheck] dedup result: ${existing != null ? 'hit' : 'miss'}');
     return (hash, existing);
   }
 
@@ -159,6 +161,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
       };
 
       final latest = state;
+      _log.d('[ImgSend] upload done: url=${result.originalUrl}, state=${latest.runtimeType}');
       if (latest is ChatLoaded) {
         final updated = latest.messages.map((m) {
           if (m.id == localId) {
@@ -171,6 +174,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
+      _log.d('[ImgSend] ws send: clientId=$clientId');
       wsClient.sendMessage(
         conversationId: conversationId,
         content: result.originalUrl,
@@ -181,6 +185,23 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 10));
     } catch (e) {
+      // Broken pipe / 网络断开时，如果进度已达 100% 可能后端已成功
+      // 重试一次秒传检查（hash 已算过），如果命中说明上传其实成功了
+      if (_isBrokenPipe(e)) {
+        _log.w('[ImgSend] broken pipe, retrying dedup check...');
+        try {
+          final Map<String, dynamic>? retryDedup = await repository.checkHash(hash, size: localFileSize);
+          if (retryDedup != null) {
+            _log.d('[ImgSend] retry dedup hit, recovering...');
+            final ChatState current2 = state;
+            if (current2 is ChatLoaded) {
+              _sendDedupImageMessage(current2, filePath, retryDedup);
+            }
+            return;
+          }
+        } catch (_) {}
+      }
+      _log.e('[ImgSend] failed', error: e);
       _handleQuotaError(e);
       markFailed(localId);
     }
@@ -358,6 +379,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     // 正常上传流程
     final String localId = 'local_${nextLocalId()}';
     pendingLocalPaths[localId] = filePath;
+    _log.d('[FileSend] start: localId=$localId, file=$fileName, size=$fileSize');
     final Message localMessage = Message.sending(
       localId: localId, conversationId: conversationId, senderId: currentUserId,
       senderName: currentUserName, senderAvatar: currentUserAvatar,
@@ -368,10 +390,12 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
     try {
       final result = await repository.uploadFile(filePath, hash: hash, onProgress: (p) {
-        _log.d('file progress: ${(p * 100).toInt()}%');
+        _log.d('[FileSend] progress: ${(p * 100).toInt()}%');
         final s = state;
         if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
       });
+
+      _log.d('[FileSend] upload done: url=${result.fileUrl}, name=${result.fileName}');
 
       final afterUpload = state;
       if (afterUpload is ChatLoaded) {
@@ -398,6 +422,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
+      _log.d('[FileSend] ws send: clientId=$clientId, content=${result.fileUrl}');
       wsClient.sendMessage(
         conversationId: conversationId,
         content: result.fileUrl,
@@ -408,6 +433,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 30));
     } catch (e) {
+      _log.e('[FileSend] failed', error: e);
       _handleQuotaError(e);
       markFailed(localId);
     }
@@ -509,52 +535,38 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
     _emitDownloadUpdate(messageId, const FileDownloadInfo(status: FileDownloadStatus.downloading));
 
-    // 优先使用 FileCacheManager
-    if (fileCacheManager != null) {
-      try {
-        final String localPath = await fileCacheManager!.getFile(
-          url: fullUrl,
-          messageId: messageId,
-          category: FileCategory.file,
-          fileName: fileName,
-          onProgress: (double p) {
+    late final StreamSubscription<FxDownloadEvent> sub;
+    sub = FxMedia.download.stream(url: fullUrl, id: fxMediaIdFromUrl(fullUrl), fileName: fileName).listen(
+      (FxDownloadEvent event) {
+        switch (event) {
+          case FxDownloadProgress(:final double progress):
             _emitDownloadUpdate(messageId, FileDownloadInfo(
-              status: FileDownloadStatus.downloading, progress: p,
+              status: FileDownloadStatus.downloading, progress: progress,
             ));
-          },
-        );
-        _emitDownloadUpdate(messageId, FileDownloadInfo(
-          status: FileDownloadStatus.done, progress: 1.0, localPath: localPath,
-        ));
-        // 同步更新内存中 Message 的 localData
-        _updateLocalDataInState(messageId, localPath);
-      } catch (e) {
+          case FxDownloadComplete(:final String localPath):
+            _emitDownloadUpdate(messageId, FileDownloadInfo(
+              status: FileDownloadStatus.done, progress: 1.0, localPath: localPath,
+            ));
+            _updateLocalDataInState(messageId, localPath);
+            sub.cancel();
+          case FxDownloadError(:final Object error):
+            final String errMsg = error.toString();
+            _emitDownloadUpdate(messageId, FileDownloadInfo(
+              status: FileDownloadStatus.error, error: errMsg,
+            ));
+            // 404 持久化到 localData，避免重进后再次触发无效下载
+            if (errMsg.contains('404') || errMsg.contains('Not Found')) {
+              _markResourceDeleted(messageId);
+            }
+            sub.cancel();
+        }
+      },
+      onError: (Object e) {
         _emitDownloadUpdate(messageId, FileDownloadInfo(
           status: FileDownloadStatus.error, error: e.toString(),
         ));
-      }
-      return;
-    }
-
-    // fallback：旧逻辑
-    try {
-      final dir = await _getDownloadDir();
-      final savePath = '$dir/$fileName';
-
-      await repository.downloadFile(fullUrl, savePath, onProgress: (p) {
-        _emitDownloadUpdate(messageId, FileDownloadInfo(
-          status: FileDownloadStatus.downloading, progress: p,
-        ));
-      });
-
-      _emitDownloadUpdate(messageId, FileDownloadInfo(
-        status: FileDownloadStatus.done, progress: 1.0, localPath: savePath,
-      ));
-    } catch (e) {
-      _emitDownloadUpdate(messageId, FileDownloadInfo(
-        status: FileDownloadStatus.error, error: e.toString(),
-      ));
-    }
+      },
+    );
   }
 
   void _emitDownloadUpdate(String messageId, FileDownloadInfo info) {
@@ -565,12 +577,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     emit(s.copyWith(fileDownloads: updated));
   }
 
-  Future<String> _getDownloadDir() async {
-    final dir = await getApplicationSupportDirectory();
-    return dir.path;
-  }
-
-  /// 下载完成后同步更新内存中 Message 的 localData
+  /// 下载完成后同步更新内存中 Message 的 localData 并持久化
   void _updateLocalDataInState(String messageId, String localPath) {
     final s = state;
     if (s is! ChatLoaded) return;
@@ -583,6 +590,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return m;
     }).toList();
     emit(s.copyWith(messages: updated));
+    // 持久化到数据库
+    repository.store?.updateLocalData(messageId, localDataJson);
   }
 
   static String _formatSize(int bytes) {
@@ -642,6 +651,27 @@ mixin ChatFileMixin on Cubit<ChatState> {
       }
     }
     return false;
+  }
+  /// 检查是否是 Broken pipe 类网络断开错误
+  bool _isBrokenPipe(Object e) {
+    if (e is DioException) {
+      final String msg = e.error?.toString() ?? '';
+      return msg.contains('Broken pipe') || msg.contains('Connection reset') || msg.contains('Connection closed');
+    }
+    return false;
+  }
+
+  /// 将资源已删除状态持久化到 localData
+  void _markResourceDeleted(String messageId) {
+    final ChatState s = state;
+    if (s is! ChatLoaded) return;
+    final String localDataJson = jsonEncode({'deleted': true});
+    final List<Message> updated = s.messages.map((Message m) {
+      if (m.id == messageId) return m.copyWith(localData: localDataJson);
+      return m;
+    }).toList();
+    emit(s.copyWith(messages: updated));
+    repository.store?.updateLocalData(messageId, localDataJson);
   }
 }
 

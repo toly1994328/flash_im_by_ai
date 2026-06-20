@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.37.0（云空间独立 Tab：文件列表/详情/删除 + 全局下载管理器 + 分色圆环配额 + 吸顶 Tab）
+最后更新：v0.38.0（fx_media 统一媒体管理包：下载队列/音频播放器/图片缓存/视频播放/文件操作 + 云空间媒体预览 + WS 断线重连增强）
 
 ---
 
@@ -121,6 +121,11 @@
 | F-19 | 文件 SHA-1 计算 | flash_im_chat (file_hash) | v0.0.6_file_system | ✅ |
 | F-20 | WS 配额通知分发 | flash_im_core (ws_client) | v0.0.6_file_system | ✅ |
 | F-21 | 全局下载管理器 | flash_cloud (cloud_download_manager) | cloud/v0.0.1 | ✅ |
+| F-22 | 统一下载管理 | fx_media (download) | media/v0.0.1 | ✅ |
+| F-23 | 全局音频播放器 | fx_media (audio) | media/v0.0.1 | ✅ |
+| F-24 | 图片缓存 Widget | fx_media (image) | media/v0.0.1 | ✅ |
+| F-25 | 视频播放页 | fx_media (video) | media/v0.0.1 | ✅ |
+| F-26 | 文件操作工具 | fx_media (file) | media/v0.0.1 | ✅ |
 
 ### 前端业务层（P）
 
@@ -205,6 +210,7 @@
 | P-78 | 配额不足提示 | flash_im_chat (chat_file_mixin) | v0.0.6_file_system | ✅ |
 | P-79 | 云空间 Tab 页 | flash_cloud (cloud_space_page) | cloud/v0.0.1 | ✅ |
 | P-80 | 文件详情页 | flash_cloud (file_detail_page) | cloud/v0.0.1 | ✅ |
+| P-81 | 云空间媒体预览 | flash_cloud (file_detail_page) | media/v0.0.1 | ✅ |
 
 
 ---
@@ -486,6 +492,7 @@ graph TB
 | v0.35.0 | 2026-06-16 | 156 | [trace/v0.35.0_2026-06-16.md](trace/v0.35.0_2026-06-16.md) |
 | v0.36.0 | 2026-06-17 | 167 | [trace/v0.36.0_2026-06-17.md](trace/v0.36.0_2026-06-17.md) |
 | v0.37.0 | 2026-06-19 | 172 | [trace/v0.37.0_2026-06-19.md](trace/v0.37.0_2026-06-19.md) |
+| v0.38.0 | 2026-06-20 | 178 | [trace/v0.38.0_2026-06-20.md](trace/v0.38.0_2026-06-20.md) |
 
 ---
 
@@ -512,3 +519,4 @@ graph TB
 | 版本更新 | [starter/server.md](modules/starter/server.md) [starter/client.md](modules/starter/client.md) | I-21, P-73 |
 | 云资源存储 | [storage/server.md](modules/storage/server.md) [storage/client.md](modules/storage/client.md) | I-22~I-25, D-43~D-45, F-19~F-20, P-76~P-78 |
 | 云空间管理 | [cloud/server.md](modules/cloud/server.md) [cloud/client.md](modules/cloud/client.md) | I-26~I-28, D-46~D-47, F-21, P-79~P-80 |
+| 统一媒体管理 | [media/client.md](modules/media/client.md) | F-22~F-26, P-81 |

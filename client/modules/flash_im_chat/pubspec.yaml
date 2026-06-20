@@ -22,6 +22,8 @@ dependencies:
     path: ../flash_im_cache
   fx_logger:
     path: ../../packages/fx_logger
+  fx_media:
+    path: ../../packages/fx_media
   fx_env: 0.0.1+3
   window_manager: ^0.4.3
   tolyui_feedback_modal: ^0.0.1
