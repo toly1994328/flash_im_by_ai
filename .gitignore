@@ -10,6 +10,5 @@ docs/ref
 scripts/release/
 scripts/build_center/dest/
 scripts/build_center/ohos/materials/
-web/fx_admin/node_modules/
-web/fx_admin/dist/
+web/
 .DS_Store

@@ -1,4 +1,5 @@
 mod mock;
+mod admin;
 
 use std::sync::Arc;
 use axum::Router;
@@ -111,6 +112,7 @@ async fn main() {
         .merge(friend_routes(friend_state))
         .merge(group_routes(group_api_state))
         .merge(app_center::router(db.clone()))
+        .merge(admin::router(db.clone()))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/static", ServeDir::new("static"))
         .nest_service("/im", ServeDir::new("static/im").fallback(ServeFile::new("static/im/index.html")))

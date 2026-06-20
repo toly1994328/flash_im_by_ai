@@ -4,6 +4,8 @@ import { AuthProvider, useAuth } from './auth/AuthContext';
 import AppLayout from './components/layout/AppLayout';
 import AppsPage from './pages/apps/AppsPage';
 import VersionsPage from './pages/versions/VersionsPage';
+import UsersPage from './pages/im/UsersPage';
+import ConversationsPage from './pages/im/ConversationsPage';
 import LoginPage from './pages/login/LoginPage';
 
 const queryClient = new QueryClient({
@@ -28,6 +30,8 @@ function AppRoutes() {
         <Route path="/" element={<Navigate to="/apps" replace />} />
         <Route path="/apps" element={<AppsPage />} />
         <Route path="/apps/:appId/versions" element={<VersionsPage />} />
+        <Route path="/im/users" element={<UsersPage />} />
+        <Route path="/im/conversations" element={<ConversationsPage />} />
       </Route>
     </Routes>
   );

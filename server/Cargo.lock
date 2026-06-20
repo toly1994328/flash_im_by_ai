@@ -830,7 +830,7 @@ dependencies = [
 
 [[package]]
 name = "flash-im"
-version = "0.1.8"
+version = "0.1.9"
 dependencies = [
  "app-center",
  "app-storage",

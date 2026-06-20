@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 * {
   margin: 0;
   padding: 0;
@@ -6,4 +8,26 @@
 
 html, body, #root {
   height: 100%;
+}
+
+/* 紧凑表格行高 */
+.ant-table-small .ant-table-tbody > tr > td {
+  padding: 8px 12px !important;
+}
+
+.ant-table-small .ant-table-thead > tr > th {
+  padding: 8px 12px !important;
+}
+
+/* 侧栏菜单紧凑 */
+.ant-menu-inline .ant-menu-item {
+  height: 36px !important;
+  line-height: 36px !important;
+  margin: 2px 0 !important;
+}
+
+.ant-menu-inline .ant-menu-submenu-title {
+  height: 36px !important;
+  line-height: 36px !important;
+  margin: 2px 0 !important;
 }
