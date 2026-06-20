@@ -44,6 +44,48 @@ async fn list_users(
     Ok(Json(users))
 }
 
+// ─── User Conversations ───
+
+#[derive(serde::Deserialize)]
+struct UserConvQuery {
+    user_id: i64,
+}
+
+#[derive(Serialize, sqlx::FromRow)]
+struct UserConversation {
+    id: String,
+    #[sqlx(rename = "type")]
+    conv_type: i16,
+    name: Option<String>,
+    peer_name: Option<String>,
+    last_message_preview: Option<String>,
+    last_message_at: Option<chrono::DateTime<chrono::Utc>>,
+}
+
+async fn list_user_conversations(
+    State(db): State<PgPool>,
+    headers: HeaderMap,
+    Query(params): Query<UserConvQuery>,
+) -> Result<Json<Vec<UserConversation>>, axum::http::StatusCode> {
+    extract_admin(&headers)?;
+    let convs: Vec<UserConversation> = sqlx::query_as(
+        "SELECT c.id::text, c.type, c.name, \
+                (SELECT COALESCE(p.nickname, '?') FROM conversation_members cm2 \
+                 LEFT JOIN user_profiles p ON cm2.user_id = p.account_id \
+                 WHERE cm2.conversation_id = c.id AND cm2.user_id != $1 AND cm2.is_deleted = false \
+                 LIMIT 1) as peer_name, \
+                c.last_message_preview, c.last_message_at \
+         FROM conversations c \
+         INNER JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = $1 AND cm.is_deleted = false \
+         ORDER BY c.last_message_at DESC NULLS LAST"
+    )
+    .bind(params.user_id)
+    .fetch_all(&db)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(convs))
+}
+
 // ─── Conversations ───
 
 #[derive(Serialize, sqlx::FromRow)]
@@ -82,6 +124,45 @@ async fn list_conversations(
     .await
     .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
     Ok(Json(convs))
+}
+
+// ─── Files/Resources ───
+
+#[derive(Serialize, sqlx::FromRow)]
+struct AdminFile {
+    id: i64,
+    storage_path: String,
+    original_name: Option<String>,
+    size: i64,
+    mime_type: String,
+    mime_category: String,
+    width: Option<i32>,
+    height: Option<i32>,
+    duration_ms: Option<i64>,
+    thumb_path: Option<String>,
+    ref_count: Option<i32>,
+    uploader_name: Option<String>,
+    created_at: chrono::DateTime<chrono::Utc>,
+}
+
+async fn list_files(
+    State(db): State<PgPool>,
+    headers: HeaderMap,
+) -> Result<Json<Vec<AdminFile>>, axum::http::StatusCode> {
+    extract_admin(&headers)?;
+    let files: Vec<AdminFile> = sqlx::query_as(
+        "SELECT f.id, f.storage_path, f.original_name, f.size, f.mime_type, f.mime_category, \
+                f.width, f.height, f.duration_ms, f.thumb_path, f.ref_count, \
+                p.nickname as uploader_name, f.created_at \
+         FROM file_objects f \
+         LEFT JOIN user_profiles p ON f.uploader_id = p.account_id \
+         ORDER BY f.created_at DESC \
+         LIMIT 200"
+    )
+    .fetch_all(&db)
+    .await
+    .map_err(|_| axum::http::StatusCode::INTERNAL_SERVER_ERROR)?;
+    Ok(Json(files))
 }
 
 // ─── Messages ───
@@ -133,7 +214,9 @@ async fn list_messages(
 pub fn router(db: PgPool) -> Router {
     Router::new()
         .route("/api/admin/users", get(list_users))
+        .route("/api/admin/user/conversations", get(list_user_conversations))
         .route("/api/admin/conversations", get(list_conversations))
+        .route("/api/admin/files", get(list_files))
         .route("/api/admin/messages", get(list_messages))
         .with_state(db)
 }
