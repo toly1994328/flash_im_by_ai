@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:flash_im_core/flash_im_core.dart';
 
 import '../data/cloud_file.dart';
 import '../data/cloud_repository.dart';
@@ -28,6 +31,7 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
   late final TabController _tabController;
   late final CloudFileCubit _cubit;
   Map<String, dynamic>? _quotaData;
+  StreamSubscription<WsFrame>? _quotaSub;
 
   static const List<String> _categories = ['all', 'image', 'video', 'audio', 'file'];
   static const List<String> _labels = ['全部', '图片', '视频', '音频', '文件'];
@@ -41,6 +45,16 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
     _cubit = CloudFileCubit(repository: widget.repository)..loadFiles();
     _tabController.addListener(_onTabChanged);
     _loadQuota();
+    _listenQuotaUpdates();
+  }
+
+  void _listenQuotaUpdates() {
+    final WsClient? wsClient = context.read<WsClient>();
+    _quotaSub = wsClient?.storageQuotaStream.listen((_) {
+      // 配额变化 → 刷新文件列表 + 配额数据
+      _cubit.loadFiles(category: _categories[_lastTabIndex]);
+      _loadQuota();
+    });
   }
 
   Future<void> _loadQuota() async {
@@ -57,7 +71,9 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
   }
 
   @override
+  @override
   void dispose() {
+    _quotaSub?.cancel();
     _tabController.dispose();
     _cubit.close();
     super.dispose();
