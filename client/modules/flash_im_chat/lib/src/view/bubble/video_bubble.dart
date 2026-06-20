@@ -5,12 +5,14 @@ import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
 import 'package:tolyui_mediax_image/tolyui_mediax_image.dart';
 
 import '../../data/message.dart';
+import '../../logic/chat_state.dart';
 import 'bubble_size.dart';
 
 class VideoBubble extends StatelessWidget {
   final Message message;
   final String? baseUrl;
   final double? uploadProgress;
+  final FileDownloadInfo? downloadInfo;
   final VoidCallback? onTap;
   final String? localThumbnailPath;
 
@@ -19,6 +21,7 @@ class VideoBubble extends StatelessWidget {
     required this.message,
     this.baseUrl,
     this.uploadProgress,
+    this.downloadInfo,
     this.onTap,
     this.localThumbnailPath,
   });
@@ -31,6 +34,7 @@ class VideoBubble extends StatelessWidget {
     final VideoExtra? videoExtra = message.videoExtra;
     final bool isUploading = uploadProgress != null && uploadProgress! < 1.0
         && message.status == MessageStatus.sending;
+    final bool isDownloading = downloadInfo?.status == FileDownloadStatus.downloading;
 
     final (:double width, :double height, :bool crop) = BubbleSize.calc(
       (videoExtra?.width ?? 0).toDouble(),
@@ -41,7 +45,7 @@ class VideoBubble extends StatelessWidget {
     final bool isCached = _hasLocalVideo();
 
     return GestureDetector(
-      onTap: onTap,
+      onTap: (isDownloading || isUploading) ? null : onTap,
       child: Container(
         width: width,
         height: height,
@@ -55,7 +59,8 @@ class VideoBubble extends StatelessWidget {
             alignment: Alignment.center,
             children: [
               _buildThumbnail(videoExtra, width, height),
-              if (!isUploading)
+              // 中央图标：播放/下载
+              if (!isUploading && !isDownloading)
                 Container(
                   width: 36, height: 36,
                   decoration: BoxDecoration(
@@ -68,7 +73,8 @@ class VideoBubble extends StatelessWidget {
                     size: isCached ? 22 : 18,
                   ),
                 ),
-              if (videoExtra != null && !isUploading)
+              // 底部时长条
+              if (videoExtra != null && !isUploading && !isDownloading)
                 Positioned(
                   left: 0, right: 0, bottom: 0,
                   child: Container(
@@ -88,6 +94,7 @@ class VideoBubble extends StatelessWidget {
                     ),
                   ),
                 ),
+              // 上传进度遮罩
               if (isUploading)
                 Positioned.fill(
                   child: Container(
@@ -97,6 +104,33 @@ class VideoBubble extends StatelessWidget {
                         width: 36, height: 36,
                         child: CircularProgressIndicator(
                           value: uploadProgress, strokeWidth: 3, color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              // 下载进度遮罩（微信风格：半透明黑底 + 圆形进度）
+              if (isDownloading)
+                Positioned.fill(
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.35),
+                    child: Center(
+                      child: SizedBox(
+                        width: 40, height: 40,
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            CircularProgressIndicator(
+                              value: downloadInfo!.progress > 0 ? downloadInfo!.progress : null,
+                              strokeWidth: 3,
+                              color: Colors.white,
+                              backgroundColor: Colors.white24,
+                            ),
+                            Text(
+                              '${(downloadInfo!.progress * 100).toInt()}%',
+                              style: const TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.w500),
+                            ),
+                          ],
                         ),
                       ),
                     ),

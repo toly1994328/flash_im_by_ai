@@ -73,6 +73,8 @@ dependencies:
     path: packages/fx_updater
   fx_install_android:
     path: packages/fx_install_android
+  fx_media:
+    path: packages/fx_media
   tolyui_rx_layout: 1.0.2
   tolyui_navigation: 0.2.1
   window_manager: ^0.4.3

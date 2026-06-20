@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:typed_data';
@@ -6,10 +7,9 @@ import 'dart:ui' as ui;
 import 'package:dio/dio.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
-import 'package:path_provider/path_provider.dart';
+import 'package:fx_media/fx_media.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_core/flash_im_core.dart' as proto show MessageType;
-import 'package:flash_im_cache/flash_im_cache.dart';
 import 'package:flash_shared/flash_shared.dart' show ShowToastEvent;
 
 import '../data/file_hash.dart';
@@ -56,7 +56,6 @@ mixin ChatFileMixin on Cubit<ChatState> {
   String get currentUserName;
   String? get currentUserAvatar;
   Map<String, String> get pendingMessages;
-  FileCacheManager? get fileCacheManager;
   FileSendLimits get fileSendLimits;
   int nextLocalId();
   void setupTimeout(String clientId, String localId, Duration timeout);
@@ -73,8 +72,11 @@ mixin ChatFileMixin on Cubit<ChatState> {
   /// - (hash, dedupResult) 当 dedupResult != null 表示秒传命中
   /// - 配额不足时内部弹 toast 并抛出异常（调用方 catch 后 return）
   Future<(String hash, Map<String, dynamic>? dedup)> _preUploadCheck(String filePath, int fileSize) async {
+    _log.d('[PreCheck] start: file=$filePath, size=$fileSize');
     final String hash = await computeFileSha1(filePath);
+    _log.d('[PreCheck] hash=$hash, checking dedup...');
     final Map<String, dynamic>? existing = await repository.checkHash(hash, size: fileSize);
+    _log.d('[PreCheck] dedup result: ${existing != null ? 'hit' : 'miss'}');
     return (hash, existing);
   }
 
@@ -358,6 +360,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     // 正常上传流程
     final String localId = 'local_${nextLocalId()}';
     pendingLocalPaths[localId] = filePath;
+    _log.d('[FileSend] start: localId=$localId, file=$fileName, size=$fileSize');
     final Message localMessage = Message.sending(
       localId: localId, conversationId: conversationId, senderId: currentUserId,
       senderName: currentUserName, senderAvatar: currentUserAvatar,
@@ -368,10 +371,12 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
     try {
       final result = await repository.uploadFile(filePath, hash: hash, onProgress: (p) {
-        _log.d('file progress: ${(p * 100).toInt()}%');
+        _log.d('[FileSend] progress: ${(p * 100).toInt()}%');
         final s = state;
         if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
       });
+
+      _log.d('[FileSend] upload done: url=${result.fileUrl}, name=${result.fileName}');
 
       final afterUpload = state;
       if (afterUpload is ChatLoaded) {
@@ -398,6 +403,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
+      _log.d('[FileSend] ws send: clientId=$clientId, content=${result.fileUrl}');
       wsClient.sendMessage(
         conversationId: conversationId,
         content: result.fileUrl,
@@ -408,6 +414,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
       setupTimeout(clientId, localId, const Duration(seconds: 30));
     } catch (e) {
+      _log.e('[FileSend] failed', error: e);
       _handleQuotaError(e);
       markFailed(localId);
     }
@@ -509,52 +516,33 @@ mixin ChatFileMixin on Cubit<ChatState> {
 
     _emitDownloadUpdate(messageId, const FileDownloadInfo(status: FileDownloadStatus.downloading));
 
-    // 优先使用 FileCacheManager
-    if (fileCacheManager != null) {
-      try {
-        final String localPath = await fileCacheManager!.getFile(
-          url: fullUrl,
-          messageId: messageId,
-          category: FileCategory.file,
-          fileName: fileName,
-          onProgress: (double p) {
+    late final StreamSubscription<FxDownloadEvent> sub;
+    sub = FxMedia.download.stream(url: fullUrl, id: fxMediaIdFromUrl(fullUrl), fileName: fileName).listen(
+      (FxDownloadEvent event) {
+        switch (event) {
+          case FxDownloadProgress(:final double progress):
             _emitDownloadUpdate(messageId, FileDownloadInfo(
-              status: FileDownloadStatus.downloading, progress: p,
+              status: FileDownloadStatus.downloading, progress: progress,
             ));
-          },
-        );
-        _emitDownloadUpdate(messageId, FileDownloadInfo(
-          status: FileDownloadStatus.done, progress: 1.0, localPath: localPath,
-        ));
-        // 同步更新内存中 Message 的 localData
-        _updateLocalDataInState(messageId, localPath);
-      } catch (e) {
+          case FxDownloadComplete(:final String localPath):
+            _emitDownloadUpdate(messageId, FileDownloadInfo(
+              status: FileDownloadStatus.done, progress: 1.0, localPath: localPath,
+            ));
+            _updateLocalDataInState(messageId, localPath);
+            sub.cancel();
+          case FxDownloadError(:final Object error):
+            _emitDownloadUpdate(messageId, FileDownloadInfo(
+              status: FileDownloadStatus.error, error: error.toString(),
+            ));
+            sub.cancel();
+        }
+      },
+      onError: (Object e) {
         _emitDownloadUpdate(messageId, FileDownloadInfo(
           status: FileDownloadStatus.error, error: e.toString(),
         ));
-      }
-      return;
-    }
-
-    // fallback：旧逻辑
-    try {
-      final dir = await _getDownloadDir();
-      final savePath = '$dir/$fileName';
-
-      await repository.downloadFile(fullUrl, savePath, onProgress: (p) {
-        _emitDownloadUpdate(messageId, FileDownloadInfo(
-          status: FileDownloadStatus.downloading, progress: p,
-        ));
-      });
-
-      _emitDownloadUpdate(messageId, FileDownloadInfo(
-        status: FileDownloadStatus.done, progress: 1.0, localPath: savePath,
-      ));
-    } catch (e) {
-      _emitDownloadUpdate(messageId, FileDownloadInfo(
-        status: FileDownloadStatus.error, error: e.toString(),
-      ));
-    }
+      },
+    );
   }
 
   void _emitDownloadUpdate(String messageId, FileDownloadInfo info) {
@@ -565,12 +553,7 @@ mixin ChatFileMixin on Cubit<ChatState> {
     emit(s.copyWith(fileDownloads: updated));
   }
 
-  Future<String> _getDownloadDir() async {
-    final dir = await getApplicationSupportDirectory();
-    return dir.path;
-  }
-
-  /// 下载完成后同步更新内存中 Message 的 localData
+  /// 下载完成后同步更新内存中 Message 的 localData 并持久化
   void _updateLocalDataInState(String messageId, String localPath) {
     final s = state;
     if (s is! ChatLoaded) return;
@@ -583,6 +566,8 @@ mixin ChatFileMixin on Cubit<ChatState> {
       return m;
     }).toList();
     emit(s.copyWith(messages: updated));
+    // 持久化到数据库
+    repository.store?.updateLocalData(messageId, localDataJson);
   }
 
   static String _formatSize(int bytes) {

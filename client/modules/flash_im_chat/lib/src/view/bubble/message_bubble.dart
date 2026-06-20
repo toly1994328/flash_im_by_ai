@@ -287,6 +287,7 @@ class MessageBubble extends StatelessWidget {
         message: message,
         baseUrl: baseUrl,
         uploadProgress: uploadProgress,
+        downloadInfo: fileDownloadInfo,
         onTap: onVideoTap,
         localThumbnailPath: cachedThumbnailPath,
       ),

@@ -1,26 +1,40 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 
-class VideoPlayerPage extends StatefulWidget {
-  final String videoUrl;
-  const VideoPlayerPage({super.key, required this.videoUrl});
+/// 全屏视频播放页（支持网络 URL 和本地文件）
+class FxVideoPlayerPage extends StatefulWidget {
+  final String source;
+  final bool isLocal;
+
+  const FxVideoPlayerPage({
+    super.key,
+    required this.source,
+    required this.isLocal,
+  });
 
   @override
-  State<VideoPlayerPage> createState() => _VideoPlayerPageState();
+  State<FxVideoPlayerPage> createState() => _FxVideoPlayerPageState();
 }
 
-class _VideoPlayerPageState extends State<VideoPlayerPage> {
+class _FxVideoPlayerPageState extends State<FxVideoPlayerPage> {
   late VideoPlayerController _controller;
   bool _initialized = false;
 
   @override
   void initState() {
     super.initState();
-    _controller = VideoPlayerController.networkUrl(Uri.parse(widget.videoUrl))
-      ..initialize().then((_) {
+    _controller = widget.isLocal
+        ? VideoPlayerController.file(File(widget.source))
+        : VideoPlayerController.networkUrl(Uri.parse(widget.source));
+
+    _controller.initialize().then((_) {
+      if (mounted) {
         setState(() => _initialized = true);
         _controller.play();
-      });
+      }
+    });
   }
 
   @override
@@ -69,7 +83,9 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
-          VideoProgressIndicator(_controller, allowScrubbing: true,
+          VideoProgressIndicator(
+            _controller,
+            allowScrubbing: true,
             colors: const VideoProgressColors(
               playedColor: Color(0xFF3B82F6),
               bufferedColor: Colors.white24,
@@ -90,7 +106,8 @@ class _VideoPlayerPageState extends State<VideoPlayerPage> {
                 },
                 icon: Icon(
                   _controller.value.isPlaying ? Icons.pause : Icons.play_arrow,
-                  color: Colors.white, size: 32,
+                  color: Colors.white,
+                  size: 32,
                 ),
               ),
             ],

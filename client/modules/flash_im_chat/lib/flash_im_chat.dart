@@ -13,7 +13,6 @@ export 'src/view/bubble/image_bubble.dart';
 export 'src/view/bubble/video_bubble.dart';
 export 'src/view/bubble/file_bubble.dart';
 export 'src/view/input/chat_input.dart';
-export 'src/view/media/video_player_page.dart';
 export 'src/view/media/file_preview_page.dart';
 export 'src/data/video_thumbnail_service.dart';
 export 'src/view/info/private_chat_info_page.dart';

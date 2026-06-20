@@ -481,6 +481,13 @@ packages:
       relative: true
     source: path
     version: "0.1.0"
+  fx_media:
+    dependency: "direct main"
+    description:
+      path: "packages/fx_media"
+      relative: true
+    source: path
+    version: "0.0.1"
   fx_updater:
     dependency: "direct main"
     description:

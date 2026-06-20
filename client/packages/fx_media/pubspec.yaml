@@ -1,0 +1,23 @@
+name: fx_media
+description: 通用媒体管理包（下载/缓存/播放/预览/打开）
+version: 0.0.1
+publish_to: none
+
+environment:
+  sdk: ^3.6.0
+  flutter: ">=3.19.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  fx_logger:
+    path: ../fx_logger
+  just_audio: ^0.9.43
+  video_player: ^2.9.3
+  flutter_cache_manager: ^3.4.1
+  cached_network_image: ^3.4.1
+  tolyui_mediax_core: ^0.1.0
+  tolyui_mediax_ui: ^0.1.0
+  file_picker: ^8.3.7
+  path: ^1.9.1
+  path_provider: ^2.1.5

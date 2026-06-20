@@ -1,20 +1,16 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:flash_im_cache/flash_im_cache.dart' show FileCacheManager, FileCategory;
 import 'package:fx_env/fx_env.dart';
-import 'package:fx_logger/fx_logger.dart';
+import 'package:fx_media/fx_media.dart';
+import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
 
 import '../../data/message.dart';
 import '../../data/message_media_ext.dart';
 import '../../view/media/file_preview_page.dart';
-import '../../view/media/video_player_page.dart';
 import '../chat_cubit.dart';
-import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
-import 'package:tolyui_mediax_ui/tolyui_mediax_ui.dart';
 
 /// 媒体文件操作处理器（logic 层）
 /// 负责：缓存判断 + 下载 + 系统打开 + 另存为
@@ -22,96 +18,48 @@ class ChatMediaHandler {
   final ChatCubit _cubit;
   final String? baseUrl;
 
-  final FxLog _log = FxLog('ChatMedia');
-
   ChatMediaHandler({required ChatCubit cubit, this.baseUrl}) : _cubit = cubit;
 
   /// 点击图片：全屏预览（支持多图滑动 + Hero 动画）
   void openImage(BuildContext context, Message msg, {List<Message>? imageMessages, int? index}) {
     final List<ImageMeta> items = (imageMessages ?? [msg])
-        .map((m) => m.toImageMeta(baseUrl: baseUrl ?? ''))
+        .map((Message m) => m.toImageMeta(baseUrl: baseUrl ?? ''))
         .toList();
     final int initialIndex = index ?? 0;
 
-    Navigator.of(context).push(
-      PageRouteBuilder<void>(
-        opaque: false,
-        transitionDuration: const Duration(milliseconds: 300),
-        reverseTransitionDuration: const Duration(milliseconds: 250),
-        pageBuilder: (_, _, _) => MediaPreviewPage(
-          items: items,
-          initialIndex: initialIndex,
-          onDismiss: () => Navigator.of(context).pop(),
-          itemBuilder: (ctx, i, item) {
-            final ImageMeta imageMeta = item as ImageMeta;
-            return ImageViewer(
-              heroTag: imageMeta.heroTag ?? imageMeta.hashCode,
-              mediaBuilder: (_, meta) => MediaImageView(
-                meta: meta as ImageMeta,
-                level: MediaSourceLevel.source,
-                fit: BoxFit.contain,
-              ),
-              meta: imageMeta,
-              imageSize: imageMeta.originalSize != null
-                  ? Size(
-                      imageMeta.originalSize!.width.toDouble(),
-                      imageMeta.originalSize!.height.toDouble(),
-                    )
-                  : null,
-            );
-          },
-        ),
-        transitionsBuilder: (_, Animation<double> anim, _, Widget child) =>
-            FadeTransition(opacity: anim, child: child),
-      ),
+    FxMedia.image.preview(
+      context,
+      items: items,
+      initialIndex: initialIndex,
     );
   }
 
-  /// 点击视频：已缓存 → 系统打开/播放，未缓存 → 下载后打开
+  /// 点击视频：已缓存 → 打开/播放，未缓存 → 触发下载（进度由 VideoBubble 展示）
   Future<void> openVideo(BuildContext context, Message msg) async {
-    final String videoUrl = _fullUrl(msg.content);
     final String? cachedPath = extractLocalPath(msg);
-    _log.d('openVideo: videoUrl=$videoUrl, cachedPath=$cachedPath');
 
-    if (kApp.isDesktop) {
-      if (cachedPath != null && File(cachedPath).existsSync()) {
-        Process.start('cmd', ['/c', 'start', '', cachedPath]);
+    if (cachedPath != null && File(cachedPath).existsSync()) {
+      // 已缓存：直接打开
+      if (kApp.isDesktop) {
+        await FxMedia.file.open(cachedPath);
       } else {
-        final FileCacheManager? fcm = _cubit.fileCacheManager;
-        if (fcm != null) {
-          final String path = await fcm.getFile(
-            url: videoUrl,
-            messageId: msg.id,
-            category: FileCategory.video,
-          );
-          _cubit.updateMessageLocalData(msg.id, path);
-          Process.start('cmd', ['/c', 'start', '', path]);
-        }
+        if (!context.mounted) return;
+        FxMedia.video.openFile(context, cachedPath);
       }
     } else {
-      if (cachedPath != null && File(cachedPath).existsSync()) {
-        Navigator.of(context).push(MaterialPageRoute(
-          builder: (_) => VideoPlayerPage(videoUrl: cachedPath),
-        ));
-      } else {
-        final FileCacheManager? fcm = _cubit.fileCacheManager;
-        if (fcm != null) {
-          final String path = await fcm.getFile(
-            url: videoUrl,
-            messageId: msg.id,
-            category: FileCategory.video,
-          );
-          _cubit.updateMessageLocalData(msg.id, path);
-          if (!context.mounted) return;
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => VideoPlayerPage(videoUrl: path),
-          ));
-        } else {
-          Navigator.of(context).push(MaterialPageRoute(
-            builder: (_) => VideoPlayerPage(videoUrl: videoUrl),
-          ));
-        }
-      }
+      // 未缓存：触发下载（进度通过 fileDownloads 展示在气泡上）
+      final String videoUrl = _fullUrl(msg.content);
+      _cubit.downloadFile(msg.id, videoUrl, 'video.mp4');
+    }
+  }
+
+  /// 视频下载完成后打开（由 ChatPage 在检测到下载完成时调用）
+  Future<void> openDownloadedVideo(BuildContext context, String localPath) async {
+    if (kApp.isDesktop) {
+      await FxMedia.file.open(localPath);
+    } else {
+      if (!context.mounted) return;
+      FxMedia.video.openFile(context, localPath);
     }
   }
 
@@ -123,7 +71,7 @@ class ChatMediaHandler {
     if (kApp.isDesktop) {
       final String? cachedPath = extractLocalPath(msg);
       if (cachedPath != null && File(cachedPath).existsSync()) {
-        Process.start('cmd', ['/c', 'start', '', cachedPath]);
+        FxMedia.file.open(cachedPath);
       } else {
         final String fileUrl = fileExtra.fileUrl;
         final String fullUrl = _fullUrl(fileUrl);
@@ -132,7 +80,8 @@ class ChatMediaHandler {
       return;
     }
 
-    Navigator.of(context).push(MaterialPageRoute(
+    // 移动端：进入文件详情页
+    Navigator.of(context).push(MaterialPageRoute<void>(
       builder: (_) => BlocProvider.value(
         value: _cubit,
         child: FilePreviewPage(
@@ -148,17 +97,7 @@ class ChatMediaHandler {
   void openFileFolder(Message msg) {
     final String? localPath = extractLocalPath(msg);
     if (localPath == null) return;
-    final File file = File(localPath);
-    if (!file.existsSync()) return;
-    final String normalized = file.absolute.path.replaceAll('/', Platform.pathSeparator);
-    _log.d('openFolder: $normalized');
-    if (Platform.isWindows) {
-      Process.start('explorer.exe', ['/select,$normalized']);
-    } else if (Platform.isMacOS) {
-      Process.run('open', ['-R', normalized]);
-    } else {
-      Process.run('xdg-open', [file.parent.path]);
-    }
+    FxMedia.file.openFolder(localPath);
   }
 
   /// 另存为：让用户选择保存路径，复制文件
@@ -169,12 +108,7 @@ class ChatMediaHandler {
     if (!sourceFile.existsSync()) return;
 
     final String fileName = localPath.split('/').last.split('\\').last;
-    final String? outputPath = await FilePicker.platform.saveFile(
-      dialogTitle: '另存为',
-      fileName: fileName,
-    );
-    if (outputPath == null) return;
-    await sourceFile.copy(outputPath);
+    await FxMedia.file.saveAs(localPath, suggestedName: fileName);
   }
 
   /// 从 Message.localData 中提取本地文件路径

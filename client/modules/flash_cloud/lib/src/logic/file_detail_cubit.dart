@@ -2,8 +2,8 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
+import 'package:fx_media/fx_media.dart';
 
-import '../data/cloud_download_manager.dart';
 import '../data/cloud_file.dart';
 import '../data/cloud_repository.dart';
 
@@ -12,51 +12,59 @@ enum FileDetailStatus { loading, loaded, error, deleted }
 class FileDetailState {
   final FileDetailStatus status;
   final CloudFileDetail? detail;
-  final DownloadInfo downloadInfo;
+  final double downloadProgress;
+  final String? localPath;
+  final bool isDownloading;
   final String? error;
 
   const FileDetailState({
     this.status = FileDetailStatus.loading,
     this.detail,
-    this.downloadInfo = const DownloadInfo(),
+    this.downloadProgress = 0.0,
+    this.localPath,
+    this.isDownloading = false,
     this.error,
   });
 
-  bool get isCached => downloadInfo.status == DownloadStatus.done;
-  bool get isDownloading => downloadInfo.status == DownloadStatus.downloading;
+  bool get isCached => localPath != null;
 
   FileDetailState copyWith({
     FileDetailStatus? status,
     CloudFileDetail? detail,
-    DownloadInfo? downloadInfo,
+    double? downloadProgress,
+    Object? localPath = _sentinel,
+    bool? isDownloading,
     String? error,
   }) {
     return FileDetailState(
       status: status ?? this.status,
       detail: detail ?? this.detail,
-      downloadInfo: downloadInfo ?? this.downloadInfo,
+      downloadProgress: downloadProgress ?? this.downloadProgress,
+      localPath: localPath == _sentinel ? this.localPath : localPath as String?,
+      isDownloading: isDownloading ?? this.isDownloading,
       error: error ?? this.error,
     );
   }
 }
 
+const Object _sentinel = Object();
+
 class FileDetailCubit extends Cubit<FileDetailState> {
   static final FxLog _log = FxLog('FileDetail');
   final CloudRepository _repository;
-  final CloudDownloadManager _downloadManager = CloudDownloadManager();
-  StreamSubscription<int>? _downloadSub;
+  final String? _baseUrl;
+  StreamSubscription<FxDownloadEvent>? _downloadSub;
   int? _fileId;
 
-  FileDetailCubit({required CloudRepository repository})
+  FileDetailCubit({required CloudRepository repository, String? baseUrl})
       : _repository = repository,
-        super(const FileDetailState()) {
-    _downloadSub = _downloadManager.updateStream.listen(_onDownloadUpdate);
-  }
+        _baseUrl = baseUrl,
+        super(const FileDetailState());
 
-  void _onDownloadUpdate(int fileId) {
-    if (fileId != _fileId) return;
-    final DownloadInfo info = _downloadManager.getStatus(fileId);
-    emit(state.copyWith(downloadInfo: info));
+  String _resolveUrl(String url) {
+    if (url.startsWith('http')) return url;
+    if (_baseUrl != null) return '$_baseUrl$url';
+    return url;
   }
 
   /// 加载文件详情
@@ -65,11 +73,13 @@ class FileDetailCubit extends Cubit<FileDetailState> {
     emit(const FileDetailState(status: FileDetailStatus.loading));
     try {
       final CloudFileDetail detail = await _repository.getFileDetail(fileId);
-      final DownloadInfo info = _downloadManager.getStatus(fileId);
+      final String cacheId = fxMediaIdFromUrl(detail.file.url);
+      final String? cached = FxMedia.download.localPath(cacheId);
+      _log.d('loadDetail: fileId=$fileId, url=${detail.file.url}, cacheId=$cacheId, cached=$cached');
       emit(FileDetailState(
         status: FileDetailStatus.loaded,
         detail: detail,
-        downloadInfo: info,
+        localPath: cached,
       ));
     } catch (e) {
       _log.e('loadDetail failed', error: e);
@@ -80,17 +90,30 @@ class FileDetailCubit extends Cubit<FileDetailState> {
   /// 下载文件到本地
   void downloadToLocal() {
     if (state.detail == null || _fileId == null) return;
-    _downloadManager.download(
-      fileId: _fileId!,
-      fileUrl: state.detail!.file.url,
-      fileSize: state.detail!.file.size,
-    );
+    final String fullUrl = _resolveUrl(state.detail!.file.url);
+    final String cacheId = fxMediaIdFromUrl(state.detail!.file.url);
+
+    emit(state.copyWith(isDownloading: true, downloadProgress: 0.0));
+
+    _downloadSub?.cancel();
+    _downloadSub = FxMedia.download.stream(url: fullUrl, id: cacheId).listen((FxDownloadEvent event) {
+      switch (event) {
+        case FxDownloadProgress(:final double progress):
+          emit(state.copyWith(downloadProgress: progress));
+        case FxDownloadComplete(:final String localPath):
+          emit(state.copyWith(isDownloading: false, downloadProgress: 1.0, localPath: localPath));
+        case FxDownloadError(:final Object error):
+          emit(state.copyWith(isDownloading: false, error: error.toString()));
+      }
+    });
   }
 
   /// 清除本地缓存
   Future<void> clearLocalCache() async {
-    if (state.detail == null || _fileId == null) return;
-    await _downloadManager.removeCache(_fileId!, state.detail!.file.url);
+    if (state.detail == null) return;
+    final String cacheId = fxMediaIdFromUrl(state.detail!.file.url);
+    await FxMedia.download.remove(cacheId);
+    emit(state.copyWith(localPath: null));
   }
 
   /// 删除云端文件
@@ -106,6 +129,13 @@ class FileDetailCubit extends Cubit<FileDetailState> {
   @override
   Future<void> close() {
     _downloadSub?.cancel();
+    // 退出详情页时，如果正在播放本页的音频则停止
+    if (state.detail != null) {
+      final String cacheId = fxMediaIdFromUrl(state.detail!.file.url);
+      if (FxMedia.audio.currentId == cacheId) {
+        FxMedia.audio.stop();
+      }
+    }
     return super.close();
   }
 }

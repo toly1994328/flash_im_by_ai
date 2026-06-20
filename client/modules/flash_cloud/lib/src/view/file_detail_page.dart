@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_shared/flash_shared.dart';
+import 'package:fx_media/fx_media.dart';
 import 'package:intl/intl.dart';
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
+import 'package:tolyui_mediax_core/tolyui_mediax_core.dart';
 
 import '../data/cloud_file.dart';
 import '../data/cloud_repository.dart';
@@ -28,7 +30,7 @@ class FileDetailPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return BlocProvider(
-      create: (_) => FileDetailCubit(repository: repository)..loadDetail(fileId),
+      create: (_) => FileDetailCubit(repository: repository, baseUrl: baseUrl)..loadDetail(fileId),
       child: BlocConsumer<FileDetailCubit, FileDetailState>(
         listener: (context, state) {
           if (state.status == FileDetailStatus.deleted) {
@@ -77,7 +79,7 @@ class FileDetailPage extends StatelessWidget {
 
     return ListView(
       children: [
-        _buildPreview(file),
+        _buildPreview(context, file, state),
         const SizedBox(height: 10),
         _buildInfoCard(file),
         const SizedBox(height: 10),
@@ -93,41 +95,175 @@ class FileDetailPage extends StatelessWidget {
     );
   }
 
-  Widget _buildPreview(CloudFile file) {
-    final bool hasImage = file.thumbUrl != null || file.mimeCategory == 'image';
+  Widget _buildPreview(BuildContext context, CloudFile file, FileDetailState state) {
+    final bool isVideo = file.mimeCategory == 'video';
+    final bool isImage = file.mimeCategory == 'image';
+    final bool isAudio = file.mimeCategory == 'audio';
+    final bool hasImage = file.thumbUrl != null || isImage;
+
     if (!hasImage) {
       // 音频/文件：图标占位 + 右下角大小
       final Color color = _categoryColor(file.mimeCategory);
-      return Container(
-        height: 240,
-        color: color.withValues(alpha: 0.08),
-        child: Stack(
-          children: [
-            Center(child: Icon(_categoryIcon(file.mimeCategory), color: color, size: 64)),
-            Positioned(
-              right: 12,
-              bottom: 12,
-              child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
-                decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
-                child: Text(file.sizeFormatted, style: const TextStyle(color: Colors.white, fontSize: 12)),
+      return GestureDetector(
+        onTap: isAudio ? () => _onPreviewTap(context, file, state) : null,
+        child: Container(
+          height: 240,
+          color: color.withValues(alpha: 0.08),
+          child: Stack(
+            children: [
+              Center(
+                child: isAudio
+                    ? _buildAudioPreviewCenter(file, state)
+                    : Icon(_categoryIcon(file.mimeCategory), color: color, size: 64),
               ),
-            ),
-          ],
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                  decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
+                  child: Text(file.sizeFormatted, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                ),
+              ),
+              if (isAudio && file.durationMs != null)
+                Positioned(
+                  left: 12,
+                  bottom: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                    decoration: BoxDecoration(color: Colors.black54, borderRadius: BorderRadius.circular(4)),
+                    child: Text(file.durationFormatted, style: const TextStyle(color: Colors.white, fontSize: 12)),
+                  ),
+                ),
+            ],
+          ),
         ),
       );
     }
+
     final String url = _resolveUrl(file.thumbUrl ?? file.url);
-    return Container(
-      height: 240,
-      color: Colors.black,
-      child: CachedNetworkImage(
-        imageUrl: url,
-        fit: BoxFit.contain,
-        placeholder: (context, url) => const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
-        errorWidget: (context, url, error) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 48)),
+    return GestureDetector(
+      onTap: () => _onPreviewTap(context, file, state),
+      child: Container(
+        height: 240,
+        color: Colors.black,
+        child: Stack(
+          alignment: Alignment.center,
+          children: [
+            CachedNetworkImage(
+              imageUrl: url,
+              fit: BoxFit.contain,
+              width: double.infinity,
+              height: 240,
+              placeholder: (BuildContext _, String __) => const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
+              errorWidget: (BuildContext _, String __, Object ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 48)),
+            ),
+            // 视频播放按钮覆盖
+            if (isVideo)
+              Container(
+                width: 48, height: 48,
+                decoration: BoxDecoration(
+                  color: Colors.black.withValues(alpha: 0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  state.isCached ? Icons.play_arrow : Icons.download_rounded,
+                  color: Colors.white,
+                  size: state.isCached ? 28 : 22,
+                ),
+              ),
+            // 图片放大提示
+            if (isImage)
+              Positioned(
+                right: 12,
+                bottom: 12,
+                child: Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: BoxDecoration(
+                    color: Colors.black54,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: const Icon(Icons.fullscreen, color: Colors.white, size: 18),
+                ),
+              ),
+          ],
+        ),
       ),
     );
+  }
+
+  void _onPreviewTap(BuildContext context, CloudFile file, FileDetailState state) {
+    if (file.mimeCategory == 'video') {
+      if (state.isCached && state.localPath != null) {
+        FxMedia.video.openFile(context, state.localPath!);
+      } else {
+        context.read<FileDetailCubit>().downloadToLocal();
+      }
+    } else if (file.mimeCategory == 'image') {
+      final String fullUrl = _resolveUrl(file.url);
+      final ImageMeta meta = ImageMeta(
+        source: NetworkSource(Uri.parse(fullUrl)),
+        thumbnail: NetworkSource(Uri.parse(fullUrl)),
+        originalSize: (file.width != null && file.height != null)
+            ? (width: file.width!, height: file.height!)
+            : null,
+      );
+      FxMedia.image.preview(context, items: [meta]);
+    }
+    // 音频的点击由 _buildAudioPreviewCenter 内部 GestureDetector 处理
+  }
+
+  Widget _buildAudioPreviewCenter(CloudFile file, FileDetailState state) {
+    final String cacheId = fxMediaIdFromUrl(file.url);
+    final Color color = _categoryColor('audio');
+    return StreamBuilder<FxAudioSnapshot>(
+      stream: FxMedia.audio.snapshotStream,
+      builder: (BuildContext context, AsyncSnapshot<FxAudioSnapshot> snapshot) {
+        final FxAudioState audioState = (FxMedia.audio.currentId == cacheId)
+            ? (snapshot.data?.state ?? FxAudioState.idle)
+            : FxAudioState.idle;
+        final bool isPlaying = audioState == FxAudioState.playing || audioState == FxAudioState.loading;
+
+        return GestureDetector(
+          behavior: HitTestBehavior.opaque,
+          onTap: () => _handleAudioTap(context, file, state, audioState, cacheId),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 56, height: 56,
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.15),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  isPlaying ? Icons.pause_circle_filled : (state.isCached ? Icons.play_circle_filled : Icons.download_rounded),
+                  color: color,
+                  size: 36,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isPlaying ? '播放中' : (state.isCached ? '点击播放' : '点击下载'),
+                style: TextStyle(fontSize: 13, color: color),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _handleAudioTap(BuildContext context, CloudFile file, FileDetailState state, FxAudioState audioState, String cacheId) {
+    if (!state.isCached || state.localPath == null) {
+      context.read<FileDetailCubit>().downloadToLocal();
+      return;
+    }
+    if (audioState == FxAudioState.playing || audioState == FxAudioState.loading) {
+      FxMedia.audio.pause();
+    } else {
+      FxMedia.audio.playFile(state.localPath!, id: cacheId);
+    }
   }
 
   static Color _categoryColor(String category) {
@@ -178,7 +314,7 @@ class FileDetailPage extends StatelessWidget {
               Positioned.fill(
                 child: FractionallySizedBox(
                   alignment: Alignment.centerLeft,
-                  widthFactor: state.downloadInfo.progress,
+                  widthFactor: state.downloadProgress,
                   child: Container(color: const Color(0xFF3B82F6).withValues(alpha: 0.08)),
                 ),
               ),
@@ -192,7 +328,7 @@ class FileDetailPage extends StatelessWidget {
                       const Text('本地缓存', style: TextStyle(fontSize: 15, color: Color(0xFF333333))),
                       const Spacer(),
                       if (state.isDownloading)
-                        Text('${(state.downloadInfo.progress * 100).toInt()}%',
+                        Text('${(state.downloadProgress * 100).toInt()}%',
                             style: const TextStyle(fontSize: 14, color: Color(0xFF3B82F6)))
                       else
                         Text(
@@ -205,10 +341,10 @@ class FileDetailPage extends StatelessWidget {
                       ],
                     ],
                   ),
-                  if (state.isCached && state.downloadInfo.localPath != null) ...[
+                  if (state.isCached && state.localPath != null) ...[
                     const SizedBox(height: 6),
                     Text(
-                      state.downloadInfo.localPath!,
+                      state.localPath!,
                       style: const TextStyle(fontSize: 11, color: Color(0xFFBBBBBB)),
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
@@ -229,12 +365,12 @@ class FileDetailPage extends StatelessWidget {
         context: context,
         title: const Text('本地缓存操作'),
         tasks: [
-          if (state.downloadInfo.localPath != null)
+          if (state.localPath != null)
             TolyMenuItem(
               info: '复制',
               content: const Text('复制缓存地址', style: TextStyle(fontSize: 16)),
               task: () {
-                Clipboard.setData(ClipboardData(text: state.downloadInfo.localPath!));
+                Clipboard.setData(ClipboardData(text: state.localPath!));
                 ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('已复制到剪贴板')));
                 return true;
               },

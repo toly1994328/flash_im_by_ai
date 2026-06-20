@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_session/flash_session.dart';
 import 'package:flash_shared/flash_shared.dart';
@@ -10,9 +10,8 @@ import 'package:flash_im_group/flash_im_group.dart';
 import 'package:flash_im_search/flash_im_search.dart';
 import 'package:flash_auth/flash_auth.dart';
 import '../../application/config.dart';
-import '../../../main.dart' show globalFileCacheManager;
 
-/// 公共动作 mixin：移动端和桌面端共用的业务操作
+/// �������� mixin���ƶ��˺�����˹��õ�ҵ�����
 mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
   ConversationListCubit get convCubit;
 
@@ -27,7 +26,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
         .toList();
   }
 
-  /// 打开聊天（全屏 push，移动端使用）
+  /// �����죨ȫ�� push���ƶ���ʹ�ã�
   Future<void> openChat(BuildContext ctx, Conversation conversation) async {
     final session = ctx.read<SessionCubit>().state;
     final user = session.user;
@@ -41,7 +40,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     convCubit.clearActiveConversation();
   }
 
-  /// 构建 ChatPage 路由（含 BlocProvider 包裹）
+  /// ���� ChatPage ·�ɣ��� BlocProvider ������
   Widget _buildChatRoute(BuildContext ctx, Conversation conversation, User user) {
     return MultiRepositoryProvider(
       providers: [
@@ -62,7 +61,6 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
                 isGroup: conversation.isGroup,
               ),
               onConversationChanged: () => convCubit.loadConversations(),
-              fileCacheManager: globalFileCacheManager,
               baseUrl: AppConfig.baseUrl,
             )..loadMessages(),
           ),
@@ -105,7 +103,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// 构建嵌入式 ChatPage（桌面端右侧面板使用，不含 Navigator.push）
+  /// ����Ƕ��ʽ ChatPage��������Ҳ����ʹ�ã����� Navigator.push��
   Widget buildChatPanel(BuildContext ctx, Conversation conversation, {VoidCallback? onToggleDetail}) {
     final session = ctx.read<SessionCubit>().state;
     final user = session.user;
@@ -130,7 +128,6 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
                 isGroup: conversation.isGroup,
               ),
               onConversationChanged: () => convCubit.loadConversations(),
-              fileCacheManager: globalFileCacheManager,
               baseUrl: AppConfig.baseUrl,
             )..loadMessages(),
           ),
@@ -191,7 +188,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// 通过 ID 打开聊天
+  /// ͨ�� ID ������
   Future<void> openChatById(BuildContext ctx, String conversationId, {bool isGroup = false}) async {
     try {
       final conv = await ctx.read<ConversationRepository>().getById(conversationId);
@@ -200,7 +197,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     } catch (_) {}
   }
 
-  /// 打开搜索
+  /// ������
   void openSearch(BuildContext ctx) {
     Navigator.of(ctx).push(MaterialPageRoute(
       builder: (_) => SearchPage(
@@ -216,7 +213,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     ));
   }
 
-  /// 打开好友详情
+  /// �򿪺�������
   void openFriendDetail(BuildContext ctx, Friend friend) {
     Navigator.of(ctx).push(MaterialPageRoute(
       builder: (_) => FriendDetailPage(
@@ -233,7 +230,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     ));
   }
 
-  /// 和好友开始聊天
+  /// �ͺ��ѿ�ʼ����
   Future<void> startChatWithFriend(BuildContext ctx, Friend friend) async {
     final session = ctx.read<SessionCubit>().state;
     final user = session.user;
@@ -246,7 +243,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     } catch (_) {}
   }
 
-  /// 打开创建群聊
+  /// �򿪴���Ⱥ��
   Future<void> openCreateGroup(BuildContext ctx, {Set<String>? initialSelectedIds}) async {
     final members = friendsToMembers();
     Navigator.of(ctx).push(MaterialPageRoute(
@@ -258,13 +255,13 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     ));
   }
 
-  /// 从聊天页发起群聊
+  /// ������ҳ����Ⱥ��
   Future<void> createGroupFromChat(BuildContext ctx, Conversation conversation) async {
     if (conversation.peerUserId == null) return;
     await openCreateGroup(ctx, initialSelectedIds: {conversation.peerUserId!});
   }
 
-  /// 打开添加好友/群
+  /// �����Ӻ���/Ⱥ
   void openAddFriend(BuildContext ctx) {
     Navigator.of(ctx).push(MaterialPageRoute(
       builder: (_) => AddFriendPage(
@@ -290,7 +287,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     ));
   }
 
-  // ==================== 私有辅助方法 ====================
+  // ==================== ˽�и������� ====================
 
   Future<void> _handleGroupCreated(BuildContext ctx, CreateGroupResult result) async {
     try {
@@ -307,7 +304,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     } catch (e) {
       if (!ctx.mounted) return;
       ScaffoldMessenger.of(ctx).showSnackBar(
-        SnackBar(content: Text('创建群聊失败：$e')),
+        SnackBar(content: Text('����Ⱥ��ʧ�ܣ�$e')),
       );
     }
   }
