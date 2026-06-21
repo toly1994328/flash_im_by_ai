@@ -6,11 +6,13 @@ library;
 
 // data
 export 'src/data/session_repository.dart' show SessionRepository;
+export 'src/data/subscription_repository.dart' show SubscriptionRepository, SubscriptionStatus, RedeemResult;
 export 'src/data/user.dart' show User;
 
 // logic
 export 'src/logic/session_cubit.dart' show SessionCubit;
 export 'src/logic/session_state.dart' show SessionState, SessionStatus;
+export 'src/logic/subscription_cubit.dart' show SubscriptionCubit;
 
 // view
 export 'src/view/edit_profile_page.dart' show EditProfilePage;
