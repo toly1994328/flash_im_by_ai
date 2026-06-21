@@ -9,6 +9,7 @@ import 'package:fx_media/fx_media.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
 import '../data/message_ext.dart';
+import '../data/oss_uploader.dart';
 import 'chat_context.dart';
 import 'chat_file_mixin.dart';
 import 'chat_pin_mixin.dart';
@@ -20,6 +21,8 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   final IMessageRepository _repository;
   final WsClient _wsClient;
   final ChatContext chatCtx;
+  final OssUploader? _ossUploader;
+  final bool _ossUploadEnabled;
   @override
   final VoidCallback? onConversationChanged;
 
@@ -61,6 +64,12 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
 
   @override
   FileSendLimits get fileSendLimits => const FileSendLimits();
+
+  @override
+  OssUploader? get ossUploader => _ossUploader;
+
+  @override
+  bool get ossUploadEnabled => _ossUploadEnabled;
 
   @override
   int nextLocalId() => ++_localIdCounter;
@@ -134,11 +143,15 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     required WsClient wsClient,
     required ChatContext context,
     this.onConversationChanged,
+    OssUploader? ossUploader,
+    bool ossUploadEnabled = false,
     LocalStore? store,
     String? baseUrl,
   })  : _repository = repository,
         _wsClient = wsClient,
         chatCtx = context,
+        _ossUploader = ossUploader,
+        _ossUploadEnabled = ossUploadEnabled,
         _store = store,
         _baseUrl = baseUrl,
         super(const ChatInitial()) {

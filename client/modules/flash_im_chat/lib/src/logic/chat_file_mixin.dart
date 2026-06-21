@@ -15,6 +15,7 @@ import 'package:flash_shared/flash_shared.dart' show ShowToastEvent;
 import '../data/file_hash.dart';
 import '../data/i_message_repository.dart';
 import '../data/message.dart';
+import '../data/oss_uploader.dart';
 import 'chat_state.dart';
 
 /// 文件发送限制配置
@@ -60,6 +61,12 @@ mixin ChatFileMixin on Cubit<ChatState> {
   int nextLocalId();
   void setupTimeout(String clientId, String localId, Duration timeout);
   void markFailed(String localId);
+
+  /// OSS 直传上传器（可选，有订阅时由 ChatCubit 注入）
+  OssUploader? get ossUploader;
+
+  /// 是否启用 OSS 上传（由外部订阅状态决定）
+  bool get ossUploadEnabled;
 
   /// 暂存发送中的本地文件路径：localId → localPath
   final Map<String, String> pendingLocalPaths = {};
@@ -141,43 +148,76 @@ mixin ChatFileMixin on Cubit<ChatState> {
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 
     try {
-      final result = await repository.uploadImage(filePath, hash: hash, onProgress: (p) {
-        _log.d('image progress: ${(p * 100).toInt()}%');
-        final s = state;
-        if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
-      });
+      // ─── 上传分流：OSS 或本地 ───
+      final String uploadedUrl;
+      final Map<String, dynamic> imageExtra;
 
-      final afterUpload = state;
+      if (ossUploadEnabled && ossUploader != null) {
+        // OSS 直传
+        _log.d('[ImgSend] OSS upload path');
+        final OssUploadResult ossResult = await ossUploader!.upload(
+          filePath: filePath,
+          fileName: filePath.split(Platform.pathSeparator).last,
+          fileSize: localFileSize,
+          mimeType: 'image/${filePath.split('.').last.toLowerCase()}',
+          hash: hash,
+          mimeCategory: 'image',
+          width: imgWidth,
+          height: imgHeight,
+          onProgress: (double p) {
+            final ChatState s = state;
+            if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+          },
+        );
+        uploadedUrl = ossResult.url;
+        imageExtra = {
+          'width': imgWidth,
+          'height': imgHeight,
+          'size': localFileSize,
+          'format': filePath.split('.').last.toLowerCase(),
+          'thumbnail_url': ossResult.thumbUrl,
+        };
+      } else {
+        // 本地 multipart 上传
+        _log.d('[ImgSend] local upload path');
+        final result = await repository.uploadImage(filePath, hash: hash, onProgress: (double p) {
+          _log.d('image progress: ${(p * 100).toInt()}%');
+          final ChatState s = state;
+          if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+        });
+        uploadedUrl = result.originalUrl;
+        imageExtra = {
+          'width': result.width,
+          'height': result.height,
+          'size': result.size,
+          'format': result.format,
+          'thumbnail_url': result.thumbnailUrl,
+        };
+      }
+
+      final ChatState afterUpload = state;
       if (afterUpload is ChatLoaded) {
         emit(afterUpload.copyWith(clearUploadProgress: true));
       }
 
-      final imageExtra = {
-        'width': result.width,
-        'height': result.height,
-        'size': result.size,
-        'format': result.format,
-        'thumbnail_url': result.thumbnailUrl,
-      };
-
-      final latest = state;
-      _log.d('[ImgSend] upload done: url=${result.originalUrl}, state=${latest.runtimeType}');
+      final ChatState latest = state;
+      _log.d('[ImgSend] upload done: url=$uploadedUrl, state=${latest.runtimeType}');
       if (latest is ChatLoaded) {
-        final updated = latest.messages.map((m) {
+        final List<Message> updated = latest.messages.map((Message m) {
           if (m.id == localId) {
-            return m.copyWith(content: result.originalUrl, extra: imageExtra);
+            return m.copyWith(content: uploadedUrl, extra: imageExtra);
           }
           return m;
         }).toList();
         emit(latest.copyWith(messages: updated));
       }
 
-      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
       _log.d('[ImgSend] ws send: clientId=$clientId');
       wsClient.sendMessage(
         conversationId: conversationId,
-        content: result.originalUrl,
+        content: uploadedUrl,
         type: proto.MessageType.IMAGE,
         extra: utf8.encode(jsonEncode(imageExtra)),
         clientId: clientId,
