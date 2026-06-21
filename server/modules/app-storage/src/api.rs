@@ -265,11 +265,10 @@ async fn list_files(
         storage.db(), user_id, category, page, limit
     ).await?;
 
-    let url_prefix = storage.url_prefix();
     let data: Vec<FileListItem> = files.into_iter().map(|f| FileListItem {
         id: f.id,
-        url: format!("{}/{}", url_prefix, f.storage_path),
-        thumb_url: f.thumb_path.map(|p| format!("{}/{}", url_prefix, p)),
+        url: storage.resolve_url(&f.storage_path),
+        thumb_url: f.thumb_path.map(|p| storage.resolve_url(&p)),
         size: f.size,
         mime_type: f.mime_type,
         mime_category: f.mime_category,
@@ -295,11 +294,10 @@ async fn file_detail(
     let file = crate::repository::StorageRepo::get_file_by_id(storage.db(), file_id, user_id).await?
         .ok_or_else(|| AppError::not_found("文件不存在"))?;
 
-    let url_prefix = storage.url_prefix();
     let file_item = FileListItem {
         id: file.id,
-        url: format!("{}/{}", url_prefix, file.storage_path),
-        thumb_url: file.thumb_path.map(|p| format!("{}/{}", url_prefix, p)),
+        url: storage.resolve_url(&file.storage_path),
+        thumb_url: file.thumb_path.as_ref().map(|p| storage.resolve_url(p)),
         size: file.size,
         mime_type: file.mime_type,
         mime_category: file.mime_category,

@@ -49,6 +49,9 @@ pub struct VideoUploadMetadata {
 pub struct StorageConfig {
     pub base_path: PathBuf,
     pub url_prefix: String,
+    /// OSS 公网 URL 前缀（如 https://flash-im-storage.oss-cn-beijing.aliyuncs.com）
+    /// 当文件路径以 "users/" 开头时使用此前缀
+    pub oss_url_prefix: Option<String>,
     pub max_image_size: u64,
     pub max_video_size: u64,
     pub max_file_size: u64,
@@ -61,6 +64,7 @@ impl Default for StorageConfig {
         Self {
             base_path: PathBuf::from("uploads"),
             url_prefix: "/uploads".to_string(),
+            oss_url_prefix: None,
             max_image_size: 10 * 1024 * 1024,
             max_video_size: 50 * 1024 * 1024,
             max_file_size: 50 * 1024 * 1024,
@@ -84,6 +88,14 @@ impl StorageConfig {
         }
         if let Ok(v) = std::env::var("UPLOAD_MAX_FILE_SIZE") && let Ok(n) = v.parse() {
             config.max_file_size = n;
+        }
+        // OSS URL 前缀：从 endpoint + bucket 拼接
+        if let (Ok(endpoint), Ok(bucket)) = (std::env::var("OSS_ENDPOINT"), std::env::var("OSS_BUCKET")) {
+            config.oss_url_prefix = Some(format!(
+                "https://{}.{}",
+                bucket,
+                endpoint.trim_start_matches("https://")
+            ));
         }
         config
     }
@@ -134,6 +146,17 @@ impl<B: StorageBackend> StorageService<B> {
 
     pub fn url_prefix(&self) -> &str {
         &self.config.url_prefix
+    }
+
+    /// 根据 storage_path 选择正确的 URL 前缀
+    /// OSS 文件（以 "users/" 开头）使用 oss_url_prefix，其他使用本地 url_prefix
+    pub fn resolve_url(&self, storage_path: &str) -> String {
+        if storage_path.starts_with("users/") {
+            if let Some(ref oss_prefix) = self.config.oss_url_prefix {
+                return format!("{}/{}", oss_prefix, storage_path);
+            }
+        }
+        format!("{}/{}", self.config.url_prefix, storage_path)
     }
 
     /// 查询文件是否已存在（秒传检查，不修改 ref_count）
