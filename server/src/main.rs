@@ -19,6 +19,7 @@ use tower_http::set_header::SetResponseHeaderLayer;
 use axum::http::{HeaderName, HeaderValue};
 use app_storage::{LocalFs, StorageConfig, StorageService};
 use app_storage::api::storage_routes;
+use app_subscription::{SubscriptionService, subscription_routes};
 
 #[tokio::main]
 async fn main() {
@@ -112,6 +113,7 @@ async fn main() {
         .merge(friend_routes(friend_state))
         .merge(group_routes(group_api_state))
         .merge(app_center::router(db.clone()))
+        .merge(subscription_routes(Arc::new(SubscriptionService::new(db.clone()))))
         .merge(admin::router(db.clone()))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/static", ServeDir::new("static"))
