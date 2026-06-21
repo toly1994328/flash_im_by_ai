@@ -1,13 +1,14 @@
 pub mod local_fs;
+pub mod oss;
 
 pub use local_fs::LocalFs;
+pub use oss::{OssBackend, OssConfig};
 
 use std::future::Future;
 
 /// 存储后端抽象 trait
 ///
-/// 当前实现：LocalFs（本地文件系统）
-/// 未来扩展：S3Backend（兼容 MinIO / 阿里云 OSS）
+/// 当前实现：LocalFs（本地文件系统）、OssBackend（阿里云 OSS，S3 兼容）
 pub trait StorageBackend: Send + Sync + 'static {
     /// 写入文件到指定相对路径
     fn put(&self, path: &str, data: &[u8]) -> impl Future<Output = Result<(), std::io::Error>> + Send;
