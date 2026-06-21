@@ -14,6 +14,7 @@ class AvatarWidget extends StatelessWidget {
   final double borderRadius;
   final Color backgroundColor;
   final double paddingRatio;
+  final bool isVip;
 
   const AvatarWidget({
     super.key,
@@ -22,10 +23,28 @@ class AvatarWidget extends StatelessWidget {
     this.borderRadius = 4,
     this.backgroundColor = const Color(0xFFEEEEEE),
     this.paddingRatio = 0.15,
+    this.isVip = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    final Widget avatarWidget = _buildAvatar();
+    if (!isVip) return avatarWidget;
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius + 2),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: avatarWidget,
+    );
+  }
+
+  Widget _buildAvatar() {
     final av = avatar ?? '';
     if (av == 'identicon:system') {
       return Container(

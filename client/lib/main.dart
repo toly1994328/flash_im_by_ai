@@ -64,6 +64,7 @@ void main() async {
   final groupRepo = GroupRepository(dio: httpClient.dio);
   final searchRepo = SearchRepository(dio: httpClient.dio);
   final cloudRepo = CloudRepository(dio: httpClient.dio);
+  final subscriptionRepo = SubscriptionRepository(dio: httpClient.dio);
 
   // 初始化 FxMedia
   final Directory mediaCacheBaseDir = await getApplicationCacheDirectory();
@@ -193,11 +194,15 @@ void main() async {
         RepositoryProvider.value(value: groupRepo),
         RepositoryProvider.value(value: searchRepo),
         RepositoryProvider.value(value: cloudRepo),
+        RepositoryProvider.value(value: subscriptionRepo),
         RepositoryProvider.value(value: authRepository),
       ],
       child: MultiBlocProvider(
         providers: [
           BlocProvider.value(value: sessionCubit),
+          BlocProvider(
+            create: (_) => SubscriptionCubit(repository: subscriptionRepo),
+          ),
           BlocProvider(
             create: (_) => FriendCubit(
               repository: friendRepo,

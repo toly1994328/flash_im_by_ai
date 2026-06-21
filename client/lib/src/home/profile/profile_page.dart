@@ -7,6 +7,7 @@ import 'package:flash_im_core/flash_im_core.dart' show WsClient;
 import 'package:fx_updater/fx_updater.dart';
 
 import 'cloud_storage_card.dart';
+import 'redeem_page.dart';
 import 'settings_page.dart';
 import 'my_qr_code_page.dart';
 import 'storage_quota_cubit.dart';
@@ -51,6 +52,14 @@ class ProfilePage extends StatelessWidget {
                   iconColor: const Color(0xFF3B82F6),
                   label: '我的名片',
                   onTap: () => _pushPage(context, MyQrCodePage(user: user!)),
+                ),
+                _buildActionRow(
+                  icon: Icons.card_giftcard,
+                  iconColor: const Color(0xFFFF9800),
+                  label: '兑换码',
+                  onTap: () => Navigator.of(context).push(
+                    MaterialPageRoute(builder: (_) => const RedeemPage()),
+                  ),
                 ),
               ]),
               const SizedBox(height: 8),

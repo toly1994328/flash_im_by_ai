@@ -43,6 +43,7 @@ class HomePageState extends State<HomePage> with HomeActionsMixin {
       wsClient: context.read<WsClient>(),
     )..loadConversations();
     context.read<FriendCubit>().loadFriends();
+    context.read<SubscriptionCubit>().loadStatus();
 
     final se = globalSyncEngine;
     if (se != null) {
