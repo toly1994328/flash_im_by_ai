@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.39.0（云空间桌面端三栏布局 + 文件详情嵌入面板 + 高斯模糊预览 + 视频播放统一 + 错误界面优化）
+最后更新：v0.40.0（阿里云 OSS 存储接入 + 订阅系统 + 兑换码 + STS 直传 + VIP 头像框）
 
 ---
 
@@ -43,6 +43,8 @@
 | I-26 | 文件列表查询接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
 | I-27 | 文件详情查询接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
 | I-28 | 文件删除接口 | app-storage (api) | 后端 | cloud/v0.0.1 | ✅ |
+| I-29 | OSS 存储后端 | app-storage (backend/oss) | 后端 | cloud/v0.0.3 | ✅ |
+| I-30 | STS Token 签发 | app-storage (sts) | 后端 | cloud/v0.0.3 | ✅ |
 
 ### 领域层（D）
 
@@ -95,6 +97,9 @@
 | D-45 | 文件引用追踪 | im-message (service) + app-storage | 后端 | v0.0.6_file_system | ✅ |
 | D-46 | 文件删除与配额回收 | app-storage (service) | 后端 | cloud/v0.0.1 | ✅ |
 | D-47 | 原始文件名存储 | app-storage (service) | 后端 | cloud/v0.0.1 | ✅ |
+| D-48 | 订阅计划管理 | app-subscription (service) | 后端 | cloud/v0.0.3 | ✅ |
+| D-49 | 兑换码兑换 | app-subscription (service) | 后端 | cloud/v0.0.3 | ✅ |
+| D-50 | OSS 上传确认 | app-storage (api) | 后端 | cloud/v0.0.3 | ✅ |
 
 ### 前端基础层（F）
 
@@ -126,6 +131,7 @@
 | F-24 | 图片缓存 Widget | fx_media (image) | media/v0.0.1 | ✅ |
 | F-25 | 视频播放页 | fx_media (video) | media/v0.0.1 | ✅ |
 | F-26 | 文件操作工具 | fx_media (file) | media/v0.0.1 | ✅ |
+| F-27 | OSS 直传上传器 | flash_im_chat (oss_uploader) | cloud/v0.0.3 | ✅ |
 
 ### 前端业务层（P）
 
@@ -212,6 +218,7 @@
 | P-80 | 文件详情页 | flash_cloud (file_detail_page) | cloud/v0.0.1 | ✅ |
 | P-81 | 云空间媒体预览 | flash_cloud (file_detail_page) | media/v0.0.1 | ✅ |
 | P-82 | 桌面端云空间三栏 | home/desktop + flash_cloud | cloud/v0.0.2 | ✅ |
+| P-83 | 兑换码输入页 | home/profile (redeem_page) | cloud/v0.0.3 | ✅ |
 
 
 ---
@@ -497,6 +504,7 @@ graph TB
 | v0.37.0 | 2026-06-19 | 172 | [trace/v0.37.0_2026-06-19.md](trace/v0.37.0_2026-06-19.md) |
 | v0.38.0 | 2026-06-20 | 178 | [trace/v0.38.0_2026-06-20.md](trace/v0.38.0_2026-06-20.md) |
 | v0.39.0 | 2026-06-21 | 179 | [trace/v0.39.0_2026-06-21.md](trace/v0.39.0_2026-06-21.md) |
+| v0.40.0 | 2026-06-21 | 186 | [trace/v0.40.0_2026-06-21.md](trace/v0.40.0_2026-06-21.md) |
 
 ---
 
