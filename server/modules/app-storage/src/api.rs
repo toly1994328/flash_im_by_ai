@@ -460,3 +460,262 @@ pub fn storage_routes(storage: Arc<AppStorageService>) -> Router {
         .route("/api/storage/files/{id}", get(file_detail).delete(delete_file_handler))
         .with_state(storage)
 }
+
+// ═══════════════════════════════════════════════════════════════
+// OSS 直传接口（付费用户）
+// ═══════════════════════════════════════════════════════════════
+
+use crate::backend::oss::OssBackend;
+use crate::sts::{StsConfig, StsToken};
+
+/// OSS 路由状态
+#[derive(Clone)]
+pub struct OssRouteState {
+    pub oss: Arc<OssBackend>,
+    pub sts: Arc<StsConfig>,
+    pub bucket: String,
+    pub endpoint: String,
+    pub db: sqlx::PgPool,
+}
+
+/// OSS 路由注册（独立于 storage_routes，仅当 OSS 配置存在时注册）
+pub fn oss_routes(state: OssRouteState) -> Router {
+    Router::new()
+        .route("/api/storage/upload-token", post(upload_token_handler))
+        .route("/api/storage/confirm-upload", post(confirm_upload_handler))
+        .with_state(state)
+}
+
+// ─── 请求/响应 ───
+
+#[derive(serde::Deserialize)]
+struct UploadTokenRequest {
+    file_name: String,
+    file_size: i64,
+    mime_type: String,
+    hash: String,
+    /// 可选：缩略图大小（有缩略图时一并签发路径）
+    thumb_size: Option<i64>,
+}
+
+#[derive(serde::Serialize)]
+struct UploadTokenResponse {
+    /// STS 临时凭证
+    access_key_id: String,
+    access_key_secret: String,
+    security_token: String,
+    expiration: String,
+    /// OSS 信息
+    bucket: String,
+    endpoint: String,
+    /// 后端生成的 object key（前端直接用这个路径上传）
+    object_key: String,
+    /// 缩略图的 object key（如果有）
+    thumb_object_key: Option<String>,
+    /// 完整的公网访问 URL
+    url: String,
+    thumb_url: Option<String>,
+}
+
+#[derive(serde::Deserialize)]
+struct ConfirmUploadRequest {
+    object_key: String,
+    file_size: i64,
+    mime_type: String,
+    mime_category: String,
+    hash: String,
+    original_name: Option<String>,
+    width: Option<i32>,
+    height: Option<i32>,
+    duration_ms: Option<i64>,
+    thumb_object_key: Option<String>,
+}
+
+#[derive(serde::Serialize)]
+struct ConfirmUploadResponse {
+    file_id: i64,
+    url: String,
+    thumb_url: Option<String>,
+    quota: QuotaShort,
+}
+
+#[derive(serde::Serialize)]
+struct QuotaShort {
+    used_bytes: i64,
+    quota_bytes: i64,
+}
+
+// ─── Handler ───
+
+/// POST /api/storage/upload-token
+async fn upload_token_handler(
+    State(state): State<OssRouteState>,
+    headers: HeaderMap,
+    Json(body): Json<UploadTokenRequest>,
+) -> Result<Json<UploadTokenResponse>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+
+    // 1. 检查是否有活跃订阅
+    let has_sub: bool = sqlx::query_scalar(
+        "SELECT EXISTS(SELECT 1 FROM user_subscriptions WHERE user_id = $1 AND status = 'active' AND expires_at > NOW())"
+    )
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await?;
+
+    if !has_sub {
+        return Err(AppError::forbidden("需要订阅才能使用云存储上传"));
+    }
+
+    // 2. 检查配额
+    let (used, quota): (i64, i64) = sqlx::query_as(
+        "SELECT COALESCE(used_bytes, 0::BIGINT), COALESCE(quota_bytes, 104857600::BIGINT) FROM user_storage_quota WHERE user_id = $1"
+    )
+        .bind(user_id)
+        .fetch_optional(&state.db)
+        .await?
+        .unwrap_or((0, 104_857_600));
+
+    if used + body.file_size > quota {
+        return Err(AppError::forbidden("云空间不足"));
+    }
+
+    // 3. 生成 object key
+    let ext = std::path::Path::new(&body.file_name)
+        .extension()
+        .and_then(|e| e.to_str())
+        .unwrap_or("bin")
+        .to_lowercase();
+
+    let date_path = chrono::Utc::now().format("%Y/%m").to_string();
+    let file_uuid = uuid::Uuid::new_v4();
+
+    let category_dir = match body.mime_type.split('/').next().unwrap_or("file") {
+        "image" => "original",
+        "video" => "video",
+        "audio" => "file",
+        _ => "file",
+    };
+
+    let object_key = format!("users/{}/{}/{}/{}.{}", user_id, category_dir, date_path, file_uuid, ext);
+
+    let thumb_object_key = body.thumb_size.map(|_| {
+        format!("users/{}/thumb/{}/{}.webp", user_id, date_path, file_uuid)
+    });
+
+    // 4. 构造 STS Policy（限定上传路径）
+    let mut resources = vec![
+        format!("acs:oss:*:*:{}:{}", state.bucket, object_key),
+    ];
+    if let Some(ref thumb_key) = thumb_object_key {
+        resources.push(format!("acs:oss:*:*:{}:{}", state.bucket, thumb_key));
+    }
+
+    let policy = serde_json::json!({
+        "Version": "1",
+        "Statement": [{
+            "Effect": "Allow",
+            "Action": ["oss:PutObject"],
+            "Resource": resources
+        }]
+    });
+
+    // 5. 签发 STS Token
+    let session_name = format!("upload-user-{}", user_id);
+    let token = state.sts.assume_role(
+        &session_name,
+        Some(&policy.to_string()),
+        900, // 15 分钟
+    ).await.map_err(|e| AppError::bad_request(&format!("STS 签发失败: {}", e)))?;
+
+    // 6. 构造返回
+    let url_prefix = &state.oss.url_prefix;
+    let url = format!("{}/{}", url_prefix, object_key);
+    let thumb_url = thumb_object_key.as_ref().map(|k| format!("{}/{}", url_prefix, k));
+
+    Ok(Json(UploadTokenResponse {
+        access_key_id: token.access_key_id,
+        access_key_secret: token.access_key_secret,
+        security_token: token.security_token,
+        expiration: token.expiration,
+        bucket: state.bucket.clone(),
+        endpoint: state.endpoint.clone(),
+        object_key: object_key.clone(),
+        thumb_object_key,
+        url,
+        thumb_url,
+    }))
+}
+
+/// POST /api/storage/confirm-upload
+async fn confirm_upload_handler(
+    State(state): State<OssRouteState>,
+    headers: HeaderMap,
+    Json(body): Json<ConfirmUploadRequest>,
+) -> Result<Json<ConfirmUploadResponse>, AppError> {
+    let user_id = extract_user_id(&headers)?;
+
+    // 1. 验证 object_key 属于该用户
+    let expected_prefix = format!("users/{}/", user_id);
+    if !body.object_key.starts_with(&expected_prefix) {
+        return Err(AppError::forbidden("无权确认此文件"));
+    }
+
+    // 2. 验证文件在 OSS 上存在
+    use crate::backend::StorageBackend;
+    let exists = state.oss.exists(&body.object_key).await
+        .map_err(|e| AppError::bad_request(&format!("OSS 验证失败: {}", e)))?;
+    if !exists {
+        return Err(AppError::bad_request("文件未上传成功，请重试"));
+    }
+
+    // 3. 插入 file_objects 记录
+    let original_name = body.original_name.as_deref().unwrap_or(&body.object_key);
+    let file_id: i64 = sqlx::query_scalar(
+        "INSERT INTO file_objects (hash, storage_path, size, mime_type, mime_category, width, height, duration_ms, thumb_path, original_name, uploader_id, ref_count, created_at)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 1, NOW())
+         RETURNING id"
+    )
+        .bind(&body.hash)
+        .bind(&body.object_key)
+        .bind(body.file_size)
+        .bind(&body.mime_type)
+        .bind(&body.mime_category)
+        .bind(body.width)
+        .bind(body.height)
+        .bind(body.duration_ms)
+        .bind(body.thumb_object_key.as_deref())
+        .bind(original_name)
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await?;
+
+    // 4. 扣减配额
+    sqlx::query(
+        "UPDATE user_storage_quota SET used_bytes = used_bytes + $1, updated_at = NOW() WHERE user_id = $2"
+    )
+        .bind(body.file_size)
+        .bind(user_id)
+        .execute(&state.db)
+        .await?;
+
+    // 5. 获取最新配额
+    let (used, quota): (i64, i64) = sqlx::query_as(
+        "SELECT used_bytes, quota_bytes FROM user_storage_quota WHERE user_id = $1"
+    )
+        .bind(user_id)
+        .fetch_one(&state.db)
+        .await?;
+
+    // 6. 构造 URL
+    let url_prefix = &state.oss.url_prefix;
+    let url = format!("{}/{}", url_prefix, body.object_key);
+    let thumb_url = body.thumb_object_key.map(|k| format!("{}/{}", url_prefix, k));
+
+    Ok(Json(ConfirmUploadResponse {
+        file_id,
+        url,
+        thumb_url,
+        quota: QuotaShort { used_bytes: used, quota_bytes: quota },
+    }))
+}

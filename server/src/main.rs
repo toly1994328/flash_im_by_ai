@@ -17,8 +17,8 @@ use tower_http::services::{ServeDir, ServeFile};
 use tower_http::compression::CompressionLayer;
 use tower_http::set_header::SetResponseHeaderLayer;
 use axum::http::{HeaderName, HeaderValue};
-use app_storage::{LocalFs, StorageConfig, StorageService};
-use app_storage::api::storage_routes;
+use app_storage::{LocalFs, StorageConfig, StorageService, OssBackend, OssConfig, StsConfig};
+use app_storage::api::{storage_routes, oss_routes, OssRouteState};
 use app_subscription::{SubscriptionService, subscription_routes};
 
 #[tokio::main]
@@ -84,6 +84,22 @@ async fn main() {
     }));
     let storage = Arc::new(storage);
 
+    // OSS 后端（可选，仅当环境变量配置时启用）
+    let oss_route_state = OssConfig::from_env().and_then(|oss_config| {
+        let sts_config = StsConfig::from_env()?;
+        let bucket = oss_config.bucket.clone();
+        let endpoint = oss_config.endpoint.clone();
+        let oss_backend = Arc::new(OssBackend::new(oss_config));
+        println!("✅ [OSS] 已启用，bucket={}, endpoint={}", bucket, endpoint);
+        Some(OssRouteState {
+            oss: oss_backend,
+            sts: Arc::new(sts_config),
+            bucket,
+            endpoint,
+            db: db.clone(),
+        })
+    });
+
     // 好友服务
     let friend_repo = Arc::new(FriendRepository::new(db.clone()));
     let friend_service = Arc::new(FriendService::new(friend_repo));
@@ -110,6 +126,7 @@ async fn main() {
         .with_state(state)
         .merge(im_message::router(msg_service))
         .merge(storage_routes(storage))
+        .merge(if let Some(oss_state) = oss_route_state { oss_routes(oss_state) } else { Router::new() })
         .merge(friend_routes(friend_state))
         .merge(group_routes(group_api_state))
         .merge(app_center::router(db.clone()))
