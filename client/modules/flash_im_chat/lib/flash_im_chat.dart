@@ -21,3 +21,4 @@ export 'src/view/menu/message_action_menu.dart';
 export 'src/view/bubble/reply_bubble.dart';
 export 'src/view/input/reply_preview_bar.dart';
 export 'src/view/info/report_sheet.dart';
+export 'src/data/oss_uploader.dart';

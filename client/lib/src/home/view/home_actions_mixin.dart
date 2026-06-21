@@ -40,8 +40,9 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     convCubit.clearActiveConversation();
   }
 
-  /// ���� ChatPage ·�ɣ��� BlocProvider ������
+  /// 构建 ChatPage 组件，含 BlocProvider 包装层
   Widget _buildChatRoute(BuildContext ctx, Conversation conversation, User user) {
+    final bool ossEnabled = ctx.read<SubscriptionCubit>().ossUploadEnabled;
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: ctx.read<MessageRepository>()),
@@ -62,6 +63,8 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
               ),
               onConversationChanged: () => convCubit.loadConversations(),
               baseUrl: AppConfig.baseUrl,
+              ossUploader: ossEnabled ? OssUploader(dio: ctx.read<MessageRepository>().dio) : null,
+              ossUploadEnabled: ossEnabled,
             )..loadMessages(),
           ),
           if (conversation.isGroup)
@@ -103,11 +106,12 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     );
   }
 
-  /// ����Ƕ��ʽ ChatPage��������Ҳ����ʹ�ã����� Navigator.push��
+  /// 构建嵌入式 ChatPage（桌面端也可以使用，不走 Navigator.push）
   Widget buildChatPanel(BuildContext ctx, Conversation conversation, {VoidCallback? onToggleDetail}) {
     final session = ctx.read<SessionCubit>().state;
     final user = session.user;
     if (user == null) return const SizedBox.shrink();
+    final bool ossEnabled = ctx.read<SubscriptionCubit>().ossUploadEnabled;
     return MultiRepositoryProvider(
       key: ValueKey(conversation.id),
       providers: [
@@ -129,6 +133,8 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
               ),
               onConversationChanged: () => convCubit.loadConversations(),
               baseUrl: AppConfig.baseUrl,
+              ossUploader: ossEnabled ? OssUploader(dio: ctx.read<MessageRepository>().dio) : null,
+              ossUploadEnabled: ossEnabled,
             )..loadMessages(),
           ),
           if (conversation.isGroup)

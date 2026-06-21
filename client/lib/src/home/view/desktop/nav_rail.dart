@@ -34,9 +34,10 @@ class DesktopNavRail extends StatelessWidget {
               builder: (context, state) {
                 final user = state.user;
                 if (user == null) return const SizedBox(height: 40);
+                final bool isVip = context.select<SubscriptionCubit, bool>((SubscriptionCubit c) => c.ossUploadEnabled);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 16),
-                  child: UserAvatar(user: user, size: 36, borderRadius: 8),
+                  child: AvatarWidget(avatar: user.avatar, size: 36, borderRadius: 8, isVip: isVip),
                 );
               },
             ),
