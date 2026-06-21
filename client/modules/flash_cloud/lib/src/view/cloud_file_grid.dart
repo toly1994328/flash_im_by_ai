@@ -35,6 +35,7 @@ class CloudFileGrid extends StatelessWidget {
 
     return GestureDetector(
       onTap: () => onTap?.call(file),
+      onDoubleTap: () => _showDebugInfo(file),
       child: Stack(
         fit: StackFit.expand,
         children: [
@@ -148,5 +149,18 @@ class CloudFileGrid extends StatelessWidget {
       'file' => Icons.insert_drive_file_outlined,
       _ => Icons.insert_drive_file_outlined,
     };
+  }
+
+  void _showDebugInfo(CloudFile file) {
+    debugPrint('═══ CloudFile Debug ═══\n'
+        'id: ${file.id}\n'
+        'url: ${file.url}\n'
+        'thumbUrl: ${file.thumbUrl}\n'
+        'resolvedUrl: ${_resolveUrl(file.url)}\n'
+        'size: ${file.sizeFormatted}\n'
+        'mime: ${file.mimeType} (${file.mimeCategory})\n'
+        'originalName: ${file.originalName}\n'
+        'created: ${file.createdAt}\n'
+        '═══════════════════════');
   }
 }

@@ -57,6 +57,7 @@ async fn main() {
 
     // WS handler 状态
     let ws_for_storage = ws_state.clone();
+    let ws_for_subscription = ws_state.clone();
     let ws_handler_state = Arc::new(WsHandlerState {
         ws_state,
         dispatcher: dispatcher.clone(),
@@ -130,7 +131,23 @@ async fn main() {
         .merge(friend_routes(friend_state))
         .merge(group_routes(group_api_state))
         .merge(app_center::router(db.clone()))
-        .merge(subscription_routes(Arc::new(SubscriptionService::new(db.clone()))))
+        .merge({
+            let mut sub_svc = SubscriptionService::new(db.clone());
+            sub_svc.set_on_quota_changed(Arc::new(move |user_id, used_bytes, quota_bytes| {
+                let ws = ws_for_subscription.clone();
+                tokio::spawn(async move {
+                    use im_ws::proto::{WsFrame, WsFrameType, StorageQuotaNotification};
+                    use prost::Message;
+                    let notification = StorageQuotaNotification { used_bytes, quota_bytes };
+                    let frame = WsFrame {
+                        r#type: WsFrameType::StorageQuotaUpdate as i32,
+                        payload: notification.encode_to_vec(),
+                    };
+                    ws.send_to_user(user_id, frame.encode_to_vec()).await;
+                });
+            }));
+            subscription_routes(Arc::new(sub_svc))
+        })
         .merge(admin::router(db.clone()))
         .route("/ws/im", get(ws_handler).with_state(ws_handler_state))
         .nest_service("/static", ServeDir::new("static"))

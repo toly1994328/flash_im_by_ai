@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use chrono::{DateTime, Utc};
 use serde::Serialize;
 use sqlx::PgPool;
@@ -44,11 +46,17 @@ pub struct SubscriptionStatus {
 
 pub struct SubscriptionService {
     db: PgPool,
+    on_quota_changed: Option<Arc<dyn Fn(i64, i64, i64) + Send + Sync>>,
 }
 
 impl SubscriptionService {
     pub fn new(db: PgPool) -> Self {
-        Self { db }
+        Self { db, on_quota_changed: None }
+    }
+
+    /// 设置配额变更回调（main.rs 中注入 WS 通知）
+    pub fn set_on_quota_changed(&mut self, callback: Arc<dyn Fn(i64, i64, i64) + Send + Sync>) {
+        self.on_quota_changed = Some(callback);
     }
 
     /// 兑换码兑换
@@ -150,6 +158,12 @@ impl SubscriptionService {
             .await?;
 
         let used_bytes = self.get_used_bytes(user_id).await?;
+
+        // 触发 WS 配额通知
+        if let Some(ref cb) = self.on_quota_changed {
+            cb(user_id, used_bytes, new_quota);
+        }
+
         Ok((used_bytes, new_quota))
     }
 
