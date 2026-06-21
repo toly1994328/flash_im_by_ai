@@ -1,182 +1,127 @@
-# 云空间扩容 — OSS 存储 + iOS 内购（cloud/v0.0.3）
+# 云空间 OSS 存储接入（cloud/v0.0.3）
 
 > 版本：v0.40.0  
-> 状态：规划中  
+> 状态：进行中  
 > 分支：feature/v0.40.0
 
 ---
 
-## 一、OSS 存储接入
+## 核心方案
 
-### 设计原则
+双后端模式：根据用户订阅状态决定上传路径。
 
-- 数据库 `storage_path` 继续存相对路径（`original/2026/06/xxx.jpg`），不动
-- 消息内容也存相对路径，不动
+| 用户类型 | 判定条件 | 上传方式 | 文件访问 |
+|----------|---------|---------|---------|
+| 普通用户 | 无活跃订阅 | 现有 multipart → 本地磁盘 | baseUrl + /uploads/path |
+| 付费用户 | 有活跃订阅（user_subscriptions） | STS Token → 前端直传 OSS | https://bucket.oss.../path |
+
+激活方式（本期）：兑换码  
+激活方式（下期）：iOS 内购
+
+- 数据库 `storage_path` 继续存相对路径，不动
 - 前端已有逻辑：没有 `https://` 开头 → 拼 baseUrl；有 → 直接用。不动
-- 只改后端：上传目标从本地磁盘换成 OSS，API 返回 URL 时 `url_prefix` 从 `/uploads` 变为 OSS 公网地址
+- 普通用户上传逻辑完全不变（现有 multipart 接口保留）
+- 付费用户走新接口：获取 STS Token → 直传 OSS → confirm
 
-### 上传架构（STS Token 直传）
+---
+
+## 上传架构
+
+### 普通用户（不变）
 
 ```
-前端 → POST /api/storage/upload-token → 后端签发 STS 临时凭证（限路径+时效15min）
+前端 → POST /api/upload/image (multipart) → 后端 Service → LocalFs.put() → 本地磁盘
+前端 ← 返回 /uploads/original/xxx.jpg
+```
+
+### 付费用户（新增）
+
+```
+前端 → POST /api/storage/upload-token → 后端校验配额+签发 STS 临时凭证
 前端 → PUT 文件直传阿里云 OSS（携带 STS Token）
 前端 → POST /api/storage/confirm-upload → 后端记录元数据 + 扣减配额
+前端 ← 返回 https://bucket.oss-cn-xxx.aliyuncs.com/original/xxx.jpg
 ```
 
-优势：
-- 文件不过服务器，省带宽和 CPU
-- 临时凭证有时效（15min），泄露影响有限
-- 可限制上传路径前缀（`users/{uid}/`）
-- 支持大文件，不受服务端 body limit 限制
+---
 
-### 后端改动
+## 后端改动
 
 | 文件 | 操作 | 内容 |
 |------|------|------|
-| `backend/oss.rs` | 新建 | 实现 StorageBackend trait（仅 get/delete/exists，put 由前端直传） |
+| `backend/oss.rs` | 新建 | OssBackend（get/delete/exists 对接 S3 兼容协议） |
 | `backend/mod.rs` | 修改 | 导出 OssBackend |
 | `api.rs` | 新增 | `POST /api/storage/upload-token` — 签发 STS 临时凭证 |
-| `api.rs` | 新增 | `POST /api/storage/confirm-upload` — 前端上传完成后确认，记录元数据+扣配额 |
-| `service.rs` | 修改 | StorageConfig 增加 OSS 配置；新增 STS 签发逻辑 |
-| `main.rs` | 修改 | 环境变量选择后端 |
-| `.env` | 修改 | 新增 STORAGE_BACKEND, OSS_ENDPOINT, OSS_BUCKET, OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_STS_ROLE_ARN |
-| `Cargo.toml` | 修改 | 增加 `aws-sdk-s3` + `aws-sdk-sts`（或阿里云 STS SDK） |
+| `api.rs` | 新增 | `POST /api/storage/confirm-upload` — 确认上传，记录元数据+扣配额 |
+| `service.rs` | 修改 | StorageConfig 增加 OSS 配置；新增 STS 签发和 confirm 逻辑 |
+| `main.rs` | 修改 | 初始化 OssBackend（当 OSS 配置存在时） |
+| `.env` | 修改 | 新增 OSS_ENDPOINT, OSS_BUCKET, OSS_ACCESS_KEY_ID 等 |
+| `Cargo.toml` | 修改 | 增加 aws-sdk-s3 + aws-sdk-sts |
+| **新模块 `app-subscription`** | 新建 | 订阅计划 + 用户订阅 + 兑换码（独立模块） |
 
-### 前端改动
+### 订阅模块（app-subscription）
+
+```
+server/modules/app-subscription/
+├── src/
+│   ├── lib.rs
+│   ├── model.rs         -- subscription_plans, user_subscriptions, redeem_codes
+│   ├── repository.rs    -- CRUD
+│   ├── service.rs       -- 兑换逻辑、订阅状态查询、配额计算
+│   └── api.rs           -- 路由：兑换码兑换、订阅状态查询
+└── Cargo.toml
+```
+
+接口：
+- `POST /api/subscriptions/redeem` — 兑换码激活订阅
+- `GET /api/subscriptions/status` — 查询当前订阅状态（含是否 OSS 可用）
+
+数据表：
+- `subscription_plans` — 计划定义
+- `user_subscriptions` — 用户订阅记录
+- `redeem_codes` — 兑换码
+
+## 前端改动
 
 | 文件 | 操作 | 内容 |
 |------|------|------|
-| `chat_file_mixin.dart` | 修改 | 上传流程从 multipart 改为：获取 token → 直传 OSS → confirm |
-| `cloud_repository.dart` 或新建 `oss_upload_service.dart` | 新增 | OSS 直传封装（PUT object with STS headers） |
+| `chat_file_mixin.dart` | 修改 | 上传前查订阅状态，有活跃订阅走 OSS 直传 |
+| 新建 `oss_uploader.dart` | 新建 | OSS 直传封装（获取 token → PUT → confirm） |
+| 兑换码输入 UI | 新建 | 设置/云空间页增加"兑换码"入口，输入+验证+刷新状态 |
+| 订阅状态展示 | 新建 | 云空间页显示当前订阅（Pro / 免费） |
 | 下载/查看逻辑 | 不动 | URL 规则不变 |
 
-### 兼容策略
-
-- `STORAGE_BACKEND=local`：开发环境，保持现有 multipart → LocalFs + ServeDir
-- `STORAGE_BACKEND=oss`：生产环境，STS Token 直传 OSS
-- 前端根据后端返回判断走哪条路径（或由配置决定）
-- 历史数据：ServeDir 保留，旧链接继续可用
-
 ---
 
-## 二、iOS 内购
-
-### 商业模型
-
-| 项 | 决定 |
-|---|------|
-| 套餐 | $0.99/月 = +1GB 云空间 |
-| 计费模型 | Auto-Renewable Subscription（自动续费订阅） |
-| 免费额度 | 100MB（不变） |
-| 订阅中配额 | 100MB + 1GB = 1.1GB |
-| 到期策略 | 方案 A：冻结上传，数据保留 |
-
----
-
-## 定价依据
-
-### 成本分析
-
-| 费用项 | 单价 |
-|--------|------|
-| 阿里云 OSS 标准存储 | ¥0.12/GB/月 |
-| 外网下行流量 | ¥0.50/GB |
-| 1GB 用户综合月成本 | ~¥1.0~1.5 |
-
-### 收入分析
-
-| 项 | 金额 |
-|----|------|
-| iOS 售价 | $0.99/月（≈¥7.2） |
-| 苹果抽成 30% | -¥2.16 |
-| 实收 | ¥5.04/月 |
-| 成本 | ~¥1.5/月 |
-| **毛利** | **~¥3.5/用户/月** |
-
-### 竞品参考
-
-| 产品 | 方案 | 单价（¥/GB/月） |
-|------|------|--------------|
-| iCloud（中国区） | 50GB ¥6/月 | ¥0.12 |
-| 百度网盘超会 | 5TB ¥30/月 | ¥0.006 |
-| 闪讯（本方案） | 1GB $0.99/月 | ¥7.2 |
-
-> 闪讯定价远高于裸存储服务，溢价来自 IM 附属功能的便利性（消息附件不丢失 + 多端同步 + 配额管理）。用户付费门槛低（$0.99 心理锚点），且目标用户是 iOS 端高意愿付费群体。
-
----
-
-## 到期策略
-
-采用 **方案 A（iCloud 模式）**：冻结上传，数据保留。
+## 判定逻辑
 
 ```
-订阅中：  配额 = 100MB + 1GB = 1.1GB ✓ 正常使用
-宽限期：  Apple Billing Grace Period（~16天），保持付费配额
-正式到期：配额回退到 100MB
+用户是否走 OSS 上传：
+  查 user_subscriptions 表是否有 status='active' 且 expires_at > NOW() 的记录
+  有 → OSS 直传
+  无 → 本地 multipart（现有逻辑）
 
-到期后行为：
-  ✗ 超额时不能上传新文件
-  ✗ 超额时不能发送图片/视频/文件消息
-  ✓ 已有文件正常查看和下载
-  ✓ 纯文本消息正常收发
-  ✓ 可手动删除文件，回到 100MB 以内后恢复上传能力
+配额计算（本期）：
+  总配额 = 基础 100MB + SUM(活跃订阅计划的 storage_bytes)
+
+激活订阅的方式（本期）：
+  用户输入兑换码 → POST /api/subscriptions/redeem → 验证码有效性
+  → 创建 user_subscriptions 记录 → 更新 quota → WS 通知前端刷新
+
+涉及新表：
+  subscription_plans     — 计划定义（code, name, storage_bytes, features, price）
+  user_subscriptions     — 用户订阅记录（user_id, plan_id, status, starts_at, expires_at）
+  redeem_codes           — 兑换码（code, plan_id, duration_days, max_uses, used_count, expires_at）
 ```
 
 ---
 
-## 技术栈
+## 安全设计
 
-| 层 | 技术 | 说明 |
-|---|------|------|
-| iOS 支付 | StoreKit 2 / `in_app_purchase` 官方插件 | Flutter 官方维护 |
-| 后端验单 | App Store Server API v2 | JWT 签名 + JWS 交易验证 |
-| 服务端通知 | App Store Server Notifications V2 | 续费/退款/到期实时通知 |
-| 数据库 | subscriptions 表 | 订阅状态 + 原始交易ID + 到期时间 |
-| 配额联动 | 订阅状态变更 → user_storage_quota.quota_bytes | 升级/降级自动同步 |
-
----
-
-## 开发范围
-
-### 后端
-
-| 模块 | 内容 |
-|------|------|
-| 数据模型 | subscriptions 表（user_id, product_id, original_transaction_id, status, expires_at） |
-| 验单接口 | POST /api/subscriptions/verify — 接收客户端 receipt，调 App Store API 验证 |
-| Server Notification | POST /api/subscriptions/notify — Apple 推送续费/退款/到期 |
-| 配额升降级 | 验证通过 → quota_bytes += 1GB；到期 → quota_bytes 回退到 100MB |
-| 订阅状态查询 | GET /api/subscriptions/status — 客户端查询当前订阅状态 |
-
-### 前端
-
-| 模块 | 内容 |
-|------|------|
-| 套餐展示 | 云空间页/设置页增加"扩容"入口，展示当前套餐和价格 |
-| 发起购买 | `in_app_purchase` 调用 StoreKit 购买流程 |
-| 购买验证 | 购买成功后将 receipt 发送到后端验证 |
-| 恢复购买 | "恢复购买"按钮，处理换机场景 |
-| 状态展示 | 订阅中/已到期/配额不足 提示 |
-| 超额拦截 | 发送文件时检查配额，超额弹出扩容引导 |
-
----
-
-## 流水线规划
-
-| 步骤 | 状态 |
-|------|------|
-| 第 1 步 需求分析 | ⬜ |
-| 第 2 步 后端设计 | ⬜ |
-| 第 3 步 后端任务 | ⬜ |
-| 第 4 步 交叉审查 | ⬜ |
-| 第 5 步 后端实现 | ⬜ |
-| 第 6 步 后端测试 | ⬜ |
-| 第 7 步 前端设计 | ⬜ |
-| 第 8 步 前端任务 | ⬜ |
-| 第 9 步 前端审查 | ⬜ |
-| 第 10 步 前端实现 | ⬜ |
-| 第 11 步 前端测试 | ⬜ |
-| 第 12 步 归档 | ⬜ |
+- 所有密钥（OSS AK/SK、STS Role ARN）仅在 `.env` 中，已从 git 追踪移除
+- STS Token 有效期 15 分钟，限定上传路径前缀 `users/{uid}/`
+- confirm-upload 接口后端会验证 OSS 上文件是否真实存在
+- 配额校验 100% 在服务端，客户端跳过检查也会被后端拒绝
 
 ---
 
@@ -184,9 +129,45 @@
 
 | 功能 | 理由 |
 |------|------|
-| 多档位套餐（5GB/20GB） | 先单一套餐跑通流程 |
-| Android Google Play 支付 | 本次只做 iOS |
-| 微信/支付宝支付 | 后续根据需求追加 |
-| 家庭共享 | Apple 家庭共享需额外开发 |
-| 退款后数据处理 | Apple 退款通知收到后只回退配额，不删数据 |
-| 优惠码/促销价 | 后续营销需求 |
+| iOS 内购 | 下版本，先把 OSS 链路跑通 |
+| 付费套餐展示 | 下版本 |
+| 到期降级 | 下版本 |
+| CDN 加速 | 先跑通基础链路 |
+| 大文件分片上传 | 当前 50MB 限制够用 |
+
+---
+
+## TODO（后续版本）
+
+- [ ] `user_quota_rewards` 表：一次性配额奖励（签到领空间、邀请好友送额度、活动赠送）
+- [ ] 配额计算改为：基础 100MB + 订阅配额 + 奖励配额
+- [ ] 奖励支持过期时间（永久/限时）
+- [ ] iOS 内购对接 App Store Server API v2
+- [ ] 到期后冻结上传（方案 A）
+- [ ] 多档位套餐（5GB/20GB）
+
+---
+
+## 测试方式
+
+1. 后端启动后，通过管理接口或 SQL 插入测试兑换码：
+```sql
+INSERT INTO subscription_plans (code, name, storage_bytes, features, price_cents, period_days)
+VALUES ('cloud_pro', '云空间 Pro', 1073741824, '{"oss_upload": true}', 99, 30);
+
+INSERT INTO redeem_codes (code, plan_id, duration_days, max_uses)
+VALUES ('TEST-1234-5678', 1, 30, 10);
+```
+
+2. 前端输入兑换码 `TEST-1234-5678` → 激活订阅 → 上传走 OSS
+
+---
+
+## 定价备忘（下版本用）
+
+| 项 | 值 |
+|---|---|
+| 套餐 | $0.99/月 = +1GB |
+| 模型 | Auto-Renewable Subscription |
+| 到期策略 | 冻结上传，数据保留 |
+| 毛利 | ~¥3.5/用户/月 |

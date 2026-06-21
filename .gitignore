@@ -12,3 +12,9 @@ scripts/build_center/dest/
 scripts/build_center/ohos/materials/
 web/
 .DS_Store
+
+# 密钥文件
+server/.env
+client/.env.*
+client/android/key.properties
+client/android/*.jks
