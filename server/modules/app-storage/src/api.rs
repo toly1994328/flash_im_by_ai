@@ -605,10 +605,10 @@ async fn upload_token_handler(
 
     // 4. 构造 STS Policy（限定上传路径）
     let mut resources = vec![
-        format!("acs:oss:*:*:{}:{}", state.bucket, object_key),
+        format!("acs:oss:*:*:{}/{}", state.bucket, object_key),
     ];
     if let Some(ref thumb_key) = thumb_object_key {
-        resources.push(format!("acs:oss:*:*:{}:{}", state.bucket, thumb_key));
+        resources.push(format!("acs:oss:*:*:{}/{}", state.bucket, thumb_key));
     }
 
     let policy = serde_json::json!({
