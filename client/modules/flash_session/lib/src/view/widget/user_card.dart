@@ -9,6 +9,7 @@ class UserAvatar extends StatelessWidget {
   final double borderRadius;
   final Color? backgroundColor;
   final double? paddingRatio;
+  final bool isVip;
 
   const UserAvatar({
     super.key,
@@ -17,6 +18,7 @@ class UserAvatar extends StatelessWidget {
     this.borderRadius = 8,
     this.backgroundColor,
     this.paddingRatio,
+    this.isVip = false,
   });
 
   @override
@@ -60,15 +62,31 @@ class UserAvatar extends StatelessWidget {
     }
 
     if (backgroundColor != null) {
-      return Container(
+      return _wrapVip(Container(
         decoration: BoxDecoration(
           color: backgroundColor,
           borderRadius: BorderRadius.circular(borderRadius),
         ),
         child: avatar,
-      );
+      ));
     }
-    return avatar;
+    return _wrapVip(avatar);
+  }
+
+  Widget _wrapVip(Widget child) {
+    if (!isVip) return child;
+    return Container(
+      padding: const EdgeInsets.all(2),
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(borderRadius + 2),
+        gradient: const LinearGradient(
+          colors: [Color(0xFFFFD700), Color(0xFFFFA500)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: child,
+    );
   }
 }
 

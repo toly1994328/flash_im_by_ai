@@ -185,7 +185,7 @@ class _MobileLayoutState extends State<MobileLayout> {
                       color: Colors.white,
                       shape: BoxShape.circle,
                     ),
-                    child: UserAvatar(user: user, size: 32, borderRadius: 16, paddingRatio: 0.22),
+                    child: UserAvatar(user: user, size: 32, borderRadius: 16, paddingRatio: 0.22, isVip: context.select<SubscriptionCubit, bool>((SubscriptionCubit c) => c.ossUploadEnabled)),
                   ),
                   const SizedBox(width: 8),
                 ],
