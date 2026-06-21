@@ -429,43 +429,76 @@ mixin ChatFileMixin on Cubit<ChatState> {
     emit(current.copyWith(messages: [...current.messages, localMessage]));
 
     try {
-      final result = await repository.uploadFile(filePath, hash: hash, onProgress: (p) {
-        _log.d('[FileSend] progress: ${(p * 100).toInt()}%');
-        final s = state;
-        if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
-      });
+      // ─── 上传分流：OSS 或本地 ───
+      final String uploadedUrl;
+      final String uploadedFileName;
+      final int uploadedFileSize;
+      final String uploadedFileType;
 
-      _log.d('[FileSend] upload done: url=${result.fileUrl}, name=${result.fileName}');
+      if (ossUploadEnabled && ossUploader != null) {
+        _log.d('[FileSend] OSS upload path');
+        final String mimeType = _mimeFromExt(filePath.split('.').last.toLowerCase());
+        final OssUploadResult ossResult = await ossUploader!.upload(
+          filePath: filePath,
+          fileName: fileName,
+          fileSize: fileSize,
+          mimeType: mimeType,
+          hash: hash,
+          mimeCategory: _categoryFromMime(mimeType),
+          onProgress: (double p) {
+            _log.d('[FileSend] progress: ${(p * 100).toInt()}%');
+            final ChatState s = state;
+            if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+          },
+        );
+        uploadedUrl = ossResult.url;
+        uploadedFileName = fileName;
+        uploadedFileSize = fileSize;
+        uploadedFileType = filePath.split('.').last.toLowerCase();
+      } else {
+        _log.d('[FileSend] local upload path');
+        final result = await repository.uploadFile(filePath, hash: hash, onProgress: (double p) {
+          _log.d('[FileSend] progress: ${(p * 100).toInt()}%');
+          final ChatState s = state;
+          if (s is ChatLoaded) emit(s.copyWith(uploadProgress: p));
+        });
+        uploadedUrl = result.fileUrl;
+        uploadedFileName = result.fileName;
+        uploadedFileSize = result.fileSize.toInt();
+        uploadedFileType = result.fileType;
+      }
 
-      final afterUpload = state;
+      _log.d('[FileSend] upload done: url=$uploadedUrl, name=$uploadedFileName');
+
+      final ChatState afterUpload = state;
       if (afterUpload is ChatLoaded) {
         emit(afterUpload.copyWith(clearUploadProgress: true));
       }
 
-      final fileExtra = FileExtra(
-        fileName: result.fileName,
-        fileSize: result.fileSize,
-        fileUrl: result.fileUrl,
-        fileType: result.fileType,
+      final FileExtra fileExtra = FileExtra(
+        fileName: uploadedFileName,
+        fileSize: uploadedFileSize,
+        fileUrl: uploadedUrl,
+        fileType: uploadedFileType,
       );
 
-      final latest = state;
+      final ChatState latest = state;
       if (latest is ChatLoaded) {
-        final updated = latest.messages.map((m) {
+        final List<Message> updated = latest.messages.map((Message m) {
           if (m.id == localId) {
-            return m.copyWith(content: result.fileUrl, extra: fileExtra.toJson());
+            return m.copyWith(content: uploadedUrl, extra: fileExtra.toJson());
           }
           return m;
         }).toList();
         emit(latest.copyWith(messages: updated));
       }
 
-      final clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
+      final String clientId = 'client_${DateTime.now().millisecondsSinceEpoch}';
       pendingMessages[clientId] = localId;
-      _log.d('[FileSend] ws send: clientId=$clientId, content=${result.fileUrl}');
+      _log.d('[FileSend] ws send: clientId=$clientId, content=$uploadedUrl');
       wsClient.sendMessage(
         conversationId: conversationId,
-        content: result.fileUrl,
+        content: uploadedUrl,
         type: proto.MessageType.FILE,
         extra: utf8.encode(jsonEncode(fileExtra.toJson())),
         clientId: clientId,
@@ -638,6 +671,33 @@ mixin ChatFileMixin on Cubit<ChatState> {
     if (bytes < 1024) return '$bytes B';
     if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KB';
     return '${(bytes / (1024 * 1024)).toStringAsFixed(0)} MB';
+  }
+
+  static String _mimeFromExt(String ext) {
+    return switch (ext) {
+      'jpg' || 'jpeg' => 'image/jpeg',
+      'png' => 'image/png',
+      'gif' => 'image/gif',
+      'webp' => 'image/webp',
+      'mp4' => 'video/mp4',
+      'mov' => 'video/quicktime',
+      'mp3' => 'audio/mpeg',
+      'wav' => 'audio/wav',
+      'aac' => 'audio/aac',
+      'm4a' => 'audio/mp4',
+      'pdf' => 'application/pdf',
+      _ => 'application/octet-stream',
+    };
+  }
+
+  static String _categoryFromMime(String mimeType) {
+    final String type = mimeType.split('/').first;
+    return switch (type) {
+      'image' => 'image',
+      'video' => 'video',
+      'audio' => 'audio',
+      _ => 'file',
+    };
   }
 
   /// 秒传命中时直接发送图片消息（无占位消息、无上传进度）

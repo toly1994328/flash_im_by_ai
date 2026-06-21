@@ -43,6 +43,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
   /// 构建 ChatPage 组件，含 BlocProvider 包装层
   Widget _buildChatRoute(BuildContext ctx, Conversation conversation, User user) {
     final bool ossEnabled = ctx.read<SubscriptionCubit>().ossUploadEnabled;
+    debugPrint('[DEBUG] _buildChatRoute: ossEnabled=$ossEnabled, state=${ctx.read<SubscriptionCubit>().state.hasActiveSubscription}');
     return MultiRepositoryProvider(
       providers: [
         RepositoryProvider.value(value: ctx.read<MessageRepository>()),
