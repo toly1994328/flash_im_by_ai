@@ -4,7 +4,6 @@ use base64::Engine;
 use base64::engine::general_purpose::STANDARD as BASE64;
 use chrono::Utc;
 use hmac::{Hmac, Mac};
-use percent_encoding::{utf8_percent_encode, NON_ALPHANUMERIC};
 use rand::Rng;
 use serde::Deserialize;
 use sha1::Sha1;
@@ -124,13 +123,20 @@ impl StsConfig {
     }
 }
 
-/// URL 编码（阿里云要求的严格编码）
+/// URL 编码（阿里云要求的严格编码：RFC 3986 unreserved 字符不编码，其余全编码）
 fn encode(s: &str) -> String {
-    utf8_percent_encode(s, NON_ALPHANUMERIC)
-        .to_string()
-        .replace('+', "%20")
-        .replace('*', "%2A")
-        .replace("%7E", "~")
+    let mut result = String::with_capacity(s.len() * 3);
+    for byte in s.bytes() {
+        match byte {
+            b'A'..=b'Z' | b'a'..=b'z' | b'0'..=b'9' | b'-' | b'_' | b'.' | b'~' => {
+                result.push(byte as char);
+            }
+            _ => {
+                result.push_str(&format!("%{:02X}", byte));
+            }
+        }
+    }
+    result
 }
 
 // ─── 响应解析 ───

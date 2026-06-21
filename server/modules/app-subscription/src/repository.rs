@@ -71,7 +71,7 @@ impl SubRepo {
     /// 计算用户所有活跃订阅的总配额
     pub async fn sum_active_storage(db: &PgPool, user_id: i64) -> Result<i64, sqlx::Error> {
         let row: (i64,) = sqlx::query_as(
-            "SELECT COALESCE(SUM(p.storage_bytes), 0::BIGINT)
+            "SELECT COALESCE(SUM(p.storage_bytes)::BIGINT, 0::BIGINT)
              FROM user_subscriptions s
              JOIN subscription_plans p ON s.plan_id = p.id
              WHERE s.user_id = $1 AND s.status = 'active' AND s.expires_at > NOW()"
