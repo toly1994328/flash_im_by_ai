@@ -12,16 +12,16 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — 新建 app-subscription 模块骨架（无依赖）
-2. ⬜ 任务 2 — 数据库建表 SQL（无依赖）
-3. ⬜ 任务 3 — model.rs 数据结构（依赖任务 1）
-4. ⬜ 任务 4 — repository.rs 数据访问（依赖任务 3）
-5. ⬜ 任务 5 — service.rs 业务逻辑（依赖任务 4）
-6. ⬜ 任务 6 — api.rs 路由（依赖任务 5）
-7. ⬜ 任务 7 — app-storage 新增 STS 签发（无依赖）
-8. ⬜ 任务 8 — app-storage 新增 upload-token + confirm-upload 接口（依赖任务 7）
-9. ⬜ 任务 9 — main.rs 注册路由（依赖任务 6、8）
-10. ⬜ 任务 10 — 编译验证 + 测试脚本
+1. ✅ 任务 1 — 新建 app-subscription 模块骨架（无依赖）
+2. ✅ 任务 2 — 数据库建表 SQL（无依赖）
+3. ✅ 任务 3 — model.rs 数据结构（依赖任务 1）
+4. ✅ 任务 4 — repository.rs 数据访问（依赖任务 3）
+5. ✅ 任务 5 — service.rs 业务逻辑（依赖任务 4）
+6. ✅ 任务 6 — api.rs 路由（依赖任务 5）
+7. ✅ 任务 7 — app-storage 新增 STS 签发（无依赖）
+8. ✅ 任务 8 — app-storage 新增 upload-token + confirm-upload 接口（依赖任务 7）
+9. ✅ 任务 9 — main.rs 注册路由（依赖任务 6、8）
+10. ✅ 任务 10 — 编译验证 + 测试脚本
 
 ---
 

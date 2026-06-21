@@ -12,14 +12,14 @@
 
 ## 执行顺序
 
-1. ⬜ 任务 1 — SubscriptionRepository 数据层（无依赖）
-2. ⬜ 任务 2 — SubscriptionCubit 状态管理（依赖任务 1）
-3. ⬜ 任务 3 — OssUploader 直传封装（无依赖）
-4. ⬜ 任务 4 — ChatFileMixin 上传分流（依赖任务 2、3）
-5. ⬜ 任务 5 — 兑换码页面（依赖任务 2）
-6. ⬜ 任务 6 — VIP 头像框（依赖任务 2）
-7. ⬜ 任务 7 — HomePage 初始化订阅状态（依赖任务 2）
-8. ⬜ 任务 8 — 编译验证
+1. ✅ 任务 1 — SubscriptionRepository 数据层（无依赖）
+2. ✅ 任务 2 — SubscriptionCubit 状态管理（依赖任务 1）
+3. ✅ 任务 3 — OssUploader 直传封装（无依赖）
+4. ✅ 任务 4 — ChatFileMixin 上传分流（依赖任务 2、3）
+5. ✅ 任务 5 — 兑换码页面（依赖任务 2）
+6. ✅ 任务 6 — VIP 头像框（依赖任务 2）
+7. ✅ 任务 7 — HomePage 初始化订阅状态（依赖任务 2）
+8. ✅ 任务 8 — 编译验证
 
 ---
 
