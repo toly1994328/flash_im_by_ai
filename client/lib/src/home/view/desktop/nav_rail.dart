@@ -44,7 +44,9 @@ class DesktopNavRail extends StatelessWidget {
             const SizedBox(height: 12),
             _buildNavIcon(context, 1, Icons.people_outline, Icons.people, '通讯录'),
             const SizedBox(height: 12),
-            _buildNavIcon(context, 2, Icons.person_outline, Icons.person, '我的'),
+            _buildNavIcon(context, 2, Icons.cloud_outlined, Icons.cloud, '云空间'),
+            const SizedBox(height: 12),
+            _buildNavIcon(context, 3, Icons.person_outline, Icons.person, '我的'),
             const Spacer(),
             TolyDropMenu(
               placement: Placement.rightEnd,

@@ -16,11 +16,17 @@ import 'file_detail_page.dart';
 class CloudSpacePage extends StatefulWidget {
   final CloudRepository repository;
   final String? baseUrl;
+  final bool showAppBar;
+  final void Function(CloudFile file)? onFileTap;
+  final VoidCallback? onCategoryChanged;
 
   const CloudSpacePage({
     super.key,
     required this.repository,
     this.baseUrl,
+    this.showAppBar = true,
+    this.onFileTap,
+    this.onCategoryChanged,
   });
 
   @override
@@ -68,6 +74,7 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
     if (_tabController.index == _lastTabIndex) return;
     _lastTabIndex = _tabController.index;
     _cubit.switchCategory(_categories[_tabController.index]);
+    widget.onCategoryChanged?.call();
   }
 
   @override
@@ -81,6 +88,12 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.showAppBar) {
+      return BlocProvider.value(
+        value: _cubit,
+        child: _buildBody(),
+      );
+    }
     return BlocProvider.value(
       value: _cubit,
       child: Scaffold(
@@ -148,7 +161,14 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                Text('加载失败', style: TextStyle(color: Colors.grey[500])),
+                Icon(Icons.cloud_off_outlined, size: 48, color: Colors.grey[300]),
+                const SizedBox(height: 12),
+                Text(
+                  (state.error?.contains('connection') == true || state.error?.contains('SocketException') == true)
+                      ? '网络连接失败，请检查网络'
+                      : '加载失败',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                ),
                 const SizedBox(height: 12),
                 TextButton(onPressed: () => _cubit.loadFiles(category: state.category), child: const Text('重试')),
               ],
@@ -181,14 +201,18 @@ class _CloudSpacePageState extends State<CloudSpacePage> with SingleTickerProvid
   }
 
   void _openDetail(CloudFile file) {
-    Navigator.of(context).push(MaterialPageRoute(
-      builder: (_) => FileDetailPage(
-        fileId: file.id,
-        repository: widget.repository,
-        baseUrl: widget.baseUrl,
-        onDeleted: () => _cubit.removeFile(file.id),
-      ),
-    ));
+    if (widget.onFileTap != null) {
+      widget.onFileTap!(file);
+    } else {
+      Navigator.of(context).push(MaterialPageRoute(
+        builder: (_) => FileDetailPage(
+          fileId: file.id,
+          repository: widget.repository,
+          baseUrl: widget.baseUrl,
+          onDeleted: () => _cubit.removeFile(file.id),
+        ),
+      ));
+    }
   }
 
   /// 按日期分组渲染文件列表

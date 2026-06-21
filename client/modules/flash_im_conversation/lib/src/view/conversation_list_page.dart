@@ -51,8 +51,15 @@ class _ConversationListPageState extends State<ConversationListPage> {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(message, style: const TextStyle(color: Colors.grey)),
-                  const SizedBox(height: 8),
+                  Icon(Icons.cloud_off_outlined, size: 48, color: Colors.grey[300]),
+                  const SizedBox(height: 12),
+                  Text(
+                    message.contains('connection') || message.contains('SocketException')
+                        ? '网络连接失败，请检查网络'
+                        : '加载失败',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+                  ),
+                  const SizedBox(height: 12),
                   TextButton(
                     onPressed: () => context
                         .read<ConversationListCubit>()

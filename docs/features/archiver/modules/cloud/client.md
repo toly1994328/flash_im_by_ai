@@ -1,6 +1,6 @@
 # 云空间管理 — 前端局域网络
 
-涉及节点：F-21, P-79~P-80
+涉及节点：F-21, P-79~P-80, P-82
 
 ---
 
@@ -13,19 +13,25 @@
 | flash_cloud | client/modules/flash_cloud/ | 云空间独立模块（data + logic + view） |
 | home/profile | client/lib/src/home/profile/ | "我的"页面精简云空间卡片 |
 | home/view | client/lib/src/home/view/ | MobileLayout 4 Tab 导航 |
+| home/desktop | client/lib/src/home/view/desktop/ | DesktopLayout 云空间三栏 + NavRail |
 
 ### 依赖关系
 
 ```mermaid
 graph TB
-    LAYOUT[MobileLayout] --> CLOUD[flash_cloud]
-    LAYOUT --> PROFILE[ProfilePage]
+    MOBILE[MobileLayout] --> CLOUD[flash_cloud]
+    DESKTOP[DesktopLayout] --> CLOUD
+    DESKTOP --> DETAIL_PANEL[DesktopCloudDetailPanel]
+    DETAIL_PANEL --> CLOUD
+    MOBILE --> PROFILE[ProfilePage]
     CLOUD --> SHARED[flash_shared]
     CLOUD -.->|HTTP| API[后端 API]
     PROFILE --> CLOUD
 
     style CLOUD fill:#E8F5E9,stroke:#4CAF50
-    style LAYOUT fill:#FFF3E0,stroke:#FF9800
+    style MOBILE fill:#FFF3E0,stroke:#FF9800
+    style DESKTOP fill:#FFF3E0,stroke:#FF9800
+    style DETAIL_PANEL fill:#E8F5E9,stroke:#4CAF50
 ```
 
 ### 节点详情
@@ -34,7 +40,8 @@ graph TB
 |------|---------|------|------|
 | F-21 | 全局下载管理器 | flash_cloud/data/cloud_download_manager | 单例，管理下载队列/进度/状态 |
 | P-79 | 云空间 Tab 页 | flash_cloud/view/cloud_space_page | 圆环配额 + 吸顶 Tab + 日期分组列表 |
-| P-80 | 文件详情页 | flash_cloud/view/file_detail_page | 信息 + 缓存下载 + 引用会话 + 删除 |
+| P-80 | 文件详情页 | flash_cloud/view/file_detail_page | 信息 + 缓存下载 + 引用会话 + 删除 + 高斯模糊预览 |
+| P-82 | 桌面端云空间三栏 | home/desktop/desktop_layout + cloud_detail_panel | NavRail 云空间入口 + 左侧列表面板(400px) + 右侧嵌入详情 |
 
 ---
 
@@ -104,3 +111,4 @@ sequenceDiagram
 | 版本 | 变更 |
 |------|------|
 | cloud/v0.0.1 | F-21, P-79~P-80：独立 Tab + 下载管理器 + 详情页 + 吸顶 Tab |
+| cloud/v0.0.2 | P-82：桌面端三栏布局 + NavRail 4 项 + 嵌入模式 + 高斯模糊预览 + 视频播放统一 |

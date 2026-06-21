@@ -1,8 +1,11 @@
+import 'dart:ui';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_shared/flash_shared.dart';
+import 'package:fx_env/fx_env.dart';
 import 'package:fx_media/fx_media.dart';
 import 'package:intl/intl.dart';
 import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
@@ -18,6 +21,7 @@ class FileDetailPage extends StatelessWidget {
   final CloudRepository repository;
   final String? baseUrl;
   final VoidCallback? onDeleted;
+  final bool showAppBar;
 
   const FileDetailPage({
     super.key,
@@ -25,6 +29,7 @@ class FileDetailPage extends StatelessWidget {
     required this.repository,
     this.baseUrl,
     this.onDeleted,
+    this.showAppBar = true,
   });
 
   @override
@@ -35,10 +40,12 @@ class FileDetailPage extends StatelessWidget {
         listener: (context, state) {
           if (state.status == FileDetailStatus.deleted) {
             onDeleted?.call();
-            Navigator.of(context).pop();
+            if (showAppBar) Navigator.of(context).pop();
           }
         },
         builder: (context, state) {
+          final Widget body = _buildBody(context, state);
+          if (!showAppBar) return body;
           return Scaffold(
             backgroundColor: const Color(0xFFF5F5F5),
             appBar: AppBar(
@@ -48,7 +55,7 @@ class FileDetailPage extends StatelessWidget {
               elevation: 0,
               scrolledUnderElevation: 0,
             ),
-            body: _buildBody(context, state),
+            body: body,
           );
         },
       ),
@@ -64,7 +71,14 @@ class FileDetailPage extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text('加载失败', style: TextStyle(color: Colors.grey[500])),
+            Icon(Icons.cloud_off_outlined, size: 48, color: Colors.grey[300]),
+            const SizedBox(height: 12),
+            Text(
+              (state.error?.contains('connection') == true || state.error?.contains('SocketException') == true)
+                  ? '网络连接失败，请检查网络'
+                  : '加载失败',
+              style: TextStyle(fontSize: 14, color: Colors.grey[500]),
+            ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: () => context.read<FileDetailCubit>().loadDetail(fileId),
@@ -78,6 +92,7 @@ class FileDetailPage extends StatelessWidget {
     final CloudFile file = detail.file;
 
     return ListView(
+      padding: showAppBar ? EdgeInsets.zero : const EdgeInsets.symmetric(horizontal: 16),
       children: [
         _buildPreview(context, file, state),
         const SizedBox(height: 10),
@@ -100,6 +115,7 @@ class FileDetailPage extends StatelessWidget {
     final bool isImage = file.mimeCategory == 'image';
     final bool isAudio = file.mimeCategory == 'audio';
     final bool hasImage = file.thumbUrl != null || isImage;
+    final double previewHeight = showAppBar ? 240 : 180;
 
     if (!hasImage) {
       // 音频/文件：图标占位 + 右下角大小
@@ -107,7 +123,7 @@ class FileDetailPage extends StatelessWidget {
       return GestureDetector(
         onTap: isAudio ? () => _onPreviewTap(context, file, state) : null,
         child: Container(
-          height: 240,
+          height: previewHeight,
           color: color.withValues(alpha: 0.08),
           child: Stack(
             children: [
@@ -145,16 +161,34 @@ class FileDetailPage extends StatelessWidget {
     return GestureDetector(
       onTap: () => _onPreviewTap(context, file, state),
       child: Container(
-        height: 240,
+        height: previewHeight,
         color: Colors.black,
         child: Stack(
           alignment: Alignment.center,
           children: [
+            // 底层：铺满的背景图
+            Positioned.fill(
+              child: CachedNetworkImage(
+                imageUrl: url,
+                fit: BoxFit.cover,
+                errorWidget: (BuildContext _, String __, Object ___) => const SizedBox.shrink(),
+              ),
+            ),
+            // 高斯模糊 + 暗色遮罩
+            Positioned.fill(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 15, sigmaY: 15),
+                  child: Container(color: Colors.black.withValues(alpha: 0.25)),
+                ),
+              ),
+            ),
+            // 前景原图（contain 居中）
             CachedNetworkImage(
               imageUrl: url,
               fit: BoxFit.contain,
               width: double.infinity,
-              height: 240,
+              height: previewHeight,
               placeholder: (BuildContext _, String __) => const Center(child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white)),
               errorWidget: (BuildContext _, String __, Object ___) => const Center(child: Icon(Icons.broken_image, color: Colors.white54, size: 48)),
             ),
@@ -166,10 +200,10 @@ class FileDetailPage extends StatelessWidget {
                   color: Colors.black.withValues(alpha: 0.5),
                   shape: BoxShape.circle,
                 ),
-                child: Icon(
-                  state.isCached ? Icons.play_arrow : Icons.download_rounded,
+                child: const Icon(
+                  Icons.play_arrow,
                   color: Colors.white,
-                  size: state.isCached ? 28 : 22,
+                  size: 28,
                 ),
               ),
             // 图片放大提示
@@ -195,9 +229,19 @@ class FileDetailPage extends StatelessWidget {
   void _onPreviewTap(BuildContext context, CloudFile file, FileDetailState state) {
     if (file.mimeCategory == 'video') {
       if (state.isCached && state.localPath != null) {
-        FxMedia.video.openFile(context, state.localPath!);
+        if (kApp.isDesktop) {
+          FxMedia.file.open(state.localPath!);
+        } else {
+          FxMedia.video.openFile(context, state.localPath!);
+        }
       } else {
-        context.read<FileDetailCubit>().downloadToLocal();
+        final String fullUrl = _resolveUrl(file.url);
+        if (kApp.isDesktop) {
+          // 桌面端：先下载再用系统播放器打开
+          context.read<FileDetailCubit>().downloadToLocal();
+        } else {
+          FxMedia.video.open(context, fullUrl);
+        }
       }
     } else if (file.mimeCategory == 'image') {
       final String fullUrl = _resolveUrl(file.url);
@@ -288,7 +332,10 @@ class FileDetailPage extends StatelessWidget {
     final String fileName = file.originalName ?? file.url.split('/').last;
     final String date = DateFormat('yyyy-MM-dd HH:mm').format(file.createdAt);
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: showAppBar ? null : BorderRadius.circular(8),
+      ),
       child: Column(
         children: [
           _infoRow('名称', fileName),
@@ -305,7 +352,10 @@ class FileDetailPage extends StatelessWidget {
 
   Widget _buildCacheCard(BuildContext context, FileDetailState state) {
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: showAppBar ? null : BorderRadius.circular(8),
+      ),
       child: InkWell(
         onTap: state.isDownloading ? null : () => _onCacheTap(context, state),
         child: Stack(
@@ -405,7 +455,10 @@ class FileDetailPage extends StatelessWidget {
 
   Widget _buildConversationsCard(List<FileConversationRef> conversations) {
     return Container(
-      color: Colors.white,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: showAppBar ? null : BorderRadius.circular(8),
+      ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -443,7 +496,10 @@ class FileDetailPage extends StatelessWidget {
     return GestureDetector(
       onTap: () => _confirmDelete(context, file),
       child: Container(
-        color: Colors.white,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: showAppBar ? null : BorderRadius.circular(8),
+        ),
         padding: const EdgeInsets.symmetric(vertical: 14),
         alignment: Alignment.center,
         child: Text(

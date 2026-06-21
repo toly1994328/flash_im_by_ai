@@ -1,3 +1,4 @@
+import 'package:flash_cloud/flash_cloud.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_env/fx_env.dart';
@@ -6,12 +7,14 @@ import 'package:flash_shared/flash_shared.dart';
 import 'package:flash_im_conversation/flash_im_conversation.dart';
 import 'package:flash_im_friend/flash_im_friend.dart';
 import 'package:flash_im_group/flash_im_group.dart';
+import '../../../application/config.dart';
 import '../../profile/desktop_settings_panel.dart';
 import '../home_page.dart';
 import 'nav_rail.dart';
 import 'conversation_panel.dart';
 import 'chat_detail_sidebar.dart';
 import 'contact_detail_panel.dart';
+import 'cloud_detail_panel.dart';
 import 'actions_mixin.dart';
 
 class DesktopLayout extends StatefulWidget {
@@ -30,6 +33,7 @@ class _DesktopLayoutState extends State<DesktopLayout>
   Friend? _selectedFriend;
   bool _showChatDetail = false;
   String? _contactPanelType;
+  CloudFile? _selectedCloudFile;
 
   late final AnimationController _detailAnimController;
   late final Animation<Offset> _detailSlideAnimation;
@@ -156,6 +160,30 @@ class _DesktopLayoutState extends State<DesktopLayout>
       );
     }
     if (_navIndex == 2) {
+      return Row(
+        children: [
+          SizedBox(
+            width: 400,
+            child: Column(
+              children: [
+                _buildCloudListHeader(),
+                Expanded(child: _buildCloudListPanel()),
+              ],
+            ),
+          ),
+          const VerticalDivider(width: 0.5, thickness: 0.5),
+          Expanded(
+            child: Column(
+              children: [
+                _buildCloudDetailHeader(),
+                Expanded(child: _buildCloudDetailPanel()),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+    if (_navIndex == 3) {
       return BlocBuilder<SessionCubit, SessionState>(
         builder: (context, state) {
           return DesktopSettingsPanel(hasPassword: state.hasPassword);
@@ -163,6 +191,78 @@ class _DesktopLayoutState extends State<DesktopLayout>
       );
     }
     return const SizedBox.shrink();
+  }
+
+  // ─── 云空间 Tab ───
+
+  Widget _buildCloudListHeader() {
+    return DragMoveArea(
+      child: Container(
+        height: kToolbarHeight,
+        padding: const EdgeInsets.only(left: 16),
+        color: context.imTheme.headerColor,
+        child: const Align(
+          alignment: Alignment.centerLeft,
+          child: Text('云空间', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600, color: Color(0xFF333333))),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloudListPanel() {
+    final CloudRepository cloudRepo = context.read<CloudRepository>();
+    return CloudSpacePage(
+      repository: cloudRepo,
+      baseUrl: AppConfig.baseUrl,
+      showAppBar: false,
+      onFileTap: (CloudFile file) {
+        setState(() => _selectedCloudFile = file);
+      },
+      onCategoryChanged: () {
+        setState(() => _selectedCloudFile = null);
+      },
+    );
+  }
+
+  Widget _buildCloudDetailHeader() {
+    final String title = _selectedCloudFile?.originalName
+        ?? _selectedCloudFile?.url.split('/').last
+        ?? '';
+    return DragMoveArea(
+      child: Container(
+        height: kToolbarHeight,
+        padding: const EdgeInsets.only(left: 16),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFE8E8E8), width: 0.5)),
+        ),
+        child: Stack(
+          children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Text(
+                title,
+                style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w500, color: Color(0xFF333333)),
+                overflow: TextOverflow.ellipsis,
+              ),
+            ),
+            if (kApp.isWindows)
+              const Positioned(top: 0, right: 0, child: WindowsButtons()),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildCloudDetailPanel() {
+    return DesktopCloudDetailPanel(
+      selectedFile: _selectedCloudFile,
+      repository: context.read<CloudRepository>(),
+      baseUrl: AppConfig.baseUrl,
+      onDeleted: () {
+        setState(() => _selectedCloudFile = null);
+      },
+    );
   }
 
   // ─── 消息 Tab ───

@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>LinkNode - 可视化工作流构建器</title>
+  <title>匠心闪讯 - 全平台即时通讯</title>
   <meta name="description" content="">
   <meta name="keywords" content="">
   <link rel="icon" type="image/svg+xml" href="logo.svg">
@@ -437,9 +437,9 @@
         <!-- Mobile: stacked images -->
         <div class="hero-mobile-img">
           <div style="position:relative;width:100%;max-width:360px;margin:0 auto;height:280px;">
-            <img src="desktop.webp" alt="LinkNode 桌面端" style="position:absolute;top:0;left:50%;transform:translateX(-45%);width:75%;border-radius:10px;border:1px solid var(--border);box-shadow:0 16px 50px rgba(0,0,0,0.4);z-index:1;">
-            <img src="pad.webp" alt="LinkNode 平板端" style="position:absolute;bottom:0;left:0;width:58%;border-radius:12px;border:2px solid #444;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:2;">
-            <img src="phone.webp" alt="LinkNode 手机端" style="position:absolute;bottom:0;right:10px;width:18%;aspect-ratio:9/19.5;object-fit:cover;border-radius:10px;border:2px solid #444;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:3;">
+            <img src="desktop.webp" alt="匠心闪讯 桌面端" style="position:absolute;top:0;left:50%;transform:translateX(-45%);width:75%;border-radius:10px;border:1px solid var(--border);box-shadow:0 16px 50px rgba(0,0,0,0.4);z-index:1;">
+            <img src="pad.webp" alt="匠心闪讯 平板端" style="position:absolute;bottom:0;left:0;width:58%;border-radius:12px;border:2px solid #444;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:2;">
+            <img src="phone.webp" alt="匠心闪讯 手机端" style="position:absolute;bottom:0;right:10px;width:18%;aspect-ratio:9/19.5;object-fit:cover;border-radius:10px;border:2px solid #444;box-shadow:0 12px 40px rgba(0,0,0,0.5);z-index:3;">
           </div>
         </div>
         <!-- Right: Device Frames -->
@@ -588,7 +588,7 @@
     data.downloads.items.forEach(function(d) {
       var cls = 'download-card';
       if (d.disabled) cls += ' disabled';
-      dlHtml += '<a href="' + d.url + '" class="' + cls + '">';
+      dlHtml += '<a href="' + d.url + '" target="_blank" class="' + cls + '">';
       dlHtml += '<div class="dl-icon"><img src="' + d.icon + '" alt="' + d.name + '" width="28" height="28" style="filter:brightness(0) invert(1);"></div>';
       dlHtml += '<div class="dl-info">';
       dlHtml += '<h3>' + d.name + '</h3>';
