@@ -8,7 +8,7 @@ pub fn generate_token(user_id: i64) -> String {
     let now = Utc::now().timestamp();
     let claims = Claims {
         sub: user_id.to_string(),
-        exp: now + 7 * 24 * 3600,
+        exp: now + 30 * 24 * 3600,
         iat: now,
     };
     encode(&Header::default(), &claims, &EncodingKey::from_secret(secret.as_bytes())).unwrap()

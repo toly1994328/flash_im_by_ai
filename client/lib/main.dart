@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
@@ -48,13 +49,16 @@ void main() async {
     });
   }
 
-  late final SessionCubit sessionCubit;
+  final sessionRepo = SessionRepository(dio: Dio());
+  final sessionCubit = SessionCubit(repo: sessionRepo);
+
   final httpClient = HttpClient(
     tokenProvider: () => sessionCubit.token,
+    onUnauthorized: () {
+      sessionCubit.deactivate();
+    },
   );
-
-  final sessionRepo = SessionRepository(dio: httpClient.dio);
-  sessionCubit = SessionCubit(repo: sessionRepo);
+  sessionRepo.dio = httpClient.dio;
 
   final authRepository = AuthRepository(dio: httpClient.dio);
 
