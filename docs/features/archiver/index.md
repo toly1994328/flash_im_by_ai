@@ -3,7 +3,7 @@
 > 功能不是散落的珠子，而是一张有结构、有层次、有关联的网。
 > 本文档维护项目最新的功能网络全貌，随版本迭代持续更新。
 
-最后更新：v0.40.0（阿里云 OSS 存储接入 + 订阅系统 + 兑换码 + STS 直传 + VIP 头像框）
+最后更新：v0.42.0（会话列表操作优化：置顶/免打扰/标记未读/删除/清空）
 
 ---
 
@@ -100,6 +100,9 @@
 | D-48 | 订阅计划管理 | app-subscription (service) | 后端 | cloud/v0.0.3 | ✅ |
 | D-49 | 兑换码兑换 | app-subscription (service) | 后端 | cloud/v0.0.3 | ✅ |
 | D-50 | OSS 上传确认 | app-storage (api) | 后端 | cloud/v0.0.3 | ✅ |
+| D-51 | 会话置顶开关 | im-conversation | 后端 | v0.42.0 | ✅ |
+| D-52 | 会话免打扰开关 | im-conversation | 后端 | v0.42.0 | ✅ |
+| D-53 | 标记会话未读 | im-conversation | 后端 | v0.42.0 | ✅ |
 
 ### 前端基础层（F）
 
@@ -132,6 +135,7 @@
 | F-25 | 视频播放页 | fx_media (video) | media/v0.0.1 | ✅ |
 | F-26 | 文件操作工具 | fx_media (file) | media/v0.0.1 | ✅ |
 | F-27 | OSS 直传上传器 | flash_im_chat (oss_uploader) | cloud/v0.0.3 | ✅ |
+| F-28 | 会话操作 WS 帧分发 | flash_im_core | v0.42.0 | ✅ |
 
 ### 前端业务层（P）
 
@@ -219,6 +223,12 @@
 | P-81 | 云空间媒体预览 | flash_cloud (file_detail_page) | media/v0.0.1 | ✅ |
 | P-82 | 桌面端云空间三栏 | home/desktop + flash_cloud | cloud/v0.0.2 | ✅ |
 | P-83 | 兑换码输入页 | home/profile (redeem_page) | cloud/v0.0.3 | ✅ |
+| P-84 | 移动端会话滑动操作 | flash_im_conversation | v0.42.0 | ✅ |
+| P-85 | 移动端会话长按菜单 | flash_im_conversation | v0.42.0 | ✅ |
+| P-86 | 桌面端会话右键菜单 | flash_im_conversation | v0.42.0 | ✅ |
+| P-87 | 会话置顶排序 | flash_im_conversation | v0.42.0 | ✅ |
+| P-88 | 清空会话聊天记录 | flash_im_conversation | v0.42.0 | ✅ |
+| P-89 | 会话删除确认弹窗 | flash_im_conversation | v0.42.0 | ✅ |
 
 
 ---
@@ -338,10 +348,17 @@ graph TB
         D01[D-01 会话创建]
         D02[D-02 会话查询]
         D04[D-04 未读数]
+        D05[D-05 标记已读]
         D09[D-09 历史消息]
         D39[D-39 增量查询]
         D40[D-40 撤回]
         D41[D-41 语音类型]
+        D51[D-51 置顶开关]
+        D52[D-52 免打扰开关]
+        D53[D-53 标记未读]
+        D10[D-10 会话更新推送] --> D51
+        D10 --> D52
+        D10 --> D53
     end
     subgraph 前端
         F04[F-04 WS认证] --> F05[F-05 心跳重连]
@@ -349,6 +366,7 @@ graph TB
         F06 --> F12[F-12 在线状态帧]
         F06 --> F13[F-13 已读回执帧]
         F06 --> F17[F-17 撤回帧]
+        F06 --> F28[F-28 会话操作帧]
         I14[I-14 本地DB] --> F15[F-15 LocalStore]
         F15 --> F16[F-16 SyncEngine]
         F15 --> F18[F-18 文件缓存管理器]
@@ -366,6 +384,18 @@ graph TB
         P70[P-70 设置页三栏]
         P71[P-71 桌面端弹窗化操作]
         P72[P-72 意见反馈]
+        P84[P-84 滑动操作]
+        P85[P-85 长按菜单]
+        P86[P-86 右键菜单]
+        P87[P-87 置顶排序]
+        P88[P-88 清空聊天记录]
+        P89[P-89 删除确认弹窗]
+        P01 --> P84
+        P01 --> P85
+        P01 --> P86
+        P01 --> P87
+        P85 --> P88
+        P84 --> P89
     end
     F04 -.->|WebSocket| I05
     P06 -.->|HTTP| D09
@@ -505,6 +535,7 @@ graph TB
 | v0.38.0 | 2026-06-20 | 178 | [trace/v0.38.0_2026-06-20.md](trace/v0.38.0_2026-06-20.md) |
 | v0.39.0 | 2026-06-21 | 179 | [trace/v0.39.0_2026-06-21.md](trace/v0.39.0_2026-06-21.md) |
 | v0.40.0 | 2026-06-21 | 186 | [trace/v0.40.0_2026-06-21.md](trace/v0.40.0_2026-06-21.md) |
+| v0.42.0 | 2026-07-12 | 196 | [trace/v0.42.0_2026-07-12.md](trace/v0.42.0_2026-07-12.md) |
 
 ---
 
