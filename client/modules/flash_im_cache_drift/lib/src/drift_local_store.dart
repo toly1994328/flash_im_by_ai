@@ -69,6 +69,13 @@ class DriftLocalStore implements LocalStore {
     return _messageDao.getCachedConversationIds();
   }
 
+  @override
+  Future<void> clearConversationMessages(String conversationId) async {
+    await _messageDao.deleteByConversation(conversationId);
+    _emitChange(CacheChangeEvent(CacheChangeType.messages,
+        conversationId: conversationId));
+  }
+
   // ─── 会话 ───
 
   @override

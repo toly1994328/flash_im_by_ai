@@ -29,6 +29,9 @@ class EmptyLocalStore implements LocalStore {
   @override
   Future<List<String>> getCachedConversationIds() async => [];
 
+  @override
+  Future<void> clearConversationMessages(String conversationId) async {}
+
   // ─── 会话 ───
 
   @override

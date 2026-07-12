@@ -18,9 +18,12 @@ class SessionSnapshot {
 
 /// 会话仓库 — 负责会话期间的网络请求和本地缓存
 class SessionRepository {
-  final Dio _dio;
+  Dio _dio;
 
   SessionRepository({required Dio dio}) : _dio = dio;
+
+  /// 更新 Dio 实例（用于注入带 token 的 client）
+  set dio(Dio value) => _dio = value;
 
   /// 获取当前用户资料
   Future<User> fetchProfile() async {

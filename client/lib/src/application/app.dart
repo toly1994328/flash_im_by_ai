@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import 'package:fx_env/fx_env.dart';
 import 'package:go_router/go_router.dart';
@@ -30,6 +32,11 @@ class FlashApp extends StatelessWidget {
         theme: ThemeData(
           fontFamily: _fontFamily,
           colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF3B82F6)),
+          dividerTheme: DividerThemeData(
+            thickness: 1/window.devicePixelRatio,
+            space: 1/window.devicePixelRatio,
+            color:Color(0xffececec)
+          ),
           appBarTheme: const AppBarTheme(
             backgroundColor: Color(0xFFEDEDED),
             foregroundColor: Colors.black,

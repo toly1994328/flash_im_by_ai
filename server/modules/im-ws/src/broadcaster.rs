@@ -105,6 +105,9 @@ impl MessageBroadcaster for WsBroadcaster {
                 unread_count: unread,
                 total_unread: total,
                 last_message_extra: msg_extra.to_string(),
+                is_pinned: None,
+                is_muted: None,
+                is_deleted: None,
             };
             let frame = WsFrame {
                 r#type: WsFrameType::ConversationUpdate as i32,
@@ -158,5 +161,33 @@ impl MessageBroadcaster for WsBroadcaster {
         let data = frame.encode_to_vec();
         println!("📢 [broadcaster] sending PinChanged({}) to {:?}", action, member_ids);
         self.ws_state.send_to_users(member_ids, data).await;
+    }
+
+    async fn broadcast_conversation_state_update(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        is_pinned: Option<bool>,
+        is_muted: Option<bool>,
+        is_deleted: bool,
+        unread_count: Option<i32>,
+        total_unread: Option<i32>,
+    ) {
+        let update = ConversationUpdate {
+            conversation_id: conversation_id.to_string(),
+            last_message_preview: String::new(),
+            last_message_at: 0,
+            unread_count: unread_count.unwrap_or(0),
+            total_unread: total_unread.unwrap_or(0),
+            last_message_extra: String::new(),
+            is_pinned,
+            is_muted,
+            is_deleted: if is_deleted { Some(true) } else { None },
+        };
+        let frame = WsFrame {
+            r#type: WsFrameType::ConversationUpdate as i32,
+            payload: update.encode_to_vec(),
+        };
+        self.ws_state.send_to_user(user_id, frame.encode_to_vec()).await;
     }
 }

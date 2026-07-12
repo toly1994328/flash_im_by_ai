@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flash_im_core/flash_im_core.dart' hide MessageStatus, MessageType;
 import 'package:flash_im_cache/flash_im_cache.dart';
+import 'package:flash_shared/flash_shared.dart';
 import 'package:fx_logger/fx_logger.dart';
 import 'package:fx_media/fx_media.dart';
 import '../data/i_message_repository.dart';
@@ -44,6 +45,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   Map<String, int> _membersReadSeq = {};
   Timer? _readReceiptTimer;
   int _readSeqVersion = 0;
+  StreamSubscription? _clearedEventSub;
 
   int get peerReadSeq => _peerReadSeq;
   Map<String, int> get membersReadSeq => Map.unmodifiable(_membersReadSeq);
@@ -138,11 +140,15 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     if (s is ChatLoaded) emit(s.copyWith(readSeqVersion: ++_readSeqVersion));
   }
 
+  /// 查询指定会话的本地清空时间戳（供消息过滤用）
+  final Future<DateTime?> Function(String convId)? clearedAtResolver;
+
   ChatCubit({
     required IMessageRepository repository,
     required WsClient wsClient,
     required ChatContext context,
     this.onConversationChanged,
+    this.clearedAtResolver,
     OssUploader? ossUploader,
     bool ossUploadEnabled = false,
     LocalStore? store,
@@ -156,12 +162,17 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
         _baseUrl = baseUrl,
         super(const ChatInitial()) {
     initWsListeners();
+    _clearedEventSub = FxEmitter().on<ConversationClearedEvent>((e) {
+      if (e.conversationId == conversationId) _reapplyClearedFilter();
+    });
   }
 
   Future<void> loadMessages() async {
     emit(const ChatLoading());
     try {
-      final messages = await _repository.getMessages(conversationId);
+      var messages = await _repository.getMessages(conversationId);
+      // 过滤清空时间戳之前的消息（设备级别本地操作）
+      messages = await _filterByClearedAt(messages);
       messages.sort((a, b) => a.seq.compareTo(b.seq));
       emit(ChatLoaded(messages: messages, hasMore: messages.length >= 50));
       _loadReadSeq();
@@ -184,7 +195,9 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
         emit(current.copyWith(hasMore: false, isLoadingMore: false));
         return;
       }
-      final more = await _repository.getMessages(conversationId, beforeSeq: oldestSeq);
+      var more = await _repository.getMessages(conversationId, beforeSeq: oldestSeq);
+      // 过滤清空时间戳之前的消息
+      more = await _filterByClearedAt(more);
       final existingIds = current.messages.map((m) => m.id).toSet();
       final newMessages = more.where((m) => !existingIds.contains(m.id)).toList();
       final all = [...newMessages, ...current.messages];
@@ -322,6 +335,25 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
     } catch (_) {}
   }
 
+  /// 根据清空时间戳过滤消息（设备级别本地操作）
+  Future<List<Message>> _filterByClearedAt(List<Message> messages) async {
+    if (clearedAtResolver == null) return messages;
+    final clearedAt = await clearedAtResolver!.call(conversationId);
+    if (clearedAt == null) return messages;
+    return messages.where((m) => !m.createdAt.isBefore(clearedAt)).toList();
+  }
+
+  /// 清空事件触发时，立刻对当前已加载的消息列表重新过滤
+  Future<void> _reapplyClearedFilter() async {
+    final s = state;
+    if (s is! ChatLoaded) return;
+    final filtered = await _filterByClearedAt(s.messages);
+    if (filtered.length != s.messages.length) {
+      filtered.sort((a, b) => a.seq.compareTo(b.seq));
+      emit(s.copyWith(messages: filtered));
+    }
+  }
+
   void _handleMessageAck(WsFrame frame) {
     try {
       final ack = MessageAck.fromBuffer(frame.payload);
@@ -408,6 +440,7 @@ class ChatCubit extends Cubit<ChatState> with ChatWsMixin, ChatFileMixin, ChatPi
   Future<void> close() {
     disposeWsListeners();
     _readReceiptTimer?.cancel();
+    _clearedEventSub?.cancel();
     return super.close();
   }
 

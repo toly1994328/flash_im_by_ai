@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:dio/dio.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:fx_logger/fx_logger.dart';
@@ -48,13 +49,18 @@ void main() async {
     });
   }
 
-  late final SessionCubit sessionCubit;
+  final sessionRepo = SessionRepository(dio: Dio());
+  final sessionCubit = SessionCubit(repo: sessionRepo);
+
+  final log = FxLog('Auth');
   final httpClient = HttpClient(
     tokenProvider: () => sessionCubit.token,
+    onUnauthorized: () {
+      log.w('收到 401 响应，自动退出登录');
+      sessionCubit.deactivate();
+    },
   );
-
-  final sessionRepo = SessionRepository(dio: httpClient.dio);
-  sessionCubit = SessionCubit(repo: sessionRepo);
+  sessionRepo.dio = httpClient.dio;
 
   final authRepository = AuthRepository(dio: httpClient.dio);
 
@@ -145,6 +151,7 @@ void main() async {
     ],
     onStartupComplete: (results) {
       final authenticated = results[RestoreSessionTask] as bool;
+      log.i('onStartupComplete: authenticated=$authenticated');
       if (authenticated) {
         initCache().then((_) => wsClient.connect());
       }
@@ -159,6 +166,7 @@ void main() async {
       router.go(authenticated ? '/home' : '/login');
     },
     onLoginSuccess: (loginResult) async {
+      log.i('onLoginSuccess: 登录成功 userId=${loginResult.userId} hasPassword=${loginResult.hasPassword}');
       await sessionCubit.activate(
         token: loginResult.token,
         hasPassword: loginResult.hasPassword,
@@ -176,6 +184,7 @@ void main() async {
   // 监听登出：session 结束时销毁缓存 + 桌面端窗口缩小
   sessionCubit.stream.listen((state) {
     if (state.status == SessionStatus.ended) {
+      log.i('会话已结束，清理缓存');
       disposeCache();
       if (kApp.isDesktop) {
         windowManager.setSize(const Size(860, 560));

@@ -375,6 +375,9 @@ class ConversationUpdate extends $pb.GeneratedMessage {
     $core.int? unreadCount,
     $core.int? totalUnread,
     $core.String? lastMessageExtra,
+    $core.bool? isPinned,
+    $core.bool? isMuted,
+    $core.bool? isDeleted,
   }) {
     final result = create();
     if (conversationId != null) result.conversationId = conversationId;
@@ -384,6 +387,9 @@ class ConversationUpdate extends $pb.GeneratedMessage {
     if (unreadCount != null) result.unreadCount = unreadCount;
     if (totalUnread != null) result.totalUnread = totalUnread;
     if (lastMessageExtra != null) result.lastMessageExtra = lastMessageExtra;
+    if (isPinned != null) result.isPinned = isPinned;
+    if (isMuted != null) result.isMuted = isMuted;
+    if (isDeleted != null) result.isDeleted = isDeleted;
     return result;
   }
 
@@ -406,6 +412,9 @@ class ConversationUpdate extends $pb.GeneratedMessage {
     ..aI(4, _omitFieldNames ? '' : 'unreadCount')
     ..aI(5, _omitFieldNames ? '' : 'totalUnread')
     ..aOS(6, _omitFieldNames ? '' : 'lastMessageExtra')
+    ..aOB(7, _omitFieldNames ? '' : 'isPinned')
+    ..aOB(8, _omitFieldNames ? '' : 'isMuted')
+    ..aOB(9, _omitFieldNames ? '' : 'isDeleted')
     ..hasRequiredFields = false;
 
   @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
@@ -480,6 +489,33 @@ class ConversationUpdate extends $pb.GeneratedMessage {
   $core.bool hasLastMessageExtra() => $_has(5);
   @$pb.TagNumber(6)
   void clearLastMessageExtra() => $_clearField(6);
+
+  @$pb.TagNumber(7)
+  $core.bool get isPinned => $_getBF(6);
+  @$pb.TagNumber(7)
+  set isPinned($core.bool value) => $_setBool(6, value);
+  @$pb.TagNumber(7)
+  $core.bool hasIsPinned() => $_has(6);
+  @$pb.TagNumber(7)
+  void clearIsPinned() => $_clearField(7);
+
+  @$pb.TagNumber(8)
+  $core.bool get isMuted => $_getBF(7);
+  @$pb.TagNumber(8)
+  set isMuted($core.bool value) => $_setBool(7, value);
+  @$pb.TagNumber(8)
+  $core.bool hasIsMuted() => $_has(7);
+  @$pb.TagNumber(8)
+  void clearIsMuted() => $_clearField(8);
+
+  @$pb.TagNumber(9)
+  $core.bool get isDeleted => $_getBF(8);
+  @$pb.TagNumber(9)
+  set isDeleted($core.bool value) => $_setBool(8, value);
+  @$pb.TagNumber(9)
+  $core.bool hasIsDeleted() => $_has(8);
+  @$pb.TagNumber(9)
+  void clearIsDeleted() => $_clearField(9);
 }
 
 class GroupInfoUpdate extends $pb.GeneratedMessage {
@@ -1012,6 +1048,73 @@ class PinChangedNotification extends $pb.GeneratedMessage {
   $core.bool hasPinnedBy() => $_has(3);
   @$pb.TagNumber(4)
   void clearPinnedBy() => $_clearField(4);
+}
+
+class StorageQuotaNotification extends $pb.GeneratedMessage {
+  factory StorageQuotaNotification({
+    $fixnum.Int64? usedBytes,
+    $fixnum.Int64? quotaBytes,
+  }) {
+    final result = create();
+    if (usedBytes != null) result.usedBytes = usedBytes;
+    if (quotaBytes != null) result.quotaBytes = quotaBytes;
+    return result;
+  }
+
+  StorageQuotaNotification._();
+
+  factory StorageQuotaNotification.fromBuffer($core.List<$core.int> data,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromBuffer(data, registry);
+  factory StorageQuotaNotification.fromJson($core.String json,
+          [$pb.ExtensionRegistry registry = $pb.ExtensionRegistry.EMPTY]) =>
+      create()..mergeFromJson(json, registry);
+
+  static final $pb.BuilderInfo _i = $pb.BuilderInfo(
+      _omitMessageNames ? '' : 'StorageQuotaNotification',
+      package: const $pb.PackageName(_omitMessageNames ? '' : 'im'),
+      createEmptyInstance: create)
+    ..aInt64(1, _omitFieldNames ? '' : 'usedBytes')
+    ..aInt64(2, _omitFieldNames ? '' : 'quotaBytes')
+    ..hasRequiredFields = false;
+
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  StorageQuotaNotification clone() => deepCopy();
+  @$core.Deprecated('See https://github.com/google/protobuf.dart/issues/998.')
+  StorageQuotaNotification copyWith(
+          void Function(StorageQuotaNotification) updates) =>
+      super.copyWith((message) => updates(message as StorageQuotaNotification))
+          as StorageQuotaNotification;
+
+  @$core.override
+  $pb.BuilderInfo get info_ => _i;
+
+  @$core.pragma('dart2js:noInline')
+  static StorageQuotaNotification create() => StorageQuotaNotification._();
+  @$core.override
+  StorageQuotaNotification createEmptyInstance() => create();
+  @$core.pragma('dart2js:noInline')
+  static StorageQuotaNotification getDefault() => _defaultInstance ??=
+      $pb.GeneratedMessage.$_defaultFor<StorageQuotaNotification>(create);
+  static StorageQuotaNotification? _defaultInstance;
+
+  @$pb.TagNumber(1)
+  $fixnum.Int64 get usedBytes => $_getI64(0);
+  @$pb.TagNumber(1)
+  set usedBytes($fixnum.Int64 value) => $_setInt64(0, value);
+  @$pb.TagNumber(1)
+  $core.bool hasUsedBytes() => $_has(0);
+  @$pb.TagNumber(1)
+  void clearUsedBytes() => $_clearField(1);
+
+  @$pb.TagNumber(2)
+  $fixnum.Int64 get quotaBytes => $_getI64(1);
+  @$pb.TagNumber(2)
+  set quotaBytes($fixnum.Int64 value) => $_setInt64(1, value);
+  @$pb.TagNumber(2)
+  $core.bool hasQuotaBytes() => $_has(1);
+  @$pb.TagNumber(2)
+  void clearQuotaBytes() => $_clearField(2);
 }
 
 const $core.bool _omitFieldNames =

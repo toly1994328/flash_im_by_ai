@@ -1,0 +1,60 @@
+
+[36m========== [pre] Login users A, B, C ==========[0m
+User A: id=2
+User B: id=3
+User C: id=4
+[32m[PASS][0m
+
+[36m========== [pre2] Create conversation between A and B ==========[0m
+conversation_id: eb8cf7ec-44d8-4c38-a190-72bf3c878d81
+[32m[PASS][0m
+
+[36m========== [1] GET /conversations - verify conversation exists ==========[0m
+is_pinned=False, is_muted=False, unread=0
+[32m[PASS][0m
+
+[36m========== [2] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/pin - toggle pin ON ==========[0m
+is_pinned: True
+[32m[PASS][0m
+
+[36m========== [3] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/pin - toggle pin OFF ==========[0m
+is_pinned: False
+[32m[PASS][0m
+
+[36m========== [4] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/mute - toggle mute ON ==========[0m
+is_muted: True
+[32m[PASS][0m
+
+[36m========== [5] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/mute - toggle mute OFF ==========[0m
+is_muted: False
+[32m[PASS][0m
+
+[36m========== [6] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/unread - mark unread ==========[0m
+unread_count: 1
+[32m[PASS][0m
+
+[36m========== [7] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/read - mark read (reset) ==========[0m
+unread cleared
+[32m[PASS][0m
+
+[36m========== [8] POST /conversations/not-a-uuid/pin - invalid UUID ==========[0m
+HTTP 400
+[32m[PASS][0m
+
+[36m========== [9] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/pin - non-member (user C) ==========[0m
+HTTP 403
+[32m[PASS][0m
+
+[36m========== [10] POST /conversations/d2fbe818-d19b-4069-9b12-9e2410d5f35d/pin - not found ==========[0m
+HTTP 404
+[32m[PASS][0m
+
+[36m========== [11] POST /conversations/eb8cf7ec-44d8-4c38-a190-72bf3c878d81/pin - unauthorized ==========[0m
+HTTP 401
+[32m[PASS][0m
+
+[33mGenerated: 00_link.md + 11 api docs[0m
+
+[32m========================================
+  ALL 13/13 STEPS PASSED
+========================================[0m

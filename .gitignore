@@ -1,5 +1,6 @@
 .idea
 .vscode
+.codebuddy/
 target/
 server/uploads/
 __pycache__/

@@ -2,6 +2,7 @@ mod mock;
 mod admin;
 
 use std::sync::Arc;
+use async_trait::async_trait;
 use axum::Router;
 use axum::routing::get;
 use flash_core::state::create_app_state;
@@ -12,12 +13,41 @@ use im_ws::broadcaster::WsBroadcaster;
 use im_ws::dispatcher::MessageDispatcher;
 use im_friend::{FriendRepository, FriendService, FriendApiState, friend_routes};
 use im_group::{GroupService, GroupApiState, group_routes};
+use im_conversation::ConvBroadcaster;
+use im_message::MessageBroadcaster;
+use uuid::Uuid;
 use sqlx::postgres::PgPoolOptions;
 use tower_http::services::{ServeDir, ServeFile};
 use tower_http::compression::CompressionLayer;
 use tower_http::set_header::SetResponseHeaderLayer;
 use axum::http::{HeaderName, HeaderValue};
 use app_storage::{LocalFs, StorageConfig, StorageService, OssBackend, OssConfig, StsConfig};
+
+/// 桥接 ConvBroadcaster（im-conversation）→ MessageBroadcaster（im-message/im-ws）
+struct BroadcasterAdapter {
+    inner: Arc<WsBroadcaster>,
+}
+
+#[async_trait]
+impl ConvBroadcaster for BroadcasterAdapter {
+    async fn broadcast_state_update(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        is_pinned: Option<bool>,
+        is_muted: Option<bool>,
+        is_deleted: bool,
+        unread_count: Option<i32>,
+        total_unread: Option<i32>,
+    ) {
+        MessageBroadcaster::broadcast_conversation_state_update(
+            &*self.inner,
+            user_id, conversation_id,
+            is_pinned, is_muted, is_deleted,
+            unread_count, total_unread,
+        ).await;
+    }
+}
 use app_storage::api::{storage_routes, oss_routes, OssRouteState};
 use app_subscription::{SubscriptionService, subscription_routes};
 
@@ -40,7 +70,6 @@ async fn main() {
 
     println!("✅ Database connected");
 
-    let state = create_app_state(db.clone());
     let local_ip = get_local_ip();
 
     // WebSocket 状态
@@ -49,8 +78,10 @@ async fn main() {
     // 广播器（依赖 ws_state）
     let broadcaster = Arc::new(WsBroadcaster::new(ws_state.clone(), db.clone()));
 
+    let state = create_app_state(db.clone());
+
     // 消息服务（依赖 broadcaster）
-    let msg_service = Arc::new(im_message::MessageService::new(db.clone(), broadcaster));
+    let msg_service = Arc::new(im_message::MessageService::new(db.clone(), broadcaster.clone()));
 
     // 消息分发器（依赖 msg_service + ws_state）
     let dispatcher = Arc::new(MessageDispatcher::new(msg_service.clone(), ws_state.clone(), db.clone()));
@@ -104,7 +135,7 @@ async fn main() {
     // 好友服务
     let friend_repo = Arc::new(FriendRepository::new(db.clone()));
     let friend_service = Arc::new(FriendService::new(friend_repo));
-    let conv_service_for_friend = Arc::new(im_conversation::ConversationService::new(db.clone()));
+    let conv_service_for_friend = Arc::new(im_conversation::ConversationService::new(db.clone(), Arc::new(BroadcasterAdapter { inner: broadcaster.clone() })));
     let friend_state = FriendApiState {
         service: friend_service,
         dispatcher: Some(dispatcher.clone()),
@@ -123,7 +154,7 @@ async fn main() {
         .merge(flash_auth::router())
         .merge(flash_user::router())
         .merge(mock::routes::router())
-        .merge(im_conversation::router())
+        .merge(im_conversation::router(Arc::new(BroadcasterAdapter { inner: broadcaster.clone() })))
         .with_state(state)
         .merge(im_message::router(msg_service))
         .merge(storage_routes(storage))

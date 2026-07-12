@@ -20,7 +20,7 @@ async fn create_conversation(
     Json(req): Json<CreatePrivateRequest>,
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = extract_user_id(&headers)?;
-    let service = ConversationService::new(state.db.clone());
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
     let resp = service.create_private(user_id, req.peer_user_id).await?;
     Ok(Json(serde_json::to_value(resp).unwrap()))
 }
@@ -34,7 +34,7 @@ async fn list_conversations(
     let limit = params.get("limit").and_then(|v| v.parse().ok()).unwrap_or(20);
     let offset = params.get("offset").and_then(|v| v.parse().ok()).unwrap_or(0);
     let conv_type = params.get("type").and_then(|v| v.parse::<i16>().ok());
-    let service = ConversationService::new(state.db.clone());
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
     let list = service.get_list(user_id, limit, offset, conv_type).await?;
     Ok(Json(serde_json::to_value(list).unwrap()))
 }
@@ -46,7 +46,7 @@ async fn get_conversation(
 ) -> Result<Json<serde_json::Value>, StatusCode> {
     let user_id = extract_user_id(&headers)?;
     let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let service = ConversationService::new(state.db.clone());
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
     let resp = service.get_by_id(conversation_id, user_id).await?;
     Ok(Json(serde_json::to_value(resp).unwrap()))
 }
@@ -58,7 +58,7 @@ async fn delete_conversation(
 ) -> Result<Json<MessageResponse>, StatusCode> {
     let user_id = extract_user_id(&headers)?;
     let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let service = ConversationService::new(state.db.clone());
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
     service.delete_for_user(conversation_id, user_id).await?;
     Ok(Json(MessageResponse { message: "会话已删除".to_string() }))
 }
@@ -70,9 +70,48 @@ async fn mark_read(
 ) -> Result<Json<MessageResponse>, StatusCode> {
     let user_id = extract_user_id(&headers)?;
     let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
-    let service = ConversationService::new(state.db.clone());
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
     service.mark_read(conversation_id, user_id).await?;
     Ok(Json(MessageResponse { message: "ok".to_string() }))
+}
+
+/// POST /conversations/{id}/pin — toggle 置顶
+async fn toggle_pin(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
+    let resp = service.toggle_pin(conversation_id, user_id).await?;
+    Ok(Json(serde_json::to_value(resp).unwrap()))
+}
+
+/// POST /conversations/{id}/mute — toggle 免打扰
+async fn toggle_mute(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
+    let resp = service.toggle_mute(conversation_id, user_id).await?;
+    Ok(Json(serde_json::to_value(resp).unwrap()))
+}
+
+/// POST /conversations/{id}/unread — 标记未读
+async fn mark_unread(
+    State(state): State<Arc<AppState>>,
+    headers: HeaderMap,
+    Path(id): Path<String>,
+) -> Result<Json<serde_json::Value>, StatusCode> {
+    let user_id = extract_user_id(&headers)?;
+    let conversation_id = Uuid::parse_str(&id).map_err(|_| StatusCode::BAD_REQUEST)?;
+    let service = ConversationService::new(state.db.clone(), crate::get_broadcaster());
+    let resp = service.mark_unread(conversation_id, user_id).await?;
+    Ok(Json(serde_json::to_value(resp).unwrap()))
 }
 
 /// GET /api/conversations/search-joined-groups — 搜索已加入的群聊
@@ -121,5 +160,8 @@ pub fn router() -> Router<Arc<AppState>> {
         .route("/conversations", post(create_conversation).get(list_conversations))
         .route("/conversations/{id}", delete(delete_conversation).get(get_conversation))
         .route("/conversations/{id}/read", post(mark_read))
+        .route("/conversations/{id}/pin", post(toggle_pin))     // 新增
+        .route("/conversations/{id}/mute", post(toggle_mute))   // 新增
+        .route("/conversations/{id}/unread", post(mark_unread)) // 新增
         .route("/api/conversations/search-joined-groups", get(search_joined_groups))
 }

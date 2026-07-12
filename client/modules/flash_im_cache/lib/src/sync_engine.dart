@@ -317,6 +317,9 @@ class SyncEngine {
       unreadCount: json['unread_count'] as int? ?? 0,
       isPinned: json['is_pinned'] as bool? ?? false,
       isMuted: json['is_muted'] as bool? ?? false,
+      pinnedAt: json['pinned_at'] != null
+          ? DateTime.parse(json['pinned_at'] as String).millisecondsSinceEpoch
+          : null,
       createdAt: DateTime.parse(json['created_at'] as String)
           .millisecondsSinceEpoch,
     );

@@ -39,6 +39,9 @@ abstract class LocalStore {
   /// 查询所有有缓存消息的会话 ID（重连同步用）
   Future<List<String>> getCachedConversationIds();
 
+  /// 删除指定会话的所有缓存消息（设备级别清空）
+  Future<void> clearConversationMessages(String conversationId);
+
   // ─── 会话 ───
 
   /// 批量写入会话（upsert）

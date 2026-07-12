@@ -68,3 +68,12 @@ class ShowToastEvent extends FxEvent {
 
   const ShowToastEvent(this.message, {this.duration = const Duration(seconds: 3)});
 }
+
+// ─── 会话操作事件 ───
+
+/// 会话消息被清空事件（设备级别），通知消息模块立刻过滤当前消息列表
+class ConversationClearedEvent extends FxEvent {
+  final String conversationId;
+
+  const ConversationClearedEvent({required this.conversationId});
+}

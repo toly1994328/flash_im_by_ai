@@ -13,6 +13,7 @@ class CachedConversation {
   final int unreadCount;
   final bool isPinned;
   final bool isMuted;
+  final int? pinnedAt; // 毫秒时间戳，置顶时间
   final int createdAt;
 
   const CachedConversation({
@@ -29,6 +30,7 @@ class CachedConversation {
     this.unreadCount = 0,
     this.isPinned = false,
     this.isMuted = false,
+    this.pinnedAt,
     required this.createdAt,
   });
 }

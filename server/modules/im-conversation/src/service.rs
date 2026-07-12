@@ -1,21 +1,39 @@
+use async_trait::async_trait;
 use axum::http::StatusCode;
 use sqlx::PgPool;
+use std::sync::Arc;
 use uuid::Uuid;
 
 use super::models::{
-    ConversationListItem, ConversationListResponse, CreateConversationResponse,
+    ConversationListItem, ConversationListResponse, CreateConversationResponse, ToggleResponse,
 };
 use super::repository::ConversationRepository;
+
+/// 会话状态变更广播器 trait（由 im-ws 实现）
+#[async_trait]
+pub trait ConvBroadcaster: Send + Sync {
+    async fn broadcast_state_update(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        is_pinned: Option<bool>,
+        is_muted: Option<bool>,
+        is_deleted: bool,
+        unread_count: Option<i32>,
+        total_unread: Option<i32>,
+    );
+}
 
 pub struct ConversationService {
     repo: ConversationRepository,
     db: PgPool,
+    broadcaster: Arc<dyn ConvBroadcaster>,
 }
 
 impl ConversationService {
-    pub fn new(db: PgPool) -> Self {
+    pub fn new(db: PgPool, broadcaster: Arc<dyn ConvBroadcaster>) -> Self {
         let repo = ConversationRepository::new(db.clone());
-        Self { repo, db }
+        Self { repo, db, broadcaster }
     }
 
     /// 获取数据库连接池引用（供 routes 层查询用户信息）
@@ -52,7 +70,20 @@ impl ConversationService {
             .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
 
         let conv = match existing {
-            Some(c) => c,
+            Some(c) => {
+                // 恢复已删除的成员关系
+                sqlx::query(
+                    "UPDATE conversation_members SET is_deleted = false
+                     WHERE conversation_id = $1 AND user_id IN ($2, $3)"
+                )
+                .bind(c.id)
+                .bind(user_id)
+                .bind(peer_user_id)
+                .execute(&self.db)
+                .await
+                .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+                c
+            }
             None => self.repo.create_private(user_id, peer_user_id)
                 .await
                 .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?,
@@ -136,6 +167,13 @@ impl ConversationService {
         if !deleted {
             return Err(StatusCode::NOT_FOUND);
         }
+
+        // WS 推送 is_deleted 到该用户所有设备
+        self.broadcaster.broadcast_state_update(
+            user_id, conversation_id,
+            None, None, true, None, None,
+        ).await;
+
         Ok(())
     }
 
@@ -206,6 +244,7 @@ impl ConversationService {
                     c.last_message_at, c.last_message_preview,
                     c.created_at, c.updated_at,
                     cm.unread_count, cm.last_read_seq, cm.is_pinned, cm.is_muted,
+                    cm.pinned_at,
                     peer.user_id AS peer_user_id
              FROM conversations c
              JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = $2
@@ -288,5 +327,100 @@ impl ConversationService {
         .await
         .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
         Ok(row.is_some())
+    }
+
+    /// 检查会话是否存在
+    pub async fn conversation_exists(&self, conversation_id: Uuid) -> Result<bool, StatusCode> {
+        let row: Option<(i32,)> = sqlx::query_as(
+            "SELECT 1 FROM conversations WHERE id = $1"
+        )
+        .bind(conversation_id)
+        .fetch_optional(&self.db)
+        .await
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+        Ok(row.is_some())
+    }
+
+    /// Toggle 置顶状态
+    pub async fn toggle_pin(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<ToggleResponse, StatusCode> {
+        if !self.conversation_exists(conversation_id).await? {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        if !self.is_member(conversation_id, user_id).await? {
+            return Err(StatusCode::FORBIDDEN);
+        }
+        let is_pinned = self.repo.toggle_pin(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        self.broadcaster.broadcast_state_update(
+            user_id, conversation_id,
+            Some(is_pinned), None, false, None, None,
+        ).await;
+
+        Ok(ToggleResponse { is_pinned: Some(is_pinned), is_muted: None, unread_count: None })
+    }
+
+    /// Toggle 免打扰状态
+    pub async fn toggle_mute(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<ToggleResponse, StatusCode> {
+        if !self.conversation_exists(conversation_id).await? {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        if !self.is_member(conversation_id, user_id).await? {
+            return Err(StatusCode::FORBIDDEN);
+        }
+        let is_muted = self.repo.toggle_mute(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        self.broadcaster.broadcast_state_update(
+            user_id, conversation_id,
+            None, Some(is_muted), false, None, None,
+        ).await;
+
+        Ok(ToggleResponse { is_pinned: None, is_muted: Some(is_muted), unread_count: None })
+    }
+
+    /// 标记未读
+    pub async fn mark_unread(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<ToggleResponse, StatusCode> {
+        if !self.conversation_exists(conversation_id).await? {
+            return Err(StatusCode::NOT_FOUND);
+        }
+        if !self.is_member(conversation_id, user_id).await? {
+            return Err(StatusCode::FORBIDDEN);
+        }
+        self.repo.mark_unread(conversation_id, user_id)
+            .await
+            .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        // 查询总未读数
+        let total: i32 = sqlx::query_as::<_, (i64,)>(
+            "SELECT COALESCE(SUM(unread_count), 0) FROM conversation_members \
+             WHERE user_id = $1 AND is_deleted = false"
+        )
+        .bind(user_id)
+        .fetch_one(&self.db)
+        .await
+        .map(|(n,)| n as i32)
+        .map_err(|_| StatusCode::INTERNAL_SERVER_ERROR)?;
+
+        self.broadcaster.broadcast_state_update(
+            user_id, conversation_id,
+            None, None, false, Some(1), Some(total),
+        ).await;
+
+        Ok(ToggleResponse { is_pinned: None, is_muted: None, unread_count: Some(1) })
     }
 }

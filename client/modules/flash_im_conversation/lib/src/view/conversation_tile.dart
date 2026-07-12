@@ -1,16 +1,34 @@
-import 'package:flash_shared/flash_shared.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:fx_env/fx_env.dart';
+import 'package:tolyui_feedback/tolyui_feedback.dart' hide showTolyPopPicker;
+import 'package:tolyui_feedback_modal/tolyui_feedback_modal.dart';
+import 'package:flash_shared/flash_shared.dart';
 import '../data/conversation.dart';
+import '../data/conversation_menu_action.dart';
+import 'conversation_context_menu.dart';
+import 'conversation_delete_dialog.dart';
 
 /// 会话列表项组件
 ///
 /// 参考微信风格：左侧头像 + 右侧名称/时间/预览
+/// 移动端：左滑暴露操作按钮 (Slidable)
+/// 桌面端：右键弹出菜单 (TolyPopover)
+/// 移动端长按：BottomSheet 全量菜单
 class ConversationTile extends StatelessWidget {
   final Conversation conversation;
   final VoidCallback? onTap;
   final bool isOnline;
   final bool isActive;
   final String? currentUserId;
+
+  // ─── 操作回调 ───
+  final Future<void> Function(String conversationId)? onTogglePin;
+  final Future<void> Function(String conversationId)? onToggleMute;
+  final Future<void> Function(String conversationId)? onMarkRead;
+  final Future<void> Function(String conversationId)? onMarkUnread;
+  final Future<void> Function(String conversationId)? onDelete;
+  final Future<void> Function(String conversationId)? onClearAll;
 
   const ConversationTile({
     super.key,
@@ -19,14 +37,186 @@ class ConversationTile extends StatelessWidget {
     this.isOnline = false,
     this.isActive = false,
     this.currentUserId,
+    this.onTogglePin,
+    this.onToggleMute,
+    this.onMarkRead,
+    this.onMarkUnread,
+    this.onDelete,
+    this.onClearAll,
   });
 
   @override
   Widget build(BuildContext context) {
+    final tile = _buildTile(context);
+
+    if (kApp.isDesktop) {
+      return _buildDesktopTile(context, tile);
+    }
+    return _buildMobileTile(context, tile);
+  }
+
+  // ─── 移动端：Slidable ───
+
+  Widget _buildMobileTile(BuildContext context, Widget tile) {
+    final actions = getConversationActions(
+      conv: conversation,
+      isSlidableView: true,
+    );
+
+    // 每个按钮宽度 64，计算总宽度比例
+    final screenWidth = MediaQuery.of(context).size.width;
+    final extentRatio = (actions.length * 64) / screenWidth;
+
+    return Builder(
+      builder: (ctx) => Slidable(
+        key: ValueKey('slide_${conversation.id}'),
+        groupTag: 'conversation_list',
+        endActionPane: ActionPane(
+          motion: const BehindMotion(),
+          extentRatio: extentRatio.clamp(0.0, 1.0),
+          children: actions
+              .map((action) => _buildSlideActionButton(ctx, action))
+              .toList(),
+        ),
+        child: GestureDetector(
+          onLongPressStart: (_) => _showMobileMenu(context),
+          child: tile,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSlideActionButton(
+    BuildContext context,
+    ConversationMenuAction action,
+  ) {
+    final (icon, label) = actionInfo(action, conversation);
+    final color = slideActionColor(action);
+
+    return CustomSlidableAction(
+      onPressed: (_) => _handleAction(context, action),
+      backgroundColor: color,
+      foregroundColor: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+        ],
+      ),
+    );
+  }
+
+  // ─── 桌面端：TolyPopover ───
+
+  Widget _buildDesktopTile(BuildContext context, Widget tile) {
+    return TolyPopover(
+      placement: Placement.bottomStart,
+      maxWidth: 180,
+      decorationConfig: const DecorationConfig(
+        backgroundColor: Colors.white,
+        radius: Radius.circular(8),
+        isBubble: false,
+      ),
+      gap: 4,
+      overlayBuilder: (context, ctrl) => ConversationContextMenu(
+        conversation: conversation,
+        onAction: (action) {
+          ctrl.close();
+          _handleAction(context, action);
+        },
+      ),
+      builder: (context, ctrl, child) => GestureDetector(
+        onSecondaryTapUp: (details) => ctrl.open(position: details.localPosition),
+        child: child,
+      ),
+      child: tile,
+    );
+  }
+
+  // ─── 移动端长按菜单 ───
+
+  void _showMobileMenu(BuildContext context) {
+    final actions = getConversationActions(
+      conv: conversation,
+      isSlidableView: false,
+    );
+
+    showTolyPopPicker<void>(
+      context: context,
+      title: Text(conversation.displayName),
+      tasks: actions.map((action) {
+        final (icon, label) = actionInfo(action, conversation);
+        final isDelete = action == ConversationMenuAction.delete;
+        return TolyMenuItem(
+          info: label,
+          content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(icon, color: isDelete ? const Color(0xFFFF4D4F) : null, size: 22),
+              const SizedBox(width: 12),
+              Text(
+                label,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: isDelete ? const Color(0xFFFF4D4F) : null,
+                ),
+              ),
+            ],
+          ),
+          task: () {
+            _handleAction(context, action);
+            return null;
+          },
+        );
+      }).toList(),
+    );
+  }
+
+  // ─── 操作分发 ───
+
+  void _handleAction(BuildContext context, ConversationMenuAction action) {
+    final id = conversation.id;
+    switch (action) {
+      case ConversationMenuAction.pin:
+        onTogglePin?.call(id);
+      case ConversationMenuAction.mute:
+        onToggleMute?.call(id);
+      case ConversationMenuAction.markRead:
+        onMarkRead?.call(id);
+      case ConversationMenuAction.markUnread:
+        onMarkUnread?.call(id);
+      case ConversationMenuAction.delete:
+        _confirmDelete(context, id);
+      case ConversationMenuAction.clearAll:
+        _confirmClearAll(context, id);
+    }
+  }
+
+  Future<void> _confirmDelete(BuildContext context, String id) async {
+    final confirmed = await ConversationDeleteDialog.showDeleteConfirm(
+      context,
+      name: conversation.displayName,
+    );
+    if (confirmed) {
+      onDelete?.call(id);
+    }
+  }
+
+  Future<void> _confirmClearAll(BuildContext context, String id) async {
+    final confirmed = await ConversationDeleteDialog.showClearAllConfirm(context, name: conversation.displayName);
+    if (confirmed) {
+      onClearAll?.call(id);
+    }
+  }
+
+  // ─── 原有 UI ───
+
+  Widget _buildTile(BuildContext context) {
     return GestureDetector(
       behavior: HitTestBehavior.opaque,
       onTap: onTap,
-      // onDoubleTap: kDebugMode ? () => _showDebugInfo(context) : null,
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
         decoration: BoxDecoration(
@@ -122,6 +312,11 @@ class ConversationTile extends StatelessWidget {
   Widget _buildTitleRow() {
     return Row(
       children: [
+        if (conversation.isMuted)
+          Padding(
+            padding: const EdgeInsets.only(right: 4),
+            child: Icon(Icons.volume_off, size: 14, color: Colors.grey[400]),
+          ),
         Expanded(
           child: conversation.isSkeleton
             ? Container(height: 14, width: 80, decoration: BoxDecoration(

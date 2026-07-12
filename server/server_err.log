@@ -1,0 +1,27 @@
+warning: unused import: `StsToken`
+   --> modules\app-storage\src\api.rs:467:29
+    |
+467 | use crate::sts::{StsConfig, StsToken};
+    |                             ^^^^^^^^
+    |
+    = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: field `hash` is never read
+   --> modules\app-storage\src\api.rs:494:5
+    |
+490 | struct UploadTokenRequest {
+    |        ------------------ field in this struct
+...
+494 |     hash: String,
+    |     ^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: `app-storage` (lib) generated 2 warnings (run `cargo fix --lib -p app-storage` to apply 1 suggestion)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.72s
+     Running `C:\toly\Cache\rust\target\debug\flash-im.exe`
+
+thread 'main' (21780) panicked at src\main.rs:69:10:
+Failed to connect to database: PoolTimedOut
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+error: process didn't exit successfully: `C:\toly\Cache\rust\target\debug\flash-im.exe` (exit code: 101)

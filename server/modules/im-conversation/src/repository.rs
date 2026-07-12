@@ -83,13 +83,14 @@ impl ConversationRepository {
                     c.last_message_at, c.last_message_preview,
                     c.created_at, c.updated_at,
                     cm.unread_count, cm.last_read_seq, cm.is_pinned, cm.is_muted,
+                    cm.pinned_at,
                     peer.user_id AS peer_user_id
              FROM conversations c
              JOIN conversation_members cm ON cm.conversation_id = c.id AND cm.user_id = $1
              LEFT JOIN conversation_members peer ON peer.conversation_id = c.id
                        AND peer.user_id != $1 AND c.type = 0
              WHERE cm.is_deleted = false{}
-             ORDER BY c.last_message_at DESC NULLS LAST, c.created_at DESC
+             ORDER BY cm.is_pinned DESC, cm.pinned_at DESC NULLS LAST, c.last_message_at DESC NULLS LAST, c.created_at DESC
              LIMIT $2 OFFSET $3",
             if conv_type.is_some() { " AND c.type = $4" } else { "" }
         );
@@ -139,5 +140,60 @@ impl ConversationRepository {
         .fetch_optional(&self.db)
         .await?;
         Ok(row.is_some())
+    }
+
+    /// 翻转置顶状态，返回新状态。单条 SQL 原子翻转 + pinned_at 维护。
+    pub async fn toggle_pin(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<bool, sqlx::Error> {
+        let row: (bool,) = sqlx::query_as(
+            "UPDATE conversation_members
+             SET is_pinned = NOT is_pinned,
+                 pinned_at = CASE WHEN is_pinned THEN NULL ELSE NOW() END
+             WHERE conversation_id = $1 AND user_id = $2
+             RETURNING is_pinned"
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .fetch_one(&self.db)
+        .await?;
+        Ok(row.0)
+    }
+
+    /// 翻转免打扰状态，返回新状态
+    pub async fn toggle_mute(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<bool, sqlx::Error> {
+        let row: (bool,) = sqlx::query_as(
+            "UPDATE conversation_members SET is_muted = NOT is_muted
+             WHERE conversation_id = $1 AND user_id = $2
+             RETURNING is_muted"
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .fetch_one(&self.db)
+        .await?;
+        Ok(row.0)
+    }
+
+    /// 将会话未读数设为 1
+    pub async fn mark_unread(
+        &self,
+        conversation_id: Uuid,
+        user_id: i64,
+    ) -> Result<(), sqlx::Error> {
+        sqlx::query(
+            "UPDATE conversation_members SET unread_count = 1
+             WHERE conversation_id = $1 AND user_id = $2"
+        )
+        .bind(conversation_id)
+        .bind(user_id)
+        .execute(&self.db)
+        .await?;
+        Ok(())
     }
 }

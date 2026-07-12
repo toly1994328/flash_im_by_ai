@@ -151,6 +151,38 @@ const ConversationUpdate$json = {
       '5': 9,
       '10': 'lastMessageExtra'
     },
+    {
+      '1': 'is_pinned',
+      '3': 7,
+      '4': 1,
+      '5': 8,
+      '9': 0,
+      '10': 'isPinned',
+      '17': true
+    },
+    {
+      '1': 'is_muted',
+      '3': 8,
+      '4': 1,
+      '5': 8,
+      '9': 1,
+      '10': 'isMuted',
+      '17': true
+    },
+    {
+      '1': 'is_deleted',
+      '3': 9,
+      '4': 1,
+      '5': 8,
+      '9': 2,
+      '10': 'isDeleted',
+      '17': true
+    },
+  ],
+  '8': [
+    {'1': '_is_pinned'},
+    {'1': '_is_muted'},
+    {'1': '_is_deleted'},
   ],
 };
 
@@ -160,7 +192,10 @@ final $typed_data.Uint8List conversationUpdateDescriptor = $convert.base64Decode
     'Rpb25JZBIwChRsYXN0X21lc3NhZ2VfcHJldmlldxgCIAEoCVISbGFzdE1lc3NhZ2VQcmV2aWV3'
     'EiYKD2xhc3RfbWVzc2FnZV9hdBgDIAEoA1INbGFzdE1lc3NhZ2VBdBIhCgx1bnJlYWRfY291bn'
     'QYBCABKAVSC3VucmVhZENvdW50EiEKDHRvdGFsX3VucmVhZBgFIAEoBVILdG90YWxVbnJlYWQS'
-    'LAoSbGFzdF9tZXNzYWdlX2V4dHJhGAYgASgJUhBsYXN0TWVzc2FnZUV4dHJh');
+    'LAoSbGFzdF9tZXNzYWdlX2V4dHJhGAYgASgJUhBsYXN0TWVzc2FnZUV4dHJhEiAKCWlzX3Bpbm'
+    '5lZBgHIAEoCEgAUghpc1Bpbm5lZIgBARIeCghpc19tdXRlZBgIIAEoCEgBUgdpc011dGVkiAEB'
+    'EiIKCmlzX2RlbGV0ZWQYCSABKAhIAlIJaXNEZWxldGVkiAEBQgwKCl9pc19waW5uZWRCCwoJX2'
+    'lzX211dGVkQg0KC19pc19kZWxldGVk');
 
 @$core.Deprecated('Use groupInfoUpdateDescriptor instead')
 const GroupInfoUpdate$json = {
@@ -285,3 +320,18 @@ final $typed_data.Uint8List pinChangedNotificationDescriptor = $convert.base64De
     'ChZQaW5DaGFuZ2VkTm90aWZpY2F0aW9uEicKD2NvbnZlcnNhdGlvbl9pZBgBIAEoCVIOY29udm'
     'Vyc2F0aW9uSWQSHQoKbWVzc2FnZV9pZBgCIAEoCVIJbWVzc2FnZUlkEhYKBmFjdGlvbhgDIAEo'
     'CVIGYWN0aW9uEhsKCXBpbm5lZF9ieRgEIAEoCVIIcGlubmVkQnk=');
+
+@$core.Deprecated('Use storageQuotaNotificationDescriptor instead')
+const StorageQuotaNotification$json = {
+  '1': 'StorageQuotaNotification',
+  '2': [
+    {'1': 'used_bytes', '3': 1, '4': 1, '5': 3, '10': 'usedBytes'},
+    {'1': 'quota_bytes', '3': 2, '4': 1, '5': 3, '10': 'quotaBytes'},
+  ],
+};
+
+/// Descriptor for `StorageQuotaNotification`. Decode as a `google.protobuf.DescriptorProto`.
+final $typed_data.Uint8List storageQuotaNotificationDescriptor =
+    $convert.base64Decode(
+        'ChhTdG9yYWdlUXVvdGFOb3RpZmljYXRpb24SHQoKdXNlZF9ieXRlcxgBIAEoA1IJdXNlZEJ5dG'
+        'VzEh8KC3F1b3RhX2J5dGVzGAIgASgDUgpxdW90YUJ5dGVz');

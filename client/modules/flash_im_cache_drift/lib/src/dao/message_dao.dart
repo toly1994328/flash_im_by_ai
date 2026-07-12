@@ -66,6 +66,13 @@ class MessageDao {
     return row?.localData;
   }
 
+  /// 删除指定会话的所有缓存消息
+  Future<int> deleteByConversation(String conversationId) async {
+    final query = _db.delete(_db.cachedMessagesTable)
+      ..where((t) => t.conversationId.equals(conversationId));
+    return query.go();
+  }
+
   /// 批量读取 localData
   Future<Map<String, String?>> batchGetLocalData(List<String> messageIds) async {
     if (messageIds.isEmpty) return {};

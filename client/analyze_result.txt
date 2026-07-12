@@ -1,0 +1,22 @@
+Analyzing client...                                             
+
+   info - Type could be non-nullable. Try changing the type to be non-nullable - modules\flash_cloud\lib\src\view\cloud_space_page.dart:58:21 - unnecessary_nullable_for_final_variable_declarations
+   info - The imported package 'fx_env' isn't a dependency of the importing package. Try adding a dependency for 'fx_env' in the 'pubspec.yaml' file - modules\flash_cloud\lib\src\view\file_detail_page.dart:8:8 - depend_on_referenced_packages
+   info - Use the null-aware marker '?' rather than a null check via an 'if'. Try using '?' - modules\flash_im_chat\lib\src\logic\chat_cubit.dart:509:7 - use_null_aware_elements
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:110:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:127:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:133:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:139:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:154:22 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:155:24 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:158:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:200:7 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:258:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:265:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:281:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:286:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:300:9 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:311:5 - avoid_print
+   info - Don't invoke 'print' in production code. Try using a logging framework - modules\flash_im_core\lib\src\logic\ws_client.dart:326:5 - avoid_print
+   info - The imported package 'fx_logger' isn't a dependency of the importing package. Try adding a dependency for 'fx_logger' in the 'pubspec.yaml' file - modules\flash_session\lib\src\logic\subscription_cubit.dart:2:8 - depend_on_referenced_packages
+
