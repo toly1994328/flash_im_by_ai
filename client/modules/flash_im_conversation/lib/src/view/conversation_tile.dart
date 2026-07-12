@@ -162,6 +162,7 @@ class ConversationTile extends StatelessWidget {
         return TolyMenuItem(
           info: label,
           content: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(icon, color: isDelete ? const Color(0xFFFF4D4F) : null, size: 22),
               const SizedBox(width: 12),
