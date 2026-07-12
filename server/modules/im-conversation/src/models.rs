@@ -35,6 +35,15 @@ pub struct ConversationListItem {
     pub peer_user_id: Option<i64>,
     pub is_pinned: bool,
     pub is_muted: bool,
+    pub pinned_at: Option<DateTime<Utc>>,
+}
+
+/// toggle 操作响应（pin/mute/unread 共用）
+#[derive(Debug, Serialize)]
+pub struct ToggleResponse {
+    pub is_pinned: Option<bool>,
+    pub is_muted: Option<bool>,
+    pub unread_count: Option<i32>,
 }
 
 /// 会话列表响应项（补充对方昵称头像）

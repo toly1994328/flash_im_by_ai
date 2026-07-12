@@ -37,6 +37,7 @@ const WsFrameType$json = {
     {'1': 'READ_RECEIPT', '2': 15},
     {'1': 'MESSAGE_RECALLED', '2': 16},
     {'1': 'PIN_CHANGED', '2': 17},
+    {'1': 'STORAGE_QUOTA_UPDATE', '2': 18},
   ],
 };
 
@@ -48,7 +49,7 @@ final $typed_data.Uint8List wsFrameTypeDescriptor = $convert.base64Decode(
     'JJRU5EX1JFTU9WRUQQCRIWChJHUk9VUF9KT0lOX1JFUVVFU1QQChIVChFHUk9VUF9JTkZPX1VQ'
     'REFURRALEg8KC1VTRVJfT05MSU5FEAwSEAoMVVNFUl9PRkZMSU5FEA0SDwoLT05MSU5FX0xJU1'
     'QQDhIQCgxSRUFEX1JFQ0VJUFQQDxIUChBNRVNTQUdFX1JFQ0FMTEVEEBASDwoLUElOX0NIQU5H'
-    'RUQQEQ==');
+    'RUQQERIYChRTVE9SQUdFX1FVT1RBX1VQREFURRAS');
 
 @$core.Deprecated('Use wsFrameDescriptor instead')
 const WsFrame$json = {

@@ -1507,6 +1507,7 @@ dependencies = [
  "app-center",
  "app-storage",
  "app-subscription",
+ "async-trait",
  "axum",
  "chrono",
  "dotenvy",
@@ -2256,6 +2257,7 @@ dependencies = [
 name = "im-conversation"
 version = "0.1.0"
 dependencies = [
+ "async-trait",
  "axum",
  "chrono",
  "flash-core",

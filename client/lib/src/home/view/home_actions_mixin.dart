@@ -31,7 +31,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
     final session = ctx.read<SessionCubit>().state;
     final user = session.user;
     if (user == null) return;
-    convCubit.clearUnread(conversation.id);
+    convCubit.clearUnread(conversation.id, skipIfManuallyMarked: true);
     convCubit.clearMentionMe(conversation.id);
     convCubit.setActiveConversation(conversation.id);
     await Navigator.of(ctx).push(MaterialPageRoute(
@@ -63,6 +63,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
                 isGroup: conversation.isGroup,
               ),
               onConversationChanged: () => convCubit.loadConversations(),
+              clearedAtResolver: (convId) => convCubit.getClearedAt(convId),
               baseUrl: AppConfig.baseUrl,
               ossUploader: ossEnabled ? OssUploader(dio: ctx.read<MessageRepository>().dio) : null,
               ossUploadEnabled: ossEnabled,
@@ -133,6 +134,7 @@ mixin HomeActionsMixin<T extends StatefulWidget> on State<T> {
                 isGroup: conversation.isGroup,
               ),
               onConversationChanged: () => convCubit.loadConversations(),
+              clearedAtResolver: (convId) => convCubit.getClearedAt(convId),
               baseUrl: AppConfig.baseUrl,
               ossUploader: ossEnabled ? OssUploader(dio: ctx.read<MessageRepository>().dio) : null,
               ossUploadEnabled: ossEnabled,

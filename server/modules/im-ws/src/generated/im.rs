@@ -204,6 +204,12 @@ pub struct ConversationUpdate {
     pub total_unread: i32,
     #[prost(string, tag = "6")]
     pub last_message_extra: ::prost::alloc::string::String,
+    #[prost(bool, optional, tag = "7")]
+    pub is_pinned: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "8")]
+    pub is_muted: ::core::option::Option<bool>,
+    #[prost(bool, optional, tag = "9")]
+    pub is_deleted: ::core::option::Option<bool>,
 }
 #[derive(Clone, PartialEq, ::prost::Message)]
 pub struct GroupInfoUpdate {

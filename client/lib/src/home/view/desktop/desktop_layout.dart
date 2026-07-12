@@ -455,7 +455,7 @@ class _DesktopLayoutState extends State<DesktopLayout>
       _selectedConv = conv;
       _showChatDetail = false;
     });
-    _home.convCubit.clearUnread(conv.id);
+    _home.convCubit.clearUnread(conv.id, skipIfManuallyMarked: true);
     _home.convCubit.clearMentionMe(conv.id);
     _home.convCubit.setActiveConversation(conv.id);
     if (_showChatDetail) _detailAnimController.reverse();

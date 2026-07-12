@@ -14,6 +14,7 @@ class Conversation {
   final int unreadCount;
   final bool isPinned;
   final bool isMuted;
+  final DateTime? pinnedAt;
   final DateTime createdAt;
   final bool isSkeleton;
 
@@ -32,6 +33,7 @@ class Conversation {
     this.unreadCount = 0,
     this.isPinned = false,
     this.isMuted = false,
+    this.pinnedAt,
     required this.createdAt,
     this.isSkeleton = false,
   });
@@ -69,6 +71,11 @@ class Conversation {
     int? unreadCount,
     DateTime? lastMessageAt,
     String? lastMessagePreview,
+    bool? isPinned,
+    bool? isMuted,
+    DateTime? pinnedAt,
+    /// 传 true 时强制清空 lastMessagePreview 和 lastMessageAt 为 null
+    bool clearPreview = false,
   }) {
     return Conversation(
       id: id,
@@ -78,11 +85,12 @@ class Conversation {
       peerUserId: peerUserId,
       peerNickname: peerNickname,
       peerAvatar: peerAvatar,
-      lastMessageAt: lastMessageAt ?? this.lastMessageAt,
-      lastMessagePreview: lastMessagePreview ?? this.lastMessagePreview,
+      lastMessageAt: clearPreview ? null : (lastMessageAt ?? this.lastMessageAt),
+      lastMessagePreview: clearPreview ? null : (lastMessagePreview ?? this.lastMessagePreview),
       unreadCount: unreadCount ?? this.unreadCount,
-      isPinned: isPinned,
-      isMuted: isMuted,
+      isPinned: isPinned ?? this.isPinned,
+      isMuted: isMuted ?? this.isMuted,
+      pinnedAt: pinnedAt ?? this.pinnedAt,
       createdAt: createdAt,
     );
   }
@@ -104,6 +112,9 @@ class Conversation {
       unreadCount: json['unread_count'] as int? ?? 0,
       isPinned: json['is_pinned'] as bool? ?? false,
       isMuted: json['is_muted'] as bool? ?? false,
+      pinnedAt: json['pinned_at'] != null
+          ? DateTime.parse(json['pinned_at'] as String)
+          : null,
       createdAt: DateTime.parse(json['created_at'] as String),
     );
   }

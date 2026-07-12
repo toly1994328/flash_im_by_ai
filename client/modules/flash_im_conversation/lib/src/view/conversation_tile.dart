@@ -52,24 +52,30 @@ class ConversationTile extends StatelessWidget {
     if (kApp.isDesktop) {
       return _buildDesktopTile(context, tile);
     }
-    return _buildMobileTile(tile);
+    return _buildMobileTile(context, tile);
   }
 
   // ─── 移动端：Slidable ───
 
-  Widget _buildMobileTile(Widget tile) {
+  Widget _buildMobileTile(BuildContext context, Widget tile) {
     final actions = getConversationActions(
       conv: conversation,
       isSlidableView: true,
     );
 
+    // 每个按钮宽度 64，计算总宽度比例
+    final screenWidth = MediaQuery.of(context).size.width;
+    final extentRatio = (actions.length * 64) / screenWidth;
+
     return Builder(
-      builder: (context) => Slidable(
+      builder: (ctx) => Slidable(
         key: ValueKey('slide_${conversation.id}'),
+        groupTag: 'conversation_list',
         endActionPane: ActionPane(
           motion: const BehindMotion(),
+          extentRatio: extentRatio.clamp(0.0, 1.0),
           children: actions
-              .map((action) => _buildSlideActionButton(context, action))
+              .map((action) => _buildSlideActionButton(ctx, action))
               .toList(),
         ),
         child: GestureDetector(
@@ -84,38 +90,22 @@ class ConversationTile extends StatelessWidget {
     BuildContext context,
     ConversationMenuAction action,
   ) {
-    final (icon, _) = actionInfo(action, conversation);
+    final (icon, label) = actionInfo(action, conversation);
     final color = slideActionColor(action);
 
-    return GestureDetector(
-      onTap: () => _handleAction(context, action),
-      child: Container(
-        width: 64,
-        color: color,
-        alignment: Alignment.center,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 20),
-            const SizedBox(height: 4),
-            Text(
-              _slideLabel(action),
-              style: const TextStyle(color: Colors.white, fontSize: 11),
-            ),
-          ],
-        ),
+    return CustomSlidableAction(
+      onPressed: (_) => _handleAction(context, action),
+      backgroundColor: color,
+      foregroundColor: Colors.white,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, color: Colors.white, size: 20),
+          const SizedBox(height: 4),
+          Text(label, style: const TextStyle(color: Colors.white, fontSize: 11)),
+        ],
       ),
     );
-  }
-
-  String _slideLabel(ConversationMenuAction action) {
-    return switch (action) {
-      ConversationMenuAction.pin => '置顶',
-      ConversationMenuAction.mute => '免打扰',
-      ConversationMenuAction.markRead => '已读',
-      ConversationMenuAction.delete => '删除',
-      _ => '',
-    };
   }
 
   // ─── 桌面端：TolyPopover ───

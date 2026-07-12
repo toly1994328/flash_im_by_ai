@@ -43,6 +43,18 @@ pub trait MessageBroadcaster: Send + Sync {
         pinned_by: i64,
         member_ids: &[i64],
     );
+
+    /// 广播会话状态变更给指定用户的所有设备（pin/mute/unread/delete）
+    async fn broadcast_conversation_state_update(
+        &self,
+        user_id: i64,
+        conversation_id: Uuid,
+        is_pinned: Option<bool>,
+        is_muted: Option<bool>,
+        is_deleted: bool,
+        unread_count: Option<i32>,
+        total_unread: Option<i32>,
+    );
 }
 
 /// 空广播器（测试用）
@@ -54,4 +66,15 @@ impl MessageBroadcaster for NoopBroadcaster {
     async fn broadcast_conversation_update(&self, _: Uuid, _: &str, _: &[i64], _: i64, _: &str) {}
     async fn broadcast_recalled(&self, _: Uuid, _: Uuid, _: i64, _: &str, _: &[i64]) {}
     async fn broadcast_pin_changed(&self, _: Uuid, _: Uuid, _: &str, _: i64, _: &[i64]) {}
+    async fn broadcast_conversation_state_update(
+        &self,
+        _user_id: i64,
+        _conversation_id: Uuid,
+        _is_pinned: Option<bool>,
+        _is_muted: Option<bool>,
+        _is_deleted: bool,
+        _unread_count: Option<i32>,
+        _total_unread: Option<i32>,
+    ) {
+    }
 }

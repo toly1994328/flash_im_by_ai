@@ -63,6 +63,24 @@ class ConversationRepository {
     await _dio.post('/conversations/$conversationId/read');
   }
 
+  /// 翻转置顶状态，返回新的 is_pinned 值
+  Future<bool> togglePin(String conversationId) async {
+    final res = await _dio.post('/conversations/$conversationId/pin');
+    return res.data['is_pinned'] as bool;
+  }
+
+  /// 翻转免打扰状态，返回新的 is_muted 值
+  Future<bool> toggleMute(String conversationId) async {
+    final res = await _dio.post('/conversations/$conversationId/mute');
+    return res.data['is_muted'] as bool;
+  }
+
+  /// 标记未读，返回新的 unread_count 值
+  Future<int> markUnread(String conversationId) async {
+    final res = await _dio.post('/conversations/$conversationId/unread');
+    return res.data['unread_count'] as int;
+  }
+
   /// 获取单个会话详情
   Future<Conversation> getById(String conversationId) async {
     if (_store != null) {
@@ -90,6 +108,9 @@ class ConversationRepository {
       unreadCount: c.unreadCount,
       isPinned: c.isPinned,
       isMuted: c.isMuted,
+      pinnedAt: c.pinnedAt != null
+          ? DateTime.fromMillisecondsSinceEpoch(c.pinnedAt!)
+          : null,
       createdAt: DateTime.fromMillisecondsSinceEpoch(c.createdAt),
     );
   }
